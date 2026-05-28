@@ -1,0 +1,19 @@
+{
+	"name": "Headliner",
+	"short_name": "Headliner",
+	"description": "Albumz amplified — what's playing right now, full screen",
+	"start_url": "/headliner",
+	"scope": "/headliner",
+	"display": "fullscreen",
+	"background_color": "#08070a",
+	"theme_color": "#08070a",
+	"orientation": "landscape",
+	"icons": [
+		{
+			"src": "/headliner/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}

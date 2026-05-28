@@ -1,0 +1,24 @@
+[Unit]
+Description=Albumz SvelteKit production server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zedzee
+Group=zedzee
+WorkingDirectory=/home/zedzee/mine/apps/albumz
+EnvironmentFile=/home/zedzee/mine/apps/albumz/.env
+Environment=PORT=3200
+Environment=ORIGIN=https://albumz.spudalicio.us
+Environment=NODE_ENV=production
+# nvm-managed node — update this path when the node version changes
+ExecStart=/home/zedzee/.nvm/versions/node/v24.14.1/bin/node build
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=albumz
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,479 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import Avatar from '$lib/components/Avatar.svelte';
+	import type { PageData, ActionData } from './$types';
+
+	let { data, form }: { data: PageData; form: ActionData } = $props();
+	const profile = $derived(data.profile);
+
+	type Album = typeof data.albums[number];
+
+	let pickerOpen = $state(false);
+	let pickerQuery = $state('');
+
+	let fileInputEl = $state<HTMLInputElement | null>(null);
+	let uploading = $state(false);
+	let avatarError = $state<string | null>(null);
+
+	const filteredAlbums = $derived(
+		pickerQuery.trim()
+			? data.albums.filter((a: Album) => {
+				const q = pickerQuery.toLowerCase();
+				return a.artist.toLowerCase().includes(q) || a.title.toLowerCase().includes(q);
+			})
+			: data.albums
+	);
+
+	// Client-side resize to ~256px square before upload, encoded as WebP.
+	async function resizeImage(file: File, maxSize: number): Promise<Blob> {
+		const bitmap = await createImageBitmap(file);
+		const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+		const w = Math.max(1, Math.round(bitmap.width * scale));
+		const h = Math.max(1, Math.round(bitmap.height * scale));
+		const canvas = new OffscreenCanvas(w, h);
+		const ctx = canvas.getContext('2d');
+		if (!ctx) throw new Error('Canvas not supported in this browser.');
+		ctx.drawImage(bitmap, 0, 0, w, h);
+		bitmap.close();
+		return await canvas.convertToBlob({ type: 'image/webp', quality: 0.85 });
+	}
+
+	async function onAvatarPicked() {
+		const file = fileInputEl?.files?.[0];
+		if (!file) return;
+		uploading = true;
+		avatarError = null;
+		try {
+			const resized = await resizeImage(file, 256);
+			const fd = new FormData();
+			fd.set('avatar', new File([resized], 'avatar.webp', { type: 'image/webp' }));
+			const res = await fetch('?/uploadAvatar', {
+				method: 'POST',
+				body: fd,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+			const result = await res.json();
+			if (result.type === 'failure') {
+				avatarError = result.data?.avatarError ?? 'Upload failed.';
+			} else if (result.type === 'error') {
+				avatarError = result.error?.message ?? 'Upload failed.';
+			} else {
+				await invalidateAll();
+			}
+		} catch (err) {
+			avatarError = err instanceof Error ? err.message : 'Upload failed.';
+		} finally {
+			uploading = false;
+			if (fileInputEl) fileInputEl.value = '';
+		}
+	}
+</script>
+
+<svelte:head><title>Settings — albumz</title></svelte:head>
+
+<div class="page">
+	<header class="topbar">
+		<a href="/" class="back">← Collection</a>
+		<h1>Settings</h1>
+	</header>
+
+	{#if !profile}
+		<p class="error">Your profile is missing. Try signing out and back in.</p>
+	{:else}
+		<!-- ── Profile ────────────────────────────────────────────── -->
+		<section class="card">
+			<h2>Profile</h2>
+			<form
+				method="POST"
+				action="?/updateProfile"
+				use:enhance={() => async ({ update }) => update({ reset: false })}
+			>
+				<label class="field">
+					<span class="label">Username</span>
+					<input type="text" name="username" value={profile.username ?? ''} required />
+					<span class="hint">Your public page lives at <code>/u/{profile.username ?? 'username'}</code></span>
+				</label>
+				<label class="field">
+					<span class="label">Display name</span>
+					<input type="text" name="display_name" value={profile.display_name ?? ''} placeholder="Your name" />
+				</label>
+				<label class="field">
+					<span class="label">Last.fm username</span>
+					<input type="text" name="last_fm_username" value={profile.last_fm_username ?? ''} placeholder="your-lastfm-handle" />
+					<span class="hint">Powers now-playing on your public page and contributes to the home mosaic.</span>
+				</label>
+				<label class="field">
+					<span class="label">Discogs username</span>
+					<input type="text" name="discogs_username" value={profile.discogs_username ?? ''} />
+					<span class="hint">Reserved for future wantlist / crate-digging features.</span>
+				</label>
+
+				<fieldset class="field">
+					<legend class="label">Theme</legend>
+					<div class="radio-row">
+						{#each ['auto', 'light', 'dark'] as t}
+							<label class="radio-pill">
+								<input type="radio" name="theme" value={t} checked={(profile.theme ?? 'auto') === t} />
+								<span>{t[0].toUpperCase() + t.slice(1)}</span>
+							</label>
+						{/each}
+					</div>
+					<span class="hint">"Auto" follows your operating system.</span>
+				</fieldset>
+
+				{#if (form as { error?: string })?.error}
+					<p class="error">{(form as { error?: string }).error}</p>
+				{:else if (form as { savedProfile?: boolean })?.savedProfile}
+					<p class="success">Saved.</p>
+				{/if}
+
+				<div class="actions">
+					<button type="submit" class="btn-primary">Save profile</button>
+				</div>
+			</form>
+		</section>
+
+		<!-- ── Avatar ─────────────────────────────────────────────── -->
+		<section class="card">
+			<h2>Avatar</h2>
+			<p class="muted">
+				Your uploaded picture takes precedence. If you don't upload one, we'll show your
+				<a href="https://gravatar.com/" target="_blank" rel="noopener">Gravatar</a>
+				if you have one — otherwise a generated colored initial.
+			</p>
+			<div class="avatar-row">
+				<Avatar profile={profile} size={120} />
+				<div class="avatar-actions">
+					<input
+						type="file"
+						accept="image/png, image/jpeg, image/webp"
+						bind:this={fileInputEl}
+						onchange={onAvatarPicked}
+						style="display:none"
+					/>
+					<button
+						type="button"
+						class="btn-secondary"
+						onclick={() => fileInputEl?.click()}
+						disabled={uploading}
+					>
+						{uploading ? 'Uploading…' : (profile.avatar_url ? 'Change avatar' : 'Upload avatar')}
+					</button>
+					{#if profile.avatar_url}
+						<form
+							method="POST"
+							action="?/removeAvatar"
+							use:enhance={() => async ({ update }) => { await update(); }}
+						>
+							<button type="submit" class="btn-link" disabled={uploading}>Remove</button>
+						</form>
+					{/if}
+				</div>
+			</div>
+			{#if avatarError}
+				<p class="error">{avatarError}</p>
+			{:else if (form as { savedAvatar?: unknown })?.savedAvatar !== undefined}
+				<p class="success">Avatar updated.</p>
+			{/if}
+		</section>
+
+		<!-- ── Featured album ─────────────────────────────────────── -->
+		<section class="card">
+			<h2>Featured album</h2>
+			<p class="muted">The album that anchors your public page hero.</p>
+
+			{#if data.featured}
+				<div class="featured-display">
+					{#if data.featured.cover_url}
+						<img class="featured-cover" src={data.featured.cover_url} alt={data.featured.title} />
+					{:else}
+						<div class="featured-cover no-cover">{data.featured.artist.slice(0, 1)}</div>
+					{/if}
+					<div>
+						<p class="eyebrow">★ Featured</p>
+						<p class="featured-title">{data.featured.title}</p>
+						<p class="featured-artist">{data.featured.artist}</p>
+					</div>
+				</div>
+			{:else}
+				<p class="muted">No featured album picked yet.</p>
+			{/if}
+
+			{#if !pickerOpen}
+				<button type="button" class="btn-secondary" onclick={() => pickerOpen = true}>
+					{data.featured ? 'Change featured album' : 'Pick a featured album'}
+				</button>
+			{:else}
+				<div class="picker">
+					<input
+						type="text"
+						bind:value={pickerQuery}
+						placeholder="Search your collection…"
+						class="picker-search"
+					/>
+
+					{#if filteredAlbums.length === 0}
+						<p class="muted">No matches.</p>
+					{:else}
+						<div class="picker-grid">
+							{#each filteredAlbums.slice(0, 40) as album (album.id)}
+								<form
+									method="POST"
+									action="?/setFeatured"
+									use:enhance={() => async ({ update }) => {
+										await update({ reset: false });
+										pickerOpen = false;
+										pickerQuery = '';
+									}}
+								>
+									<input type="hidden" name="album_id" value={album.id} />
+									<button type="submit" class="picker-card" title="{album.artist} – {album.title}">
+										{#if album.cover_url}
+											<img src={album.cover_url} alt={album.title} loading="lazy" />
+										{:else}
+											<div class="picker-no-cover">{album.artist.slice(0, 1)}</div>
+										{/if}
+										<span class="picker-label">{album.artist}<br />{album.title}</span>
+									</button>
+								</form>
+							{/each}
+						</div>
+						{#if filteredAlbums.length > 40}
+							<p class="muted picker-more">{filteredAlbums.length - 40} more — refine your search</p>
+						{/if}
+					{/if}
+
+					<div class="actions">
+						{#if data.featured}
+							<form method="POST" action="?/setFeatured" use:enhance={() => async ({ update }) => {
+								await update({ reset: false });
+								pickerOpen = false;
+							}}>
+								<input type="hidden" name="album_id" value="" />
+								<button type="submit" class="btn-ghost">Clear featured</button>
+							</form>
+						{/if}
+						<button type="button" class="btn-ghost" onclick={() => { pickerOpen = false; pickerQuery = ''; }}>
+							Done
+						</button>
+					</div>
+				</div>
+			{/if}
+		</section>
+
+		<!-- ── Import / Export ───────────────────────────────────── -->
+		<section class="card">
+			<h2>Import / Export</h2>
+			<p class="muted">Bring albums in from a CSV/XLSX file, or download your full collection (owned + wantlist) as CSV. The export format round-trips through the importer.</p>
+			<div class="data-row">
+				<a href="/import" class="btn-secondary">Import from file</a>
+				<a href="/api/export" class="btn-secondary" download>Export collection (CSV)</a>
+				<span class="hint">{data.totalAlbumCount} {data.totalAlbumCount === 1 ? 'album' : 'albums'}</span>
+			</div>
+		</section>
+	{/if}
+</div>
+
+<style>
+	.page { max-width: 760px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+	.topbar { display: flex; align-items: baseline; gap: 1.5rem; margin-bottom: 2rem; }
+	.back { font-size: 0.85rem; color: var(--text-muted); }
+	h1 { font-size: 1.5rem; font-weight: 700; }
+
+	.card {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		padding: 1.5rem;
+		margin-bottom: 1.5rem;
+	}
+	.card h2 {
+		font-size: 0.78rem;
+		font-weight: 700;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+		margin-bottom: 1rem;
+	}
+	.card > p.muted { margin-bottom: 1rem; font-size: 0.9rem; }
+
+	.field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1.1rem; border: none; padding: 0; }
+	.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+	.field input {
+		padding: 0.55rem 0.75rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg-elevated);
+		color: var(--text);
+	}
+	.hint { font-size: 0.78rem; color: var(--text-muted); }
+	.hint code { font-family: ui-monospace, monospace; background: var(--bg-elevated); padding: 0.05rem 0.3rem; border-radius: 4px; }
+
+	.radio-row { display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
+	.radio-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 0.9rem;
+		border: 1px solid var(--border);
+		border-radius: 20px;
+		cursor: pointer;
+		font-size: 0.85rem;
+		background: var(--bg-elevated);
+	}
+	.radio-pill input { accent-color: var(--accent); }
+	.radio-pill:has(input:checked) { border-color: var(--accent); color: var(--accent); }
+
+	.actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+	.btn-primary {
+		padding: 0.55rem 1.25rem;
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.btn-secondary {
+		padding: 0.55rem 1.25rem;
+		background: var(--bg-elevated);
+		border: 1px solid var(--border);
+		color: var(--text);
+		border-radius: var(--radius);
+		font-weight: 600;
+		cursor: pointer;
+		margin-top: 1rem;
+	}
+	.btn-secondary:hover { background: var(--surface-hover); }
+	.btn-ghost {
+		padding: 0.55rem 1rem;
+		background: none;
+		border: 1px solid var(--border);
+		color: var(--text-muted);
+		border-radius: var(--radius);
+		cursor: pointer;
+	}
+
+	.muted { color: var(--text-muted); }
+	.error { color: oklch(55% 0.22 25); font-size: 0.85rem; margin-top: 0.5rem; }
+	.success { color: oklch(55% 0.15 150); font-size: 0.85rem; margin-top: 0.5rem; }
+
+	/* Featured album display */
+	.featured-display {
+		display: grid;
+		grid-template-columns: 80px 1fr;
+		gap: 1rem;
+		align-items: center;
+		padding: 1rem;
+		background: var(--bg-elevated);
+		border-radius: var(--radius);
+		margin-bottom: 1rem;
+	}
+	.featured-cover {
+		width: 80px;
+		height: 80px;
+		border-radius: var(--radius);
+		object-fit: cover;
+	}
+	.featured-cover.no-cover {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: color-mix(in oklch, var(--accent) 15%, var(--bg-elevated));
+		font-size: 1.8rem;
+		font-weight: 800;
+	}
+	.featured-title { font-size: 1rem; font-weight: 700; }
+	.featured-artist { font-size: 0.85rem; color: var(--text-muted); }
+	.eyebrow { margin-bottom: 0.25rem; }
+
+	/* Picker */
+	.picker { margin-top: 1rem; }
+	.picker-search {
+		width: 100%;
+		padding: 0.55rem 0.85rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg-elevated);
+		color: var(--text);
+		margin-bottom: 0.85rem;
+	}
+	.picker-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+		gap: 0.4rem;
+		max-height: 360px;
+		overflow-y: auto;
+		padding: 0.25rem;
+	}
+	.picker-grid form { margin: 0; }
+	.picker-card {
+		display: block;
+		width: 100%;
+		padding: 0;
+		border: 2px solid transparent;
+		border-radius: var(--radius);
+		background: var(--bg-elevated);
+		cursor: pointer;
+		overflow: hidden;
+		text-align: left;
+	}
+	.picker-card:hover { border-color: var(--accent); }
+	.picker-card img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+	.picker-no-cover {
+		width: 100%;
+		aspect-ratio: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: color-mix(in oklch, var(--accent) 12%, var(--bg-elevated));
+		font-weight: 800;
+		color: var(--text-muted);
+	}
+	.picker-label {
+		display: block;
+		font-size: 0.6rem;
+		padding: 0.2rem 0.3rem;
+		color: var(--text-muted);
+		line-height: 1.3;
+	}
+	.picker-more {
+		margin-top: 0.6rem;
+		font-size: 0.78rem;
+		text-align: center;
+	}
+
+	.data-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 0.5rem;
+	}
+	.data-row { flex-wrap: wrap; }
+	.data-row .btn-secondary { margin-top: 0; text-decoration: none; display: inline-block; }
+
+	.avatar-row {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+		margin-top: 1rem;
+		flex-wrap: wrap;
+	}
+	.avatar-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+	.btn-link {
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		font-size: 0.85rem;
+		cursor: pointer;
+		padding: 0;
+		font-family: inherit;
+	}
+	.btn-link:hover { color: var(--text); text-decoration: underline; }
+</style>

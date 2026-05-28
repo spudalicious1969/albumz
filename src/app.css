@@ -1,0 +1,130 @@
+/* ── Design tokens ─────────────────────────────────────────────── */
+:root {
+	--bg:           #f0ead8;
+	--bg-elevated:  #e8e0ca;
+	--surface:      rgba(255 255 255 / 0.55);
+	--surface-hover:rgba(255 255 255 / 0.75);
+	--border:       rgba(0 0 0 / 0.10);
+	--text:         #1a1614;
+	--text-muted:   #6b6057;
+	--accent:       oklch(58% 0.18 22);
+	--accent-glow:  oklch(58% 0.18 22 / 0.4);
+	--accent-soft:  oklch(58% 0.18 22 / 0.10);
+	--shadow:       0 2px 8px rgba(0 0 0 / 0.12), 0 1px 2px rgba(0 0 0 / 0.08);
+	--shadow-lift:  0 8px 24px rgba(0 0 0 / 0.16), 0 2px 6px rgba(0 0 0 / 0.10);
+	--radius:       8px;
+	--radius-lg:    14px;
+	--font:         system-ui, -apple-system, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root { color-scheme: dark; }
+	:root:not([data-theme='light']) {
+		--bg:           #08070a;
+		--bg-elevated:  #100e14;
+		--surface:      rgba(255 255 255 / 0.06);
+		--surface-hover:rgba(255 255 255 / 0.10);
+		--border:       rgba(255 255 255 / 0.09);
+		--text:         #f0ead8;
+		--text-muted:   #8a7f96;
+		--shadow:       0 2px 8px rgba(0 0 0 / 0.5);
+		--shadow-lift:  0 8px 32px rgba(0 0 0 / 0.6);
+	}
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--bg:           #08070a;
+	--bg-elevated:  #100e14;
+	--surface:      rgba(255 255 255 / 0.06);
+	--surface-hover:rgba(255 255 255 / 0.10);
+	--border:       rgba(255 255 255 / 0.09);
+	--text:         #f0ead8;
+	--text-muted:   #8a7f96;
+	--shadow:       0 2px 8px rgba(0 0 0 / 0.5);
+	--shadow-lift:  0 8px 32px rgba(0 0 0 / 0.6);
+}
+
+:root[data-theme='light'] {
+	color-scheme: light;
+}
+
+/* ── Reset / base ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+body {
+	font-family: var(--font);
+	background: var(--bg);
+	color: var(--text);
+	line-height: 1.5;
+	min-height: 100dvh;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { display: block; max-width: 100%; }
+
+button, input, select, textarea {
+	font: inherit;
+}
+
+/* ── Utility ───────────────────────────────────────────────────── */
+.eyebrow {
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.13em;
+	text-transform: uppercase;
+	color: var(--accent);
+}
+
+.wordmark {
+	font-size: 1.5rem;
+	font-weight: 800;
+	letter-spacing: 0.09em;
+	color: var(--text);
+}
+
+.wordmark span {
+	text-shadow: 0 0 20px var(--accent-glow), 0 0 8px var(--accent-glow);
+}
+
+[data-theme='light'] .wordmark span {
+	text-shadow: none;
+	color: var(--accent);
+}
+@media (prefers-color-scheme: light) {
+	.wordmark span { text-shadow: none; color: var(--accent); }
+}
+
+/* ── Atmospheric site-wide layer: subtle film grain ────────────────
+   3% noise overlay adds tactile depth so flat surfaces don't read plastic.
+   Sits above content but pointer-events:none. Light mode uses multiply at 2.5%. */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: 1000;
+	opacity: 0.035;
+	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	background-size: 128px 128px;
+	mix-blend-mode: overlay;
+}
+[data-theme='light'] body::before { opacity: 0.025; mix-blend-mode: multiply; }
+@media (prefers-color-scheme: light) {
+	:root:not([data-theme='dark']) body::before { opacity: 0.025; mix-blend-mode: multiply; }
+}
+
+/* ── Global focus glow on form controls ────────────────────────────
+   Component-scoped focus rules override this (higher specificity), but
+   for the many plain `<input>` elements this gives a consistent warm halo. */
+input:focus,
+select:focus,
+textarea:focus {
+	border-color: color-mix(in oklch, var(--accent) 55%, var(--border));
+	box-shadow: 0 0 0 3px var(--accent-soft), 0 0 12px var(--accent-glow);
+	outline: none;
+}

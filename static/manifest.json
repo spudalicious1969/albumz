@@ -1,0 +1,19 @@
+{
+	"name": "Albumz",
+	"short_name": "Albumz",
+	"description": "Your music collection",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"background_color": "#08070a",
+	"theme_color": "#08070a",
+	"orientation": "any",
+	"icons": [
+		{
+			"src": "/icon.svg",
+			"sizes": "any",
+			"type": "image/svg+xml",
+			"purpose": "any maskable"
+		}
+	]
+}
