@@ -1,7 +1,5 @@
-import { LAST_FM_API_KEY } from '$env/static/private';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-const ITUNES_PROXY = 'https://spudalicio.us/proxy/itunes';
+import { fetchNowPlaying } from './now-playing';
 
 /** A randomly-sampled album from a user's collection. Clicks deep-link into their public page. */
 export interface AlbumTile {
@@ -96,28 +94,27 @@ async function fetchAlbumPool(supabase: SupabaseClient): Promise<AlbumTile[]> {
 // Pulls *only* the currently-playing track per profile (state === 'playing').
 // Recent-but-not-current tracks no longer feed the mosaic — that role moved to
 // the random album pool. This keeps the live layer rare and special.
-
-interface NowPlayingRaw {
-	artist: string;
-	track: string;
-	album: string | null;
-	isPlaying: boolean;
-}
+//
+// Cover resolution uses the existing multi-source `fetchNowPlaying` (iTunes
+// song + album, Deezer, Last.fm image, with artist-match filtering) so we
+// don't lose a now-playing tile to a single failed iTunes lookup.
 
 async function fetchNowPlayingTiles(profiles: ProfileWithLastFm[]): Promise<NowPlayingTile[]> {
-	const perProfile = await Promise.all(profiles.map(fetchProfileNowPlaying));
+	const results = await Promise.all(
+		profiles.map(async (p) => ({ profile: p, np: await fetchNowPlaying(p.last_fm_username) }))
+	);
 
 	const tiles: NowPlayingTile[] = [];
-	const seenTracks = new Set<string>();
+	const seen = new Set<string>();
 
-	for (const { profile, np } of perProfile) {
-		if (!np || !np.isPlaying) continue;
-		const key = `${np.artist}::${np.track}`.toLowerCase();
-		if (seenTracks.has(key)) continue;
-		seenTracks.add(key);
-
-		const cover = await lookupCover(np.artist, np.track, np.album);
+	for (const { profile, np } of results) {
+		if (np.state !== 'playing' || !np.artist || !np.track) continue;
+		const cover = np.coverCandidates[0] ?? np.coverUrl;
 		if (!cover) continue;
+
+		const key = `${np.artist}::${np.track}`.toLowerCase();
+		if (seen.has(key)) continue;
+		seen.add(key);
 
 		tiles.push({
 			kind: 'nowPlaying',
@@ -135,74 +132,6 @@ async function fetchNowPlayingTiles(profiles: ProfileWithLastFm[]): Promise<NowP
 	return tiles;
 }
 
-async function fetchProfileNowPlaying(
-	profile: ProfileWithLastFm
-): Promise<{ profile: ProfileWithLastFm; np: NowPlayingRaw | null }> {
-	const url = new URL('https://ws.audioscrobbler.com/2.0/');
-	url.searchParams.set('method', 'user.getRecentTracks');
-	url.searchParams.set('user', profile.last_fm_username);
-	url.searchParams.set('api_key', LAST_FM_API_KEY);
-	url.searchParams.set('format', 'json');
-	url.searchParams.set('limit', '1');
-
-	try {
-		const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-		if (!res.ok) return { profile, np: null };
-
-		const data = await res.json();
-		const first = (data?.recenttracks?.track ?? [])[0];
-		if (!first) return { profile, np: null };
-
-		const artist = ((first.artist as Record<string, unknown>)?.['#text'] as string)
-			?? ((first.artist as Record<string, unknown>)?.name as string);
-		const track = first.name as string;
-		if (!artist || !track) return { profile, np: null };
-
-		const album = ((first.album as Record<string, unknown>)?.['#text'] as string) || null;
-		const isPlaying = ((first['@attr'] as Record<string, unknown>)?.nowplaying as string) === 'true';
-
-		return { profile, np: { artist, track, album, isPlaying } };
-	} catch {
-		return { profile, np: null };
-	}
-}
-
 function spotifySearchUrl(artist: string, track: string): string {
 	return `https://open.spotify.com/search/${encodeURIComponent(`${artist} ${track}`)}`;
-}
-
-// ── Cover-lookup cache (now-playing only — pool tiles already have cover URLs) ──
-const TRACK_COVER_TTL_MS = 60 * 60 * 1000;
-const NEGATIVE_TTL_MS = 5 * 60 * 1000;
-const trackCoverCache = new Map<string, { url: string | null; expiresAt: number }>();
-
-async function lookupCover(artist: string, track: string, album: string | null): Promise<string | null> {
-	const cacheKey = `${artist}::${track}`.toLowerCase();
-	const cached = trackCoverCache.get(cacheKey);
-	if (cached && cached.expiresAt > Date.now()) return cached.url;
-
-	const term = album ? `${artist} ${album}` : `${artist} ${track}`;
-	const entity = album ? 'album' : 'song';
-
-	let url: string | null = null;
-	try {
-		const res = await fetch(
-			`${ITUNES_PROXY}/search?term=${encodeURIComponent(term)}&media=music&entity=${entity}&limit=1`,
-			{ signal: AbortSignal.timeout(4000) }
-		);
-		if (res.ok) {
-			const data = await res.json();
-			const first = (data.results ?? [])[0];
-			const artwork = first?.artworkUrl100 as string | undefined;
-			if (artwork) url = artwork.replace('100x100', '600x600');
-		}
-	} catch {
-		// fall through to negative cache
-	}
-
-	trackCoverCache.set(cacheKey, {
-		url,
-		expiresAt: Date.now() + (url ? TRACK_COVER_TTL_MS : NEGATIVE_TTL_MS)
-	});
-	return url;
 }

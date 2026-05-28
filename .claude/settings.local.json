@@ -41,7 +41,14 @@
       "Bash(git init *)",
       "Bash(git add *)",
       "Bash(grep -iE \"\\\\.env|secret|credential|\\\\.key$|\\\\.pem$|token\")",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(git commit -m ' *)",
+      "Bash(ssh-keygen -t ed25519 -C \"brent.l.watkins@gmail.com\" -f ~/.ssh/id_ed25519 -N \"\")",
+      "Bash(ssh-keyscan github.com)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(mv \"/home/zedzee/mine/apps/albumz/.claude/projects/-home-zedzee-mine-apps-albumz/memory/project_albumz_followups.md\" \"/home/zedzee/.claude/projects/-home-zedzee-mine-apps-albumz/memory/project_albumz_followups.md\")",
+      "Bash(rmdir -p \"/home/zedzee/mine/apps/albumz/.claude/projects/-home-zedzee-mine-apps-albumz/memory\")"
     ]
   }
 }

@@ -12,6 +12,7 @@
 	const FEATURED_EVERY_N_ALBUM = 9;   // ~1 in 9 album slots becomes a 2x2 feature
 	const RESIZE_DEBOUNCE_MS = 300;
 	const GRID_GAP_PX = 6;              // keep in sync with CSS --gap
+	const NOWPLAYING_POLL_MS = 15000;   // matches the /u/{username} hero poll cadence
 
 	// ── Split tiles by kind ──────────────────────────────────────────────
 	const nowPlayingTiles = tiles.filter((t): t is Extract<MosaicTile, { kind: 'nowPlaying' }> => t.kind === 'nowPlaying');
@@ -30,22 +31,44 @@
 	let slots = $state<Slot[]>([]);
 	let flipping = $state(0);
 	let gridEl: HTMLDivElement | undefined = $state();
+	let frameEl: HTMLDivElement | undefined = $state();
 	let headerEl: HTMLElement | undefined = $state();
 	// Bumps on rebuild so in-flight flip continuations from the previous layout
 	// can detect they've been orphaned and bail out cleanly.
 	let generation = 0;
 
-	function computeTargetCells(): number {
-		if (typeof window === 'undefined') return 24;
+	function computeLayout(): { cols: number; rows: number } {
+		if (typeof window === 'undefined') return { cols: 5, rows: 5 };
 		// Mirror the CSS --cell breakpoints
 		const cell = window.innerWidth >= 1400 ? 180 : window.innerWidth >= 900 ? 160 : 140;
 		const gap = GRID_GAP_PX;
-		const innerWidth = (gridEl?.clientWidth ?? window.innerWidth) - 2 * gap;
+		// Measure the FRAME (which has the visible viewport size). The inner grid
+		// is intentionally larger than the frame to support bleed-off + pan.
+		const innerWidth = (frameEl?.clientWidth ?? window.innerWidth) - 2 * gap;
 		const headerHeight = headerEl?.offsetHeight ?? 0;
 		const innerHeight = window.innerHeight - headerHeight - 2 * gap;
-		const cols = Math.max(1, Math.floor((innerWidth + gap) / (cell + gap)));
-		const rows = Math.max(1, Math.floor((innerHeight + gap) / (cell + gap)));
-		return cols * rows;
+		// ceil() = always overshoot by enough to bleed a partial tile off the
+		// right + bottom edges (preferred over leaving gutter space).
+		const cols = Math.max(1, Math.ceil((innerWidth + gap) / (cell + gap)));
+		const rows = Math.max(1, Math.ceil((innerHeight + gap) / (cell + gap)));
+		return { cols, rows };
+	}
+
+	// Used to skip flips on slots that ended up below the fold or off to the
+	// side after over-rendering. getBoundingClientRect respects the pan
+	// transform, so a slot that's drifted into view will correctly read on-screen.
+	function isSlotOnScreen(idx: number): boolean {
+		if (!frameEl || !gridEl) return true;
+		const el = gridEl.children[idx] as HTMLElement | undefined;
+		if (!el) return true;
+		const rect = el.getBoundingClientRect();
+		const frameRect = frameEl.getBoundingClientRect();
+		return (
+			rect.bottom > frameRect.top &&
+			rect.top < frameRect.bottom &&
+			rect.right > frameRect.left &&
+			rect.left < frameRect.right
+		);
 	}
 
 	function buildSlotsForCells(maxCells: number): Slot[] {
@@ -73,6 +96,24 @@
 				locked: false
 			});
 			cellsUsed += cost;
+		}
+		// Safety buffer of pure 1x1 slots — when a 2x2 forces CSS dense flow to
+		// extend the grid, the cells it skips over need filling. Dense flow
+		// scans from the start of the grid on every placement, so these buffer
+		// 1x1s backfill the visible gaps before flowing into the overshoot rows.
+		// Kept small so we don't render lots of content below the viewport fold.
+		const SAFETY_BUFFER = 8;
+		let buffer = 0;
+		while (buffer < SAFETY_BUFFER && albumIdx < albumTiles.length) {
+			const tile = albumTiles[albumIdx++];
+			result.push({
+				shape: '1x1',
+				faces: [tile, null],
+				showing: 0,
+				flipping: false,
+				locked: false
+			});
+			buffer++;
 		}
 		return result;
 	}
@@ -117,28 +158,20 @@
 		});
 	}
 
-	async function tick() {
-		if (flipping >= MAX_CONCURRENT_FLIPS) return;
-
-		const candidates: number[] = [];
-		for (let i = 0; i < slots.length; i++) {
-			if (!slots[i].locked && !slots[i].flipping) candidates.push(i);
-		}
-		if (candidates.length === 0) return;
-
-		const idx = candidates[Math.floor(Math.random() * candidates.length)];
+	// Flip a single slot to a new tile. Shared by the random-album scheduler
+	// (which respects MAX_CONCURRENT_FLIPS) and now-playing polling (which
+	// always flips on track change, so it doesn't count toward the limit).
+	async function flipSlotTo(idx: number, newTile: MosaicTile, countsTowardLimit: boolean) {
 		const slot = slots[idx];
-
-		const next = pickNextAlbumTile(idx);
-		if (!next) return;
+		if (!slot || slot.flipping) return;
 
 		const gen = generation;
 		const hidden: 0 | 1 = slot.showing === 0 ? 1 : 0;
-		slot.faces[hidden] = next;
+		slot.faces[hidden] = newTile;
 		slot.flipping = true;
-		flipping++;
+		if (countsTowardLimit) flipping++;
 
-		await preload(next.imageUrl);
+		await preload(newTile.imageUrl);
 		if (gen !== generation) return;  // orphaned by a rebuild — bail
 		slot.showing = hidden;
 
@@ -147,20 +180,108 @@
 			const newlyHidden: 0 | 1 = slot.showing === 0 ? 1 : 0;
 			slot.faces[newlyHidden] = null;
 			slot.flipping = false;
-			flipping--;
+			if (countsTowardLimit) flipping--;
 		}, FLIP_DURATION_MS);
+	}
+
+	async function tick() {
+		if (flipping >= MAX_CONCURRENT_FLIPS) return;
+
+		const candidates: number[] = [];
+		for (let i = 0; i < slots.length; i++) {
+			if (slots[i].locked || slots[i].flipping) continue;
+			if (!isSlotOnScreen(i)) continue;
+			candidates.push(i);
+		}
+		if (candidates.length === 0) return;
+
+		const idx = candidates[Math.floor(Math.random() * candidates.length)];
+		const next = pickNextAlbumTile(idx);
+		if (!next) return;
+
+		await flipSlotTo(idx, next, true);
 	}
 
 	let tickHandle: ReturnType<typeof setInterval> | undefined;
 	let startHandle: ReturnType<typeof setTimeout> | undefined;
 	let resizeHandle: ReturnType<typeof setTimeout> | undefined;
+	let nowPlayingHandles: ReturnType<typeof setInterval>[] = [];
+
+	type NowPlayingApiResult = {
+		state: 'playing' | 'recent' | 'none';
+		artist: string | null;
+		track: string | null;
+		album: string | null;
+		coverUrl: string | null;
+		coverCandidates?: string[];
+	};
+
+	async function pollNowPlaying(idx: number, username: string, displayName: string) {
+		try {
+			const res = await fetch(`/api/now-playing/${username}`);
+			if (!res.ok) return;
+			const data = (await res.json()) as NowPlayingApiResult;
+			if (data.state !== 'playing' || !data.artist || !data.track) return;
+
+			const slot = slots[idx];
+			if (!slot || !slot.locked) return;
+			const current = slot.faces[slot.showing];
+			if (current?.kind === 'nowPlaying'
+				&& current.artist === data.artist
+				&& current.track === data.track) {
+				return;  // unchanged
+			}
+
+			const cover = data.coverCandidates?.[0] ?? data.coverUrl;
+			if (!cover) return;
+
+			const newTile: Extract<MosaicTile, { kind: 'nowPlaying' }> = {
+				kind: 'nowPlaying',
+				id: `nowplaying:${username}`,
+				artist: data.artist,
+				track: data.track,
+				album: data.album ?? null,
+				imageUrl: cover,
+				spotifyUrl: `https://open.spotify.com/search/${encodeURIComponent(`${data.artist} ${data.track}`)}`,
+				username,
+				displayName
+			};
+
+			await flipSlotTo(idx, newTile, false);
+		} catch {
+			// swallow — try again on next interval
+		}
+	}
+
+	function startNowPlayingPolling() {
+		for (let i = 0; i < slots.length; i++) {
+			const slot = slots[i];
+			if (!slot.locked) continue;
+			const tile = slot.faces[slot.showing];
+			if (tile?.kind !== 'nowPlaying') continue;
+			const { username, displayName } = tile;
+			const handle = setInterval(() => pollNowPlaying(i, username, displayName), NOWPLAYING_POLL_MS);
+			nowPlayingHandles.push(handle);
+		}
+	}
+
+	function stopNowPlayingPolling() {
+		for (const h of nowPlayingHandles) clearInterval(h);
+		nowPlayingHandles = [];
+	}
 
 	function rebuild() {
 		if (tickHandle) { clearInterval(tickHandle); tickHandle = undefined; }
 		if (startHandle) { clearTimeout(startHandle); startHandle = undefined; }
+		stopNowPlayingPolling();
 		generation++;
 		flipping = 0;
-		slots = buildSlotsForCells(computeTargetCells());
+		const { cols, rows } = computeLayout();
+		// Drive the CSS grid-template-columns count from JS so we can force the
+		// overshoot column (auto-fill would happily leave a gutter instead).
+		if (gridEl) gridEl.style.setProperty('--cols', String(cols));
+		slots = buildSlotsForCells(cols * rows);
+		startNowPlayingPolling();
 		startHandle = setTimeout(() => {
 			tickHandle = setInterval(tick, FLIP_INTERVAL_MS);
 		}, FIRST_FLIP_DELAY_MS);
@@ -183,6 +304,7 @@
 		if (tickHandle) clearInterval(tickHandle);
 		if (startHandle) clearTimeout(startHandle);
 		if (resizeHandle) clearTimeout(resizeHandle);
+		stopNowPlayingPolling();
 	});
 
 	function tileHref(t: MosaicTile): string {
@@ -221,6 +343,7 @@
 			<p class="empty-hint">Sign in to start your collection.</p>
 		</div>
 	{:else}
+		<div class="bento-frame" bind:this={frameEl}>
 		<div class="bento-grid" aria-hidden="true" bind:this={gridEl}>
 			{#each slots as slot, i (i)}
 				{@const visible = slot.faces[slot.showing]}
@@ -263,6 +386,10 @@
 					</div>
 				</div>
 			{/each}
+		</div>
+
+		<div class="noir-vignette" aria-hidden="true"></div>
+		<div class="noir-grain" aria-hidden="true"></div>
 		</div>
 	{/if}
 </div>
@@ -311,21 +438,23 @@
 	}
 
 	/* ── Bento grid ──────────────────────────────────────────────────── */
+	/* Outer frame: the visible viewport that clips the over-sized grid inside */
+	.bento-frame {
+		position: relative;
+		flex: 1;
+		overflow: hidden;
+	}
+
 	.bento-grid {
 		--cell: 140px;
 		--gap: 6px;
+		--cols: 5;             /* default before JS measures — overwritten on mount */
 		display: grid;
-		grid-template-columns: repeat(auto-fill, var(--cell));
+		grid-template-columns: repeat(var(--cols), var(--cell));
 		grid-auto-rows: var(--cell);
 		grid-auto-flow: dense;
 		gap: var(--gap);
 		padding: var(--gap);
-		flex: 1;
-		justify-content: center;
-		overflow: hidden;
-		/* Soft edge fade — subtle now that the grid is viewport-fit */
-		mask-image: linear-gradient(to bottom, black 0%, black 92%, transparent 100%);
-		-webkit-mask-image: linear-gradient(to bottom, black 0%, black 92%, transparent 100%);
 	}
 	@media (min-width: 900px)  { .bento-grid { --cell: 160px; } }
 	@media (min-width: 1400px) { .bento-grid { --cell: 180px; } }
@@ -431,6 +560,32 @@
 	@keyframes pulse {
 		0%, 100% { opacity: 1; transform: scale(1); }
 		50%      { opacity: 0.5; transform: scale(1.3); }
+	}
+
+	/* ── Neo-noir overlays ───────────────────────────────────────────── */
+	.noir-vignette,
+	.noir-grain {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+	}
+
+	/* Subtle corner darkening — gives the frame "lens character" */
+	.noir-vignette {
+		z-index: 1;
+		background: radial-gradient(
+			ellipse at center,
+			transparent 60%,
+			rgba(0, 0, 0, 0.30) 100%
+		);
+	}
+
+	/* Static SVG fractalNoise tile, blended over the grid as filmstock grain */
+	.noir-grain {
+		z-index: 3;
+		opacity: 0.08;
+		mix-blend-mode: overlay;
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 	}
 
 	/* ── Empty state ─────────────────────────────────────────────────── */
