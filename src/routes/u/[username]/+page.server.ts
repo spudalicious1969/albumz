@@ -23,7 +23,7 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 		.eq('ownership', 'OWN')
 		.eq('hidden', false)
 		.order('created_at', { ascending: false })
-		.limit(8);
+		.limit(12);
 
 	if (recentError) error(500, recentError.message);
 

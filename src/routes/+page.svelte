@@ -17,8 +17,7 @@
 		cover_url: string | null; accent_color: string | null; created_at: string; };
 	const albums = $derived(data.mode === 'collection' ? data.albums as Album[] : []);
 
-	const owned     = $derived(albums.filter((a) => a.ownership === 'OWN'));
-	const wantCount = $derived(albums.filter((a) => a.ownership === 'WANT').length);
+	const owned = $derived(albums.filter((a) => a.ownership === 'OWN'));
 	const missingCovers = $derived(albums.filter((a) => !a.cover_url));
 	// Albums that have a cover but never had a per-album accent extracted —
 	// typically bulk-imported entries that ran through `/api/covers/fetch` (which
@@ -167,9 +166,7 @@
 					<path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 			</button>
-			<a href="/wantlist" class="btn-secondary">
-				Wantlist {#if wantCount > 0}<span class="count">{wantCount}</span>{/if}
-			</a>
+			<a href="/wantlist" class="btn-secondary">Wantlist</a>
 			<a href="/albums/new" class="btn-add">+ Add</a>
 			{#if data.profile}
 				<UserMenu profile={data.profile} />
