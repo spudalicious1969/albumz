@@ -19,6 +19,10 @@ Thumbs.db
 !.env.example
 !.env.test
 
+# Local notes / scratch (never commit — may contain secrets)
+Brent_Notes.md
+/sketches/
+
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
