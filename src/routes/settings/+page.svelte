@@ -86,11 +86,13 @@
 	let digestBusy = $state(false);
 	let digestError = $state<string | null>(null);
 	let digestBody = $state<string | null>(null);
+	let digestId = $state<string | null>(null);
 
 	async function generateDigest() {
 		digestBusy = true;
 		digestError = null;
 		digestBody = null;
+		digestId = null;
 		try {
 			const res = await fetch('/api/digests/generate', { method: 'POST' });
 			if (!res.ok) {
@@ -99,6 +101,7 @@
 			}
 			const { digest } = await res.json();
 			digestBody = digest.body;
+			digestId = digest.id;
 		} catch (err) {
 			digestError = err instanceof Error ? err.message : 'Generation failed.';
 		} finally {
@@ -344,6 +347,11 @@
 						<p>{para}</p>
 					{/each}
 				</article>
+				{#if digestId}
+					<p class="digest-link">
+						<a href="/digests/{digestId}">Open as draft permalink →</a>
+					</p>
+				{/if}
 			{/if}
 		</section>
 
@@ -408,6 +416,17 @@
 	}
 	.digest-preview p { margin: 0 0 0.9rem; }
 	.digest-preview p:last-child { margin-bottom: 0; }
+
+	.digest-link {
+		margin: 0.85rem 0 0;
+		font-size: 0.88rem;
+	}
+	.digest-link a {
+		color: var(--accent);
+		text-decoration: none;
+		font-weight: 600;
+	}
+	.digest-link a:hover { text-decoration: underline; }
 
 	.radio-row { display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
 	.radio-pill {

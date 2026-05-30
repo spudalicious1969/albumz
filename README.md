@@ -171,6 +171,42 @@ The microphone only records when you explicitly turn it on, and audio is sent to
 
 ---
 
+## Weekly digest
+
+The digest is the part of Albumz that *narrates*. Last.fm has always been a ledger — plays, dates, counts, charts — and the digest is the columnist that ledger never had. Same data, rendered as warm prose a person would actually want to read.
+
+### How it works
+
+Open Settings → **Weekly digest (preview)** → **Generate this week's digest**. About 10–20 seconds later, a draft of the week appears as a column written about your listening. It pulls from both Spin (physical plays) and Last.fm (everything you streamed) so the picture is complete, not just what the mic caught.
+
+Generation happens locally on the host running Albumz — no paid AI API, no audio uploaded anywhere, no data shared with anyone.
+
+### Drafts, publish, archive
+
+Each generated digest is a **draft** at first — owner-only, hidden from the world. Open the draft permalink, read it, decide:
+
+- **Publish** — the digest becomes readable at `/digests/<id>` to anyone with the link, and shows up in your archive at `/u/<your-username>/digests`.
+- **Discard** — hides it. No one sees it, including future you.
+- **Unpublish** — turns a published digest back into a draft.
+
+Visitors browsing your public page see a **Digests** chip in the topbar when you have any published columns to read.
+
+### What's in the column
+
+- **Day-by-day narration** of what you actually put on, with track names and album names
+- **`spun` vs `streamed` markers** woven into the prose without being editorialized into a contest between formats
+- A **dormant pick** from your own shelf — an album you haven't pulled out in months, surfaced as a possible return
+- A **wildcard pick** from another Albumz collection — an album you don't own, surfaced as a swing for the curious
+- A **year-shaped closing sentence** that gestures at what this week is adding up to
+
+### What's still cooking
+
+Right now both picks are *random* — the prose acknowledges that ("a wildcard from another collection, no claim it'll match this week"). A future round will compute real musical similarity so the picks actually share something with what you played. The honest framing keeps the column trustworthy in the meantime.
+
+Also still ahead: scheduled auto-generation on Sunday nights, and an email teaser that drives readers from inbox to the on-site permalink.
+
+---
+
 ## Last.fm integration
 
 Settings → **Last.fm connection** → Connect. You'll authorize Albumz on Last.fm, get bounced back, and Albumz will:

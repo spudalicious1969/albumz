@@ -35,6 +35,7 @@
 			<li><a href="#public">Your public page</a></li>
 			<li><a href="#headliner">The Headliner</a></li>
 			<li><a href="#spin">Spin — tonight's set</a></li>
+			<li><a href="#digest">Weekly digest</a></li>
 			<li><a href="#lastfm">Last.fm integration</a></li>
 			<li><a href="#look">Avatars &amp; themes</a></li>
 			<li><a href="#shortcuts">Keyboard shortcuts</a></li>
@@ -126,6 +127,21 @@
 		<p><strong>The set is bigger than the Headliner.</strong> You don't need to be on the Headliner page for the set to track. Open the card, then go browse the rest of the site — your session keeps running. Come back, the list is intact. The set ends when you close the tab or click End set, not when you wander off.</p>
 		<p><strong>Without the mic.</strong> Even with the mic off, opening the card on the Headliner shows your currently-streaming tracks as they play (provided Last.fm is connected). The mic adds physical-play detection on top.</p>
 		<p><strong>Privacy.</strong> The microphone only records when you explicitly turn it on. Audio is sent to a private identification service for matching — nothing is stored on disk after identification. Toggle it off anytime; the indicator pulses red when it's listening.</p>
+	</section>
+
+	<section id="digest" class="card">
+		<h2>Weekly digest</h2>
+		<p>The digest is the part of Albumz that <em>narrates</em>. Last.fm has always been a ledger — plays, dates, counts, charts — and the digest is the columnist that ledger never had. Same data, rendered as warm prose a person would actually want to read.</p>
+		<p><strong>How it works.</strong> Settings → <strong>Weekly digest (preview)</strong> → <strong>Generate this week's digest</strong>. About 10–20 seconds later, a draft of the week appears as a column written about your listening. Generation happens locally on the host running Albumz — no paid AI API, no audio uploaded anywhere.</p>
+		<p><strong>Drafts, publish, archive.</strong> Each generated digest is a <strong>draft</strong> at first — owner-only. Open the draft permalink, read it, decide:</p>
+		<ul>
+			<li><strong>Publish</strong> — readable at <code>/digests/&lt;id&gt;</code> to anyone with the link; shows in your archive at <code>/u/&lt;your-username&gt;/digests</code>.</li>
+			<li><strong>Discard</strong> — hides it from everywhere, including future you.</li>
+			<li><strong>Unpublish</strong> — turns a published digest back into a draft.</li>
+		</ul>
+		<p>Visitors browsing your public page see a <strong>Digests</strong> chip in the topbar when you have any published columns to read.</p>
+		<p><strong>What's in the column.</strong> Day-by-day narration of what you actually put on with track names and album names, <code>spun</code> vs <code>streamed</code> markers woven into the prose, a dormant pick from your own shelf, a wildcard from another collection, and a year-shaped closing sentence.</p>
+		<p class="aside">Picks are currently random — the prose acknowledges that ("a wildcard, no claim it'll match this week"). A similarity layer is queued for a future round. Also queued: scheduled Sunday-night auto-generation and email teasers.</p>
 	</section>
 
 	<section id="lastfm" class="card">

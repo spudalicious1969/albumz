@@ -93,11 +93,18 @@
 
 	<header class="topbar">
 		<a href="/" class="wordmark">album<span>z</span></a>
-		{#if data.profile.last_fm_username}
-			<a href="/headliner/{data.profile.username}" class="headliner-link" title="Open Headliner">
-				↗ Headliner
-			</a>
-		{/if}
+		<div class="topbar-links">
+			{#if data.hasPublishedDigests}
+				<a href="/u/{data.profile.username}/digests" class="topbar-link" title="Read past digests">
+					Digests
+				</a>
+			{/if}
+			{#if data.profile.last_fm_username}
+				<a href="/headliner/{data.profile.username}" class="headliner-link" title="Open Headliner">
+					↗ Headliner
+				</a>
+			{/if}
+		</div>
 	</header>
 
 	<section class="hero">
@@ -216,7 +223,12 @@
 		align-items: center;
 		gap: 1rem;
 	}
-	.headliner-link {
+	.topbar-links {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+	.topbar-link, .headliner-link {
 		font-size: 0.75rem;
 		font-weight: 600;
 		letter-spacing: 0.1em;
@@ -227,6 +239,10 @@
 		border: 1px solid var(--border);
 		border-radius: 100px;
 		transition: color 0.15s, border-color 0.15s;
+	}
+	.topbar-link:hover {
+		color: var(--page-accent);
+		border-color: var(--page-accent);
 	}
 	.headliner-link:hover {
 		color: var(--page-accent);

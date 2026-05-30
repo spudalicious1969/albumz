@@ -65,6 +65,13 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 		}
 	}
 
+	// Whether this user has any published digests — drives the archive link.
+	const { count: publishedDigestCount } = await locals.supabase
+		.from('digests')
+		.select('id', { count: 'exact', head: true })
+		.eq('user_id', profile.id)
+		.eq('status', 'published');
+
 	// Short cache so refresh-spamming the page doesn't hammer Last.fm
 	setHeaders({ 'cache-control': 'public, max-age=20' });
 
@@ -74,6 +81,7 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 		recent: recent ?? [],
 		totalCount: totalCount ?? 0,
 		featuredIsUserPicked: !!profile.featured_album_id,
-		nowPlaying
+		nowPlaying,
+		hasPublishedDigests: (publishedDigestCount ?? 0) > 0
 	};
 };

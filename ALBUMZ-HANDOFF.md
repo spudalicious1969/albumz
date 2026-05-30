@@ -40,6 +40,8 @@
 - **Dedicated Wantlist page** at `/wantlist` — compact list with sort selector and a "Buy" cluster (Record Exchange first per Brent's local-shop preference, then Bandcamp / Discogs / Amazon / eBay). "✓ I got it!" promotes WANT→OWN via `?/promote`.
 - **Article-aware sorting** (`src/lib/sort-key.ts`) — strips leading "the/a/an" so "The Beths" sort under B and "A Night at the Opera" under N. Applied to artist and title sorts on home / full collection / wantlist. Display strings unmodified.
 - **Persisted sort preferences** (`src/lib/persist.ts`) — localStorage per page; keys `albumz:sort:home`, `albumz:sort:collection`, `albumz:sort:wantlist`. Hydration via `onMount` + flag guard to avoid clobbering stored value with the SSR default.
+- **Spin (web-Earshot)** — browser mic captures rolling 10s audio chunks → Python `shazamio` sidecar at `127.0.0.1:3210` → spin row inserted with `source = spun` or `streamed` (classifier cross-references Last.fm now-playing). Auto-scrobbles physical plays after ~60s confirmed presence. Headliner card decoupled from mic state and persisted to sessionStorage so a "set" survives navigation and reloads, ending only when the tab closes.
+- **Weekly digest (preview)** — local-Ollama-generated weekly listening column. `prompts/weekly-digest.md` is the prompt template (system + user, with the test harness reading the same fenced blocks); `src/lib/digest-data.server.ts` assembles real inputs by pulling spins + Last.fm scrobbles for the week and cross-referencing for spun-vs-streamed; `/api/digests/generate` (POST) runs the assembly + Ollama call + upsert. Permalink at `/digests/[id]` (drafts owner-only; published public, indexable). Archive at `/u/[username]/digests`. Owner controls (Publish / Discard / Unpublish) live on the permalink. Picks (rediscovery + discovery) are currently random with explicit "no specific link" hooks — similarity layer is the queued upgrade. Generation triggered from Settings.
 
 ### Not yet built
 _(Nothing scheduled. Polish requests have been arriving from a friend testing the site — track those as they come in.)_
@@ -65,9 +67,15 @@ _(Nothing scheduled. Polish requests have been arriving from a friend testing th
 - Avatar component (waterfall: upload → Gravatar → initial): `src/lib/components/Avatar.svelte`
 - User menu / dropdown: `src/lib/components/UserMenu.svelte`. Renders in the home topbar; receives profile from layout data
 - Client accent extraction (Canvas + OKLCH): `src/lib/accent-color.ts`
+- Spin: `src/lib/spin-state.svelte.ts` (singleton class, sessionStorage-persisted), `src/lib/components/SpinSessionRunner.svelte` (invisible MediaRecorder loop in root layout), `src/lib/components/HeadlinerSpinCard.svelte` (owner ritual card with collapsed/expanded states + mic toggle). Identify endpoint at `src/routes/api/spins/identify/+server.ts`; sidecar lives in a separate repo `/home/zedzee/mine/apps/albumz-shazam/`.
+- Weekly digest: prompt template at `prompts/weekly-digest.md` (single source of truth, fenced blocks parsed at both server-runtime and test-harness time); test harness at `scripts/test-digest.mjs` (accepts `N` + optional `MODEL` args, runs probes); server-side data assembly at `src/lib/digest-data.server.ts`; prompt loader/parser at `src/lib/digest-prompt.ts` (Vite `?raw` import); generate endpoint at `src/routes/api/digests/generate/+server.ts`; permalink at `src/routes/digests/[id]/{+page.server.ts,+page.svelte}` (load + publish/discard/unpublish actions); archive at `src/routes/u/[username]/digests/{+page.server.ts,+page.svelte}`. Default model is `qwen3.5:latest` via Ollama on `localhost:11434`; override via `OLLAMA_URL` env var.
 - DB schema: `supabase/schema.sql` (canonical end-state, idempotent). Incremental migrations in `supabase/migrations/YYYY-MM-DD-*.sql`:
   - `2026-05-27-avatars.sql` — `avatar_url`, `email_hash`, trigger update, storage bucket + RLS policies
   - `2026-05-27-onboarding.sql` — `onboarded` column, trigger rebuilt with explicit `onboarded = false` AND `search_path = public, extensions` (critical — see implementation notes)
+  - `2026-05-28-mosaic-pool.sql` — `mosaic_album_pool` RPC for the logged-out landing
+  - `2026-05-29-spins.sql` + `2026-05-29-spins-source.sql` + `2026-05-29-spins-scrobbled.sql` — Spin tables + classifier column + scrobble dedupe marker
+  - `2026-05-29-lastfm-session.sql` — `profiles.lastfm_session_key` for the Last.fm write API
+  - `2026-05-30-digests.sql` — `digests` table with draft / published / discarded status, unique `(user_id, week_ending)`, public-read-on-published RLS
 - Apache vhost (production copy in `/etc/apache2/sites-available/`): `deploy/albumz.spudalicio.us-le-ssl.conf`
 - systemd unit (production copy in `/etc/systemd/system/`): `deploy/albumz.service`. nvm node path hardcoded — update on Node upgrade
 - PWA static: `static/{manifest.json,icon.svg,headliner/manifest.json,headliner/icon.svg}`
