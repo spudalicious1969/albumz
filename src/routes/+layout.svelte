@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import favicon from '$lib/assets/favicon.svg';
 	import LookupPalette from '$lib/components/LookupPalette.svelte';
+	import SpinSessionRunner from '$lib/components/SpinSessionRunner.svelte';
 	import '../app.css';
 
 	let { data, children } = $props();
@@ -38,4 +39,5 @@
 
 {#if data.user}
 	<LookupPalette />
+	<SpinSessionRunner />
 {/if}

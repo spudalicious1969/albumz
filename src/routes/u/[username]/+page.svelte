@@ -60,9 +60,10 @@
 		isLive ? 'var(--accent)' : (data.featured?.accent_color ?? 'var(--accent)')
 	);
 	const eyebrow = $derived(
-		isLive ? '♪ Currently Spinning'
-		: data.featuredIsUserPicked ? '★ Featured Album'
-		: 'Most Recent'
+		isLive
+			? (current.source === 'streamed' ? '♪ Currently Streaming' : '♪ Currently Spinning')
+			: data.featuredIsUserPicked ? '★ Featured Album'
+			: 'Most Recent'
 	);
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import MicChip from '$lib/components/MicChip.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -27,6 +28,7 @@
 	<header class="topbar">
 		<a href="/" class="back">← Collection</a>
 		<h1>Import</h1>
+		<MicChip />
 	</header>
 
 	{#if !parsed}

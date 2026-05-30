@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { fetchNowPlaying, type NowPlayingResult } from '$lib/now-playing';
+import { classifyNowPlayingSource } from '$lib/spins.server';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
@@ -52,10 +53,16 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 
 	// Now-playing — only if they've linked Last.fm
 	let nowPlaying: NowPlayingResult = {
-		state: 'none', track: null, artist: null, album: null, coverUrl: null, playedAt: null
+		state: 'none', track: null, artist: null, album: null,
+		coverUrl: null, coverCandidates: [], playedAt: null, source: null
 	};
 	if (profile.last_fm_username) {
 		nowPlaying = await fetchNowPlaying(profile.last_fm_username);
+		if (nowPlaying.state !== 'none' && nowPlaying.artist && nowPlaying.track) {
+			nowPlaying.source = await classifyNowPlayingSource(
+				locals.supabase, profile.id, nowPlaying.artist, nowPlaying.track
+			);
+		}
 	}
 
 	// Short cache so refresh-spamming the page doesn't hammer Last.fm

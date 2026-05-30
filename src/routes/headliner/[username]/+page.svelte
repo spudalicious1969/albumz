@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
+	import HeadlinerSpinCard from '$lib/components/HeadlinerSpinCard.svelte';
 	import type { PageData } from './$types';
 	import type { NowPlayingResult } from '$lib/now-playing';
 
@@ -74,9 +75,11 @@
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
 	const eyebrow = $derived(
-		current.state === 'playing' ? '♪ Currently Spinning'
-		: current.state === 'recent' ? '⏵ Last Played'
-		: 'Headliner'
+		current.state === 'playing'
+			? (current.source === 'streamed' ? '♪ Currently Streaming' : '♪ Currently Spinning')
+			: current.state === 'recent'
+				? (current.source === 'streamed' ? '⏵ Last Streamed' : '⏵ Last Spun')
+				: 'Headliner'
 	);
 </script>
 
@@ -146,6 +149,10 @@
 			{/if}
 		</div>
 	</div>
+
+	{#if data.isOwner}
+		<HeadlinerSpinCard />
+	{/if}
 </div>
 
 <style>
@@ -274,6 +281,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
+		text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
 	}
 	.dot {
 		width: 0.55em; height: 0.55em;
@@ -296,24 +304,27 @@
 		font-weight: 800;
 		letter-spacing: -0.02em;
 		line-height: 1;
-		text-shadow: 0 2px 30px rgba(0,0,0,0.5);
+		text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 0, 0, 0.55);
 		animation: text-in 1s ease-out 0.15s both;
 	}
 	.artist {
 		font-size: clamp(1.2rem, 2.4vw, 2.2rem);
 		font-weight: 500;
 		color: color-mix(in oklch, #f0ead8 80%, transparent);
+		text-shadow: 0 1px 18px rgba(0, 0, 0, 0.7);
 		animation: text-in 1s ease-out 0.25s both;
 	}
 	.album {
 		font-size: clamp(0.95rem, 1.4vw, 1.2rem);
-		color: color-mix(in oklch, #f0ead8 55%, transparent);
+		color: color-mix(in oklch, #f0ead8 65%, transparent);
 		font-style: italic;
+		text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
 		animation: text-in 1s ease-out 0.35s both;
 	}
 	.idle-msg {
-		color: color-mix(in oklch, #f0ead8 50%, transparent);
+		color: color-mix(in oklch, #f0ead8 65%, transparent);
 		font-size: clamp(1rem, 1.6vw, 1.4rem);
+		text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
 	}
 
 	@keyframes text-in {

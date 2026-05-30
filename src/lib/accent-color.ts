@@ -56,8 +56,10 @@ function rgbToOklch(r: number, g: number, b: number): string {
 	const C = Math.sqrt(a * a + bk * bk);
 	const H = (Math.atan2(bk, a) * 180) / Math.PI;
 
-	const lPct = Math.round(L * 100);
-	const cFixed = Math.round(C * 1000) / 1000;
+	// Floor lightness + chroma so the accent stays legible as a UI tint
+	// even when the album is near-black or near-grey. Hue is preserved.
+	const lPct = Math.max(62, Math.round(L * 100));
+	const cFixed = Math.max(0.08, Math.round(C * 1000) / 1000);
 	const hDeg = Math.round(((H % 360) + 360) % 360);
 
 	return `oklch(${lPct}% ${cFixed} ${hDeg})`;

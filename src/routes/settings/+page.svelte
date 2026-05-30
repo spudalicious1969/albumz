@@ -1,11 +1,25 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import MicChip from '$lib/components/MicChip.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const profile = $derived(data.profile);
+
+	// Flash message from the Last.fm callback redirect (?lastfm=connected|failed|...).
+	const lastfmFlash = $derived.by(() => {
+		const code = page.url.searchParams.get('lastfm');
+		switch (code) {
+			case 'connected':     return { kind: 'ok' as const, message: 'Connected to Last.fm.' };
+			case 'failed':        return { kind: 'error' as const, message: "Couldn't reach Last.fm. Try again?" };
+			case 'missing-token': return { kind: 'error' as const, message: 'Last.fm didn\'t hand us a token. Try again?' };
+			case 'db-error':      return { kind: 'error' as const, message: 'Saved nothing — database write failed.' };
+			default:              return null;
+		}
+	});
 
 	type Album = typeof data.albums[number];
 
@@ -76,6 +90,7 @@
 	<header class="topbar">
 		<a href="/" class="back">← Collection</a>
 		<h1>Settings</h1>
+		<MicChip />
 	</header>
 
 	{#if !profile}
@@ -103,6 +118,33 @@
 					<input type="text" name="last_fm_username" value={profile.last_fm_username ?? ''} placeholder="your-lastfm-handle" />
 					<span class="hint">Powers now-playing on your public page and contributes to the home mosaic.</span>
 				</label>
+
+				<div class="field lastfm-link">
+					<span class="label">Last.fm connection</span>
+					<div class="lastfm-row">
+						{#if data.lastfmConnected}
+							<span class="lastfm-status connected">
+								<span class="dot"></span>
+								Connected as @{profile.last_fm_username}
+							</span>
+							<form method="POST" action="?/disconnectLastfm" use:enhance style="display:inline">
+								<button type="submit" class="btn-ghost">Disconnect</button>
+							</form>
+						{:else}
+							<span class="lastfm-status">
+								<span class="dot off"></span>
+								Not connected
+							</span>
+							<a href="/auth/lastfm/start" class="btn-secondary" data-sveltekit-reload>Connect Last.fm</a>
+						{/if}
+					</div>
+					<span class="hint">
+						Required for spins to update your Last.fm now-playing. We never see your password — Last.fm hands us a one-way session key.
+					</span>
+					{#if lastfmFlash}
+						<p class="lastfm-flash" class:error={lastfmFlash.kind === 'error'}>{lastfmFlash.message}</p>
+					{/if}
+				</div>
 				<label class="field">
 					<span class="label">Discogs username</span>
 					<input type="text" name="discogs_username" value={profile.discogs_username ?? ''} />
@@ -359,6 +401,35 @@
 	.muted { color: var(--text-muted); }
 	.error { color: oklch(55% 0.22 25); font-size: 0.85rem; margin-top: 0.5rem; }
 	.success { color: oklch(55% 0.15 150); font-size: 0.85rem; margin-top: 0.5rem; }
+
+	.lastfm-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+	.lastfm-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+	.lastfm-status .dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: oklch(60% 0.15 150);
+		box-shadow: 0 0 8px oklch(60% 0.15 150);
+	}
+	.lastfm-status .dot.off {
+		background: var(--text-muted);
+		box-shadow: none;
+		opacity: 0.5;
+	}
+	.lastfm-status.connected { color: var(--text); }
+	.lastfm-flash { font-size: 0.85rem; margin-top: 0.5rem; color: oklch(55% 0.15 150); }
+	.lastfm-flash.error { color: oklch(55% 0.22 25); }
 
 	/* Featured album display */
 	.featured-display {

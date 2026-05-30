@@ -1,12 +1,18 @@
 <script lang="ts">
-	import type { Track } from '$lib/tracklist';
+	import type { Track, TracklistSource } from '$lib/tracklist';
 	import { formatDuration, formatTotalDuration } from '$lib/tracklist';
 
 	let {
 		tracks,
 		totalDuration,
 		source
-	}: { tracks: Track[]; totalDuration: number | null; source: 'lastfm' | null } = $props();
+	}: { tracks: Track[]; totalDuration: number | null; source: TracklistSource | null } = $props();
+
+	const SOURCE_LABEL: Record<TracklistSource, string> = {
+		lastfm: 'Last.fm',
+		deezer: 'Deezer',
+		itunes: 'iTunes'
+	};
 </script>
 
 <section class="tracklist">
@@ -21,7 +27,7 @@
 	</header>
 
 	{#if tracks.length === 0}
-		<p class="empty">No tracklist available from Last.fm.</p>
+		<p class="empty">No tracklist available.</p>
 	{:else}
 		<ol class="list">
 			{#each tracks as track (track.position)}
@@ -32,8 +38,8 @@
 				</li>
 			{/each}
 		</ol>
-		{#if source === 'lastfm'}
-			<p class="credit">via Last.fm</p>
+		{#if source}
+			<p class="credit">via {SOURCE_LABEL[source]}</p>
 		{/if}
 	{/if}
 </section>

@@ -33,7 +33,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		profile: profileRes.data,
 		albums: albumsRes.data ?? [],
 		featured,
-		totalAlbumCount: totalCountRes.count ?? 0
+		totalAlbumCount: totalCountRes.count ?? 0,
+		lastfmConnected: Boolean(profileRes.data?.lastfm_session_key)
 	};
 };
 
@@ -124,6 +125,19 @@ export const actions: Actions = {
 		if (updateErr) return fail(500, { avatarError: updateErr.message });
 
 		return { savedAvatar: publicUrl };
+	},
+
+	disconnectLastfm: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+
+		const { error } = await locals.supabase
+			.from('profiles')
+			.update({ lastfm_session_key: null })
+			.eq('id', user.id);
+
+		if (error) return fail(500, { error: error.message });
+		return { lastfmDisconnected: true };
 	},
 
 	removeAvatar: async ({ locals }) => {

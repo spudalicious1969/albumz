@@ -17,6 +17,10 @@ export interface NowPlayingResult {
 	/** Ordered list of cover-art URLs to try; the client should fall back through them on <img> error. */
 	coverCandidates: string[];
 	playedAt: number | null;
+	/** Whether the current/recent track was identified by Shazam in the user's
+	 * spins log within the last few minutes (= physical playback) or not (= stream).
+	 * Null when we have no signal (state === 'none' or no spins lookup performed). */
+	source: 'spun' | 'streamed' | null;
 }
 
 const EMPTY: NowPlayingResult = {
@@ -26,7 +30,8 @@ const EMPTY: NowPlayingResult = {
 	album: null,
 	coverUrl: null,
 	coverCandidates: [],
-	playedAt: null
+	playedAt: null,
+	source: null
 };
 
 /**
@@ -77,7 +82,8 @@ export async function fetchNowPlaying(lastFmUsername: string): Promise<NowPlayin
 			album,
 			coverUrl: candidates[0] ?? null,
 			coverCandidates: candidates,
-			playedAt
+			playedAt,
+			source: null
 		};
 	} catch {
 		return EMPTY;

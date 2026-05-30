@@ -48,7 +48,19 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(mv \"/home/zedzee/mine/apps/albumz/.claude/projects/-home-zedzee-mine-apps-albumz/memory/project_albumz_followups.md\" \"/home/zedzee/.claude/projects/-home-zedzee-mine-apps-albumz/memory/project_albumz_followups.md\")",
-      "Bash(rmdir -p \"/home/zedzee/mine/apps/albumz/.claude/projects/-home-zedzee-mine-apps-albumz/memory\")"
+      "Bash(rmdir -p \"/home/zedzee/mine/apps/albumz/.claude/projects/-home-zedzee-mine-apps-albumz/memory\")",
+      "Bash(git filter-repo *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch *)",
+      "Bash(git stash *)",
+      "Bash(xargs -r -n1 git update-ref -d)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)",
+      "Bash(git checkout *)",
+      "Bash(git update-ref *)",
+      "Bash(python3 *)",
+      "Bash(awk 'NR>=170 && NR<=172' src/routes/+page.svelte)"
     ]
   }
 }
