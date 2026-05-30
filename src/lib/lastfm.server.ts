@@ -182,9 +182,60 @@ export async function isOnLastfmNow(
 type RecentTrack = {
 	name?: string;
 	artist?: { '#text'?: string; name?: string };
+	album?: { '#text'?: string };
 	date?: { uts?: string };
 	'@attr'?: { nowplaying?: string };
 };
+
+export type LastfmScrobble = {
+	artist: string;
+	track: string;
+	album: string | null;
+	playedAtUnix: number;
+};
+
+/** Fetch a user's scrobbles within a time window. Powers the weekly digest:
+ * the spins table only captures plays the user made while Spin's mic was on,
+ * so we ask Last.fm for the broader picture and cross-reference back.
+ *
+ * Returns [] on any error so the caller can degrade gracefully — without
+ * Last.fm we still have whatever spins/streamed entries Spin caught. */
+export async function fetchRecentTracks(
+	lastfmUsername: string,
+	fromUnix: number,
+	toUnix: number,
+	limit = 200
+): Promise<LastfmScrobble[]> {
+	const key = env.LAST_FM_API_KEY;
+	if (!key) return [];
+
+	const url = new URL(ENDPOINT);
+	url.searchParams.set('method', 'user.getRecentTracks');
+	url.searchParams.set('user', lastfmUsername);
+	url.searchParams.set('api_key', key);
+	url.searchParams.set('format', 'json');
+	url.searchParams.set('limit', String(limit));
+	url.searchParams.set('from', String(fromUnix));
+	url.searchParams.set('to', String(toUnix));
+
+	try {
+		const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+		if (!res.ok) return [];
+		const data = await res.json();
+		const raw = (data?.recenttracks?.track ?? []) as RecentTrack[];
+		return raw
+			.filter((t) => t.name && t.artist && t.date?.uts)
+			.map((t) => ({
+				artist: (t.artist?.['#text'] ?? t.artist?.name ?? '') as string,
+				track: t.name as string,
+				album: (t.album?.['#text'] || null) as string | null,
+				playedAtUnix: Number(t.date?.uts)
+			}))
+			.filter((t) => t.artist && t.track);
+	} catch {
+		return [];
+	}
+}
 
 function creds() {
 	const api_key = env.LAST_FM_API_KEY;

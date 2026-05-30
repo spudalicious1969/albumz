@@ -329,10 +329,10 @@
 		<!-- ── Weekly digest (preview) ───────────────────────────── -->
 		<section class="card">
 			<h2>Weekly digest (preview)</h2>
-			<p class="muted">Generate a draft of last week's listening column. Local Ollama, qwen3.5. Drafts are not published — this is for preview only.</p>
+			<p class="muted">Generate a draft of this week's listening column. Local Ollama, qwen3.5. Drafts are not published — this is for preview only.</p>
 			<div class="data-row">
 				<button type="button" class="btn-secondary" onclick={generateDigest} disabled={digestBusy}>
-					{digestBusy ? 'Generating…' : "Generate last week's digest"}
+					{digestBusy ? 'Generating…' : "Generate this week's digest"}
 				</button>
 				{#if digestError}
 					<span class="hint hint-err">{digestError}</span>

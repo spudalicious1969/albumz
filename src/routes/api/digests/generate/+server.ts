@@ -10,7 +10,7 @@
 
 import { error, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { assembleDigest, previousSunday } from '$lib/digest-data.server';
+import { assembleDigest, currentWeekEnding } from '$lib/digest-data.server';
 import { SYSTEM_PROMPT, fillUserTemplate } from '$lib/digest-prompt';
 import type { RequestHandler } from './$types';
 
@@ -23,7 +23,7 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 	const weekEndingParam = url.searchParams.get('week_ending');
 	const weekEnding = weekEndingParam
 		? new Date(weekEndingParam + 'T00:00:00Z')
-		: previousSunday();
+		: currentWeekEnding();
 
 	if (isNaN(weekEnding.getTime())) error(400, 'Invalid week_ending date');
 
@@ -60,7 +60,11 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 				],
 				stream: false,
 				think: false,
-				options: { temperature: 0.7 }
+				options: {
+					temperature: 0.7,
+					num_ctx: 8192,
+					num_predict: 2048
+				}
 			})
 		});
 		if (!res.ok) error(502, `Ollama returned ${res.status}`);
