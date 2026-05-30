@@ -151,7 +151,7 @@
 	</div>
 
 	{#if data.isOwner}
-		<HeadlinerSpinCard />
+		<HeadlinerSpinCard nowPlaying={current} />
 	{/if}
 </div>
 

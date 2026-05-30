@@ -4,7 +4,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { compareByKey } from '$lib/sort-key';
 	import { loadSort, saveSort } from '$lib/persist';
-	import MicChip from '$lib/components/MicChip.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -70,7 +69,6 @@
 					<option value="format">Format</option>
 				</select>
 			</label>
-			<MicChip />
 			<a href="/albums/new?ownership=WANT" class="btn-add">+ Add to wantlist</a>
 		</div>
 	</header>

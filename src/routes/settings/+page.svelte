@@ -3,7 +3,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '$lib/components/Avatar.svelte';
-	import MicChip from '$lib/components/MicChip.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -90,7 +89,6 @@
 	<header class="topbar">
 		<a href="/" class="back">← Collection</a>
 		<h1>Settings</h1>
-		<MicChip />
 	</header>
 
 	{#if !profile}

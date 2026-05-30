@@ -3,7 +3,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import MosaicView from '$lib/components/MosaicView.svelte';
 	import UserMenu from '$lib/components/UserMenu.svelte';
-	import MicChip from '$lib/components/MicChip.svelte';
 	import { lookup } from '$lib/lookup-state.svelte';
 	import { compareByKey } from '$lib/sort-key';
 	import { loadSort, saveSort } from '$lib/persist';
@@ -167,7 +166,6 @@
 					<path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 				</svg>
 			</button>
-			<MicChip />
 			<a href="/wantlist" class="btn-secondary">Wantlist</a>
 			<a href="/albums/new" class="btn-add">+ Add</a>
 			{#if data.profile}

@@ -1,44 +1,95 @@
 <script lang="ts">
-	// Owner-only ritual surface on the Headliner. Three states in one component:
-	// off = "Spin the disc" trigger; on+expanded = full "Tonight's set" card
-	// with the running list; on+collapsed = small pill ("Tonight · N spins").
-	// Tied to the same global spin store as the topbar chip, so flipping one
-	// updates the other.
+	// Owner-only ritual surface on the Headliner. The card's expand/collapse is
+	// decoupled from the mic — opening the set list and turning on the mic are
+	// two separate gestures. When expanded with mic off, streamed tracks from
+	// the parent's now-playing poll mirror into the set so the list fills even
+	// during a pure-streaming session.
 
-	import { spin } from '$lib/spin-state.svelte';
+	import { spin, type SpinEvent } from '$lib/spin-state.svelte';
+	import type { NowPlayingResult } from '$lib/now-playing';
 
-	let collapsed = $state(false);
+	let { nowPlaying }: { nowPlaying: NowPlayingResult } = $props();
+
+	// Initial state: if a session is already running when we mount, expand.
+	// Otherwise collapse and let the user open it intentionally.
+	let collapsed = $state(!spin.active);
 
 	function formatStart(d: Date | null): string {
 		if (!d) return '';
 		return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 	}
+
+	// Passive streamed mirror: while the card is open and the mic is off,
+	// reflect Last.fm now-playing into the set so it fills even without the mic.
+	// recordSpin() dedupes consecutive identical tracks, so polling the same
+	// track every 15s only adds one entry.
+	$effect(() => {
+		if (collapsed || spin.active) return;
+		if (nowPlaying.state !== 'playing' || nowPlaying.source !== 'streamed') return;
+		if (!nowPlaying.artist || !nowPlaying.track) return;
+
+		const playedAtIso = nowPlaying.playedAt
+			? new Date(nowPlaying.playedAt * 1000).toISOString()
+			: new Date().toISOString();
+
+		const event: SpinEvent = {
+			id: `passive-${Date.now()}-${nowPlaying.artist}-${nowPlaying.track}`,
+			artist: nowPlaying.artist,
+			track: nowPlaying.track,
+			album: nowPlaying.album ?? null,
+			identifiedAt: playedAtIso,
+			confidence: null,
+			source: 'streamed'
+		};
+		spin.recordSpin(event);
+	});
+
+	function endSet() {
+		spin.clearSet();
+		collapsed = true;
+	}
+
+	const hasContent = $derived(spin.spins.length > 0 || spin.active);
+	const micLabel = $derived(
+		spin.active
+			? spin.runnerStatus === 'identifying'
+				? 'Identifying…'
+				: 'Listening for spins'
+			: 'Catch what’s spinning'
+	);
+
+	// Tick once a minute so the label crosses time-of-day boundaries during long
+	// sessions without us needing to anchor everything to startedAt.
+	let now = $state(new Date());
+	$effect(() => {
+		const t = setInterval(() => (now = new Date()), 60_000);
+		return () => clearInterval(t);
+	});
+
+	const setLabel = $derived.by(() => {
+		const hour = (spin.startedAt ?? now).getHours();
+		if (hour >= 5 && hour < 12) return "This morning's set";
+		if (hour >= 12 && hour < 17) return "This afternoon's set";
+		if (hour >= 17 && hour < 21) return "This evening's set";
+		return "Tonight's set";
+	});
 </script>
 
-{#if !spin.active}
-	<button class="trigger" type="button" onclick={() => spin.start()}>
-		<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-			<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.6" />
-			<circle cx="12" cy="12" r="2.4" fill="currentColor" />
-		</svg>
-		<span>Spin the disc</span>
-	</button>
-{:else if collapsed}
+{#if collapsed}
 	<button
 		class="pill"
+		class:armed={spin.active}
 		type="button"
 		onclick={() => (collapsed = false)}
-		title="Expand Tonight's set"
-		aria-label="Expand Tonight's set"
+		title="Open {setLabel}"
+		aria-label="Open {setLabel}"
 		aria-expanded="false"
 	>
-		<span class="pulse"></span>
+		{#if spin.active}<span class="pulse"></span>{/if}
 		<span class="pill-label">
-			Tonight ·
+			{setLabel}
 			{#if spin.spins.length > 0}
-				{spin.spins.length} spin{spin.spins.length === 1 ? '' : 's'}
-			{:else}
-				{spin.runnerStatus === 'identifying' ? 'identifying…' : 'listening…'}
+				· {spin.spins.length}
 			{/if}
 		</span>
 		<span class="chev" aria-hidden="true">▴</span>
@@ -47,32 +98,47 @@
 	<aside class="card" aria-live="polite">
 		<header class="head">
 			<p class="eyebrow">
-				<span class="pulse"></span>
-				Tonight's set
+				<span class="pulse" class:active={spin.active}></span>
+				{setLabel}
 			</p>
-			<div class="head-actions">
-				<button
-					class="iconbtn"
-					type="button"
-					onclick={() => (collapsed = true)}
-					title="Collapse"
-					aria-label="Collapse Tonight's set"
-					aria-expanded="true"
-				>▾</button>
-				<button
-					class="iconbtn stop"
-					type="button"
-					onclick={() => spin.stop()}
-					title="Stop spin session"
-					aria-label="Stop spin session"
-				>×</button>
-			</div>
+			<button
+				class="iconbtn"
+				type="button"
+				onclick={() => (collapsed = true)}
+				title="Collapse"
+				aria-label="Collapse {setLabel}"
+				aria-expanded="true"
+			>▾</button>
 		</header>
-		<p class="started">started {formatStart(spin.startedAt)}</p>
+
+		{#if spin.startedAt}
+			<p class="started">started {formatStart(spin.startedAt)}</p>
+		{/if}
+
+		<button
+			class="mic"
+			class:on={spin.active}
+			class:identifying={spin.runnerStatus === 'identifying'}
+			type="button"
+			onclick={() => spin.toggle()}
+			aria-pressed={spin.active}
+		>
+			<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+				<path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" />
+				<path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21h-2a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.08A7 7 0 0 0 19 11z" fill="currentColor" />
+			</svg>
+			<span>{micLabel}</span>
+		</button>
 
 		{#if spin.spins.length === 0}
-			<p class="listening">
-				{spin.runnerStatus === 'identifying' ? 'Identifying…' : 'Listening…'}
+			<p class="empty">
+				{#if spin.active}
+					Listening…
+				{:else if nowPlaying.state === 'playing'}
+					Streamed tracks will land here as they play.
+				{:else}
+					Quiet so far. Streamed tracks will show up as they play.
+				{/if}
 			</p>
 		{:else}
 			{@const latest = spin.spins[0]}
@@ -102,11 +168,14 @@
 				{/if}
 			{/if}
 		{/if}
+
+		{#if hasContent}
+			<button class="endlink" type="button" onclick={endSet}>End set</button>
+		{/if}
 	</aside>
 {/if}
 
 <style>
-	.trigger,
 	.pill,
 	.card {
 		position: fixed;
@@ -114,29 +183,6 @@
 		bottom: 1.5rem;
 		z-index: 5;
 		font-family: inherit;
-	}
-
-	.trigger {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.55rem 0.95rem;
-		background: color-mix(in oklch, var(--hl-accent) 12%, transparent);
-		border: 1px solid color-mix(in oklch, var(--hl-accent) 45%, transparent);
-		border-radius: 999px;
-		color: color-mix(in oklch, var(--hl-accent) 90%, #f0ead8);
-		font-size: 0.78rem;
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-shadow: 0 0 12px color-mix(in oklch, var(--hl-accent) 35%, transparent);
-		cursor: pointer;
-		backdrop-filter: blur(8px);
-		transition: background 0.2s, border-color 0.2s, color 0.2s;
-	}
-	.trigger:hover {
-		background: color-mix(in oklch, var(--hl-accent) 22%, transparent);
-		border-color: var(--hl-accent);
-		color: var(--hl-accent);
 	}
 
 	.pill {
@@ -159,6 +205,10 @@
 	}
 	.pill:hover {
 		background: color-mix(in oklch, var(--hl-accent) 14%, #08070a 70%);
+		border-color: color-mix(in oklch, var(--hl-accent) 55%, transparent);
+		color: var(--hl-accent);
+	}
+	.pill.armed {
 		border-color: color-mix(in oklch, var(--hl-accent) 55%, transparent);
 		color: var(--hl-accent);
 	}
@@ -211,6 +261,9 @@
 		width: 7px;
 		height: 7px;
 		border-radius: 50%;
+		background: color-mix(in oklch, var(--hl-accent) 55%, transparent);
+	}
+	.pulse.active {
 		background: var(--hl-accent);
 		box-shadow: 0 0 12px var(--hl-accent);
 		animation: pulse 1.4s ease-in-out infinite;
@@ -220,11 +273,6 @@
 		50%      { opacity: 0.5; transform: scale(1.35); }
 	}
 
-	.head-actions {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.15rem;
-	}
 	.iconbtn {
 		background: transparent;
 		border: none;
@@ -240,22 +288,65 @@
 		color: #f0ead8;
 		background: color-mix(in oklch, #f0ead8 8%, transparent);
 	}
-	.iconbtn.stop {
-		font-size: 1.2rem;
-	}
 
 	.started {
 		font-size: 0.72rem;
 		color: color-mix(in oklch, #f0ead8 50%, transparent);
-		margin: 0.25rem 0 0.85rem;
+		margin: 0.25rem 0 0.65rem;
 		letter-spacing: 0.04em;
 	}
 
-	.listening {
-		font-size: 0.85rem;
-		color: color-mix(in oklch, #f0ead8 60%, transparent);
+	.mic {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.5rem 0.7rem;
+		background: transparent;
+		border: 1px solid color-mix(in oklch, #f0ead8 18%, transparent);
+		border-radius: 999px;
+		color: color-mix(in oklch, #f0ead8 70%, transparent);
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		cursor: pointer;
+		margin: 0 0 0.85rem;
+		transition: color 0.2s, border-color 0.2s, background 0.2s;
+	}
+	.mic:hover {
+		color: #f0ead8;
+		border-color: color-mix(in oklch, #f0ead8 40%, transparent);
+		background: color-mix(in oklch, #f0ead8 5%, transparent);
+	}
+	.mic.on {
+		color: #ff6b6b;
+		border-color: rgba(255, 107, 107, 0.5);
+		background: rgba(255, 107, 107, 0.08);
+	}
+	.mic.on::before {
+		content: '';
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: #ff6b6b;
+		margin-right: -0.15rem;
+		animation: mic-pulse 1.6s ease-out infinite;
+	}
+	.mic.on.identifying::before {
+		animation-duration: 0.7s;
+	}
+	@keyframes mic-pulse {
+		0%   { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6); }
+		70%  { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); }
+		100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+	}
+
+	.empty {
+		font-size: 0.82rem;
+		color: color-mix(in oklch, #f0ead8 55%, transparent);
 		font-style: italic;
 		margin: 0;
+		line-height: 1.4;
 	}
 
 	.latest {
@@ -325,5 +416,25 @@
 		color: color-mix(in oklch, #f0ead8 45%, transparent);
 		margin: 0.65rem 0 0;
 		font-style: italic;
+	}
+
+	.endlink {
+		display: block;
+		margin: 0.85rem 0 0 auto;
+		background: transparent;
+		border: none;
+		color: color-mix(in oklch, #f0ead8 45%, transparent);
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		cursor: pointer;
+		padding: 0.2rem 0.3rem;
+		border-radius: 6px;
+		transition: color 0.15s, background 0.15s;
+	}
+	.endlink:hover {
+		color: #f0ead8;
+		background: color-mix(in oklch, #f0ead8 8%, transparent);
 	}
 </style>

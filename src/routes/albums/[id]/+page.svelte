@@ -4,7 +4,6 @@
 	import AlbumHero from '$lib/components/AlbumHero.svelte';
 	import ExternalLinks from '$lib/components/ExternalLinks.svelte';
 	import Tracklist from '$lib/components/Tracklist.svelte';
-	import MicChip from '$lib/components/MicChip.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -106,7 +105,6 @@
 		<a href={album.ownership === 'WANT' ? '/wantlist' : '/'} class="back">
 			← {album.ownership === 'WANT' ? 'Wantlist' : 'Collection'}
 		</a>
-		<MicChip />
 	</header>
 
 	<AlbumHero {album} />
