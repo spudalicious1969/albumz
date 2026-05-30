@@ -4,7 +4,12 @@
 // qwen3.5 via the local Ollama API N times, prints each output, and runs the
 // quality probes from the prompt doc's checklist.
 //
-// Usage: node scripts/test-digest.mjs [N]   (default N=1)
+// Usage: node scripts/test-digest.mjs [N] [MODEL]
+//   N defaults to 1, MODEL defaults to qwen3.5:latest.
+//   Examples:
+//     node scripts/test-digest.mjs           # 1 sample, qwen3.5
+//     node scripts/test-digest.mjs 3         # 3 samples, qwen3.5
+//     node scripts/test-digest.mjs 3 phi3:medium
 
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -13,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 
-const MODEL = 'qwen3.5:latest';
+const MODEL = process.argv[3] ?? 'qwen3.5:latest';
 const OLLAMA_URL = 'http://localhost:11434/api/chat';
 
 // ---------- 1. Load prompt template ----------
@@ -26,26 +31,26 @@ if (fences.length < 2) {
 const [systemPrompt, userTemplate] = fences;
 
 // ---------- 2. Fake input data ----------
+// listening_log is the new chronological shape: one line per play, marked
+// [s] for spun and [*] for streamed. Replaces the old two-bucket framing.
 const data = {
 	display_name: 'Marcus',
 	week_ending: 'May 29, 2026',
-	spins_physical_list: [
-		'Slowdive — Star Roving (Slowdive, Wed)',
-		'Slowdive — Sugar for the Pill (Slowdive, Wed)',
-		'The Cure — Plainsong (Disintegration, Thu)',
-		'The Cure — Pictures of You (Disintegration, Thu)',
-		'The Cure — Lovesong (Disintegration, Thu)',
-		'Ride — Vapour Trail (Nowhere, Fri)',
-		'Codeine — D (Frigid Stars, Fri)',
-		'Codeine — Cave-In (Frigid Stars, Fri)',
-		'Slint — Nosferatu Man (Spiderland, Sat)',
-		'Slint — Good Morning, Captain (Spiderland, Sat)'
-	].join('\n'),
-	spins_streamed_list: [
-		'Big Thief — Vampire Empire (Sun)',
-		'Wednesday — Bath County (Sun)',
-		'MJ Lenderman — Wristwatch (Mon)',
-		'Phoebe Bridgers — Funeral (Tue)'
+	listening_log: [
+		'Wed — Slowdive — Star Roving (Slowdive) [s]',
+		'Wed — Slowdive — Sugar for the Pill (Slowdive) [s]',
+		'Thu — The Cure — Plainsong (Disintegration) [s]',
+		'Thu — The Cure — Pictures of You (Disintegration) [s]',
+		'Thu — The Cure — Lovesong (Disintegration) [s]',
+		'Fri — Ride — Vapour Trail (Nowhere) [s]',
+		'Fri — Codeine — D (Frigid Stars) [s]',
+		'Fri — Codeine — Cave-In (Frigid Stars) [s]',
+		'Sat — Slint — Nosferatu Man (Spiderland) [s]',
+		'Sat — Slint — Good Morning, Captain (Spiderland) [s]',
+		'Sun — Big Thief — Vampire Empire [*]',
+		'Sun — Wednesday — Bath County [*]',
+		'Mon — MJ Lenderman — Wristwatch [*]',
+		'Tue — Phoebe Bridgers — Funeral [*]'
 	].join('\n'),
 	top_tags: 'shoegaze, post-punk, slowcore, indie folk, dream pop',
 	patterns_observed: [
@@ -59,7 +64,7 @@ const data = {
 		'logged once in 2024 and never since — sits right next to Frigid Stars, which they spun Friday',
 	discovery_pick: 'Duster — Stratosphere (1998)',
 	discovery_hook:
-		'three Albumz users with overlapping Slint/Codeine collections have this rated highly; same slowcore axis they leaned into Friday and Saturday'
+		'sits on the slowcore axis between Slint and Codeine — the same axis Friday and Saturday were built on; quiet, textured, patient.'
 };
 
 const userPrompt = userTemplate.replace(/\{\{(\w+)\}\}/g, (_, key) => {
@@ -102,6 +107,78 @@ async function generateOnce() {
 	};
 }
 
+// Banned phrase lists, grouped by failure mode so we can tell what's slipping.
+// All matching is case-insensitive.
+
+// Physical-vs-streamed editorializing — abstracting the two as concepts.
+const ECHO_TERMS = [
+	'valid ways of being',
+	'no hierarchy',
+	'without hierarchy',
+	'both approaches are valid',
+	'without diminishing',
+	'lesser experience',
+	'passing echo',
+	'competing for dominance',
+	'without needing to compete',
+	'did not compete',
+	'different rhythm entirely',
+	'filled the gaps',
+	'handled the densest',
+	'the necessary space',
+	'necessary contrast',
+	'necessary counterpoint',
+	'two formats coexist',
+	'the physical pile',
+	'the digital side',
+	'the physical side',
+	'the physical sides',
+	'the two formats',
+	'the digital selections',
+	'the streamed selections',
+	'the digital sessions',
+	'physical shelf and the stream',
+	'breathing room',
+	'the digital silence'
+];
+
+// Structural meta-language — naming the slot rather than the album.
+const META_TERMS = [
+	'the discovery pick',
+	'a discovery pick',
+	'the rediscovery pick',
+	'a rediscovery pick',
+	'the discovery nudge',
+	'a discovery nudge',
+	'the discovery suggestion',
+	'a discovery suggestion',
+	'discovery nudge from'
+];
+
+// System mechanism leaks — exposing the gears behind the recommendation.
+const MECHANISM_TERMS = [
+	'other users',
+	'wider albumz community',
+	'wider community',
+	'the community',
+	'users with overlapping',
+	'users with similar',
+	'listeners with overlapping',
+	'listeners with similar',
+	'rated highly',
+	'have rated this',
+	'the indie folk tags',
+	'the dream pop tags',
+	'the shoegaze tags',
+	'tags from those sessions',
+	'top tags'
+];
+
+function findTerms(output, terms) {
+	const haystack = output.toLowerCase();
+	return terms.filter((t) => haystack.includes(t.toLowerCase()));
+}
+
 function probe(output) {
 	const paragraphs = output.split(/\n\s*\n/).filter((p) => p.trim().length > 0);
 	const paraCount = paragraphs.length;
@@ -113,20 +190,14 @@ function probe(output) {
 	const lastPara = paragraphs[paragraphs.length - 1] || '';
 	const lastSentence = (lastPara.split(/(?<=[.!?])\s+/).pop() || '').trim();
 
-	// Discovery presence: distinctive token from discovery_pick must appear.
-	// (For Duster — Stratosphere, both "Duster" and "Stratosphere" qualify.)
+	// Discovery + rediscovery presence: distinctive tokens from each pick must
+	// appear. Both are mandatory.
 	const discoveryPresent = /\bDuster\b|\bStratosphere\b/i.test(output);
+	const rediscoveryPresent = /\bWhite Birch\b/i.test(output);
 
-	// Echo-of-rules detector: prose paraphrasing the prompt's own framing.
-	const echoTerms = [
-		'valid ways of being',
-		'no hierarchy',
-		'both approaches are valid',
-		'without diminishing',
-		'lesser experience',
-		'passing echo'
-	];
-	const echoesFound = echoTerms.filter((t) => output.toLowerCase().includes(t.toLowerCase()));
+	const echoesFound = findTerms(output, ECHO_TERMS);
+	const metaFound = findTerms(output, META_TERMS);
+	const mechanismFound = findTerms(output, MECHANISM_TERMS);
 
 	return {
 		paraCount,
@@ -140,8 +211,13 @@ function probe(output) {
 		emojiOk: !emoji,
 		emojiFound: emoji,
 		discoveryOk: discoveryPresent,
+		rediscoveryOk: rediscoveryPresent,
 		echoOk: echoesFound.length === 0,
 		echoesFound,
+		metaOk: metaFound.length === 0,
+		metaFound,
+		mechanismOk: mechanismFound.length === 0,
+		mechanismFound,
 		lastSentence
 	};
 }
@@ -162,7 +238,10 @@ for (let i = 1; i <= N; i++) {
 	console.log(`"this week":  ${r.thisWeekOk ? 'PASS' : `FAIL (${r.thisWeekCount}x)`}`);
 	console.log(`no emoji:     ${r.emojiOk ? 'PASS' : `FAIL — ${r.emojiFound.join(' ')}`}`);
 	console.log(`discovery in: ${r.discoveryOk ? 'PASS' : 'FAIL — Duster/Stratosphere not mentioned'}`);
+	console.log(`rediscov. in: ${r.rediscoveryOk ? 'PASS' : 'FAIL — White Birch not mentioned'}`);
 	console.log(`no echo:      ${r.echoOk ? 'PASS' : `FAIL — ${r.echoesFound.join(', ')}`}`);
+	console.log(`no meta-lang: ${r.metaOk ? 'PASS' : `FAIL — ${r.metaFound.join(', ')}`}`);
+	console.log(`no mechanism: ${r.mechanismOk ? 'PASS' : `FAIL — ${r.mechanismFound.join(', ')}`}`);
 	console.log(`final:        "${r.lastSentence}"`);
 	console.log('');
 }
@@ -177,7 +256,10 @@ if (N > 1) {
 		['thisWeekOk', '"this week" ≤2x'],
 		['emojiOk', 'no emoji'],
 		['discoveryOk', 'discovery present'],
-		['echoOk', 'no rule-echoes']
+		['rediscoveryOk', 'rediscovery present'],
+		['echoOk', 'no echo-of-rules'],
+		['metaOk', 'no structural meta-lang'],
+		['mechanismOk', 'no mechanism leaks']
 	];
 	for (const [key, label] of cols) {
 		const pass = results.filter((r) => r[key]).length;
