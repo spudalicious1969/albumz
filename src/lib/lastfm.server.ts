@@ -237,6 +237,130 @@ export async function fetchRecentTracks(
 	}
 }
 
+// Tags so generic they don't anchor a hook: genre umbrellas, era buckets,
+// preference markers, locale labels, vocalist-role tags. The second tier of
+// Last.fm tags (post-punk, shoegaze, krautrock, dream pop, etc.) is where
+// the column gets its flavor; this stoplist clears the way for them to
+// surface. Applied at both fetch-time (new cache rows store clean) and
+// read-time (existing noisy rows get filtered on the way through), so no
+// cache wipe is needed.
+const TAG_STOPLIST = new Set([
+	// Genre umbrellas
+	'rock', 'pop', 'indie', 'alternative', 'alternative rock', 'indie rock', 'indie pop',
+	// Era / decade buckets
+	'50s', '60s', '70s', '80s', '90s', '00s', '10s', '20s',
+	'2000s', '2010s', '2020s', 'classic rock', 'oldies',
+	// Preference / meta noise
+	'seen live', 'favourite', 'favourites', 'favorite', 'favorites',
+	'my favourites', 'my favorites', 'awesome', 'amazing', 'love', 'great', 'best', 'cool', 'good',
+	'love it', 'loved',
+	// Locale labels
+	'american', 'british', 'english', 'uk', 'usa', 'american rock', 'british rock',
+	'american indie', 'british indie',
+	// Vocalist role
+	'male vocalists', 'female vocalists', 'male vocalist', 'female vocalist',
+	// Other catch-all
+	'all', 'music'
+]);
+
+function filterStoplist(tags: string[]): string[] {
+	return tags.filter((t) => !TAG_STOPLIST.has(t));
+}
+
+/** Top tags for an artist from Last.fm `artist.getTopTags`. Lowercased,
+ * deduped, stoplist-filtered, capped to the top `limit` by Last.fm's count
+ * weighting. Returns `[]` on any error so the caller treats it as "no tag
+ * info" rather than surfacing a failure into the digest. */
+export async function fetchArtistTopTags(
+	artist: string,
+	limit = 5
+): Promise<string[]> {
+	const key = env.LAST_FM_API_KEY;
+	if (!key || !artist) return [];
+
+	const url = new URL(ENDPOINT);
+	url.searchParams.set('method', 'artist.getTopTags');
+	url.searchParams.set('artist', artist);
+	url.searchParams.set('api_key', key);
+	url.searchParams.set('format', 'json');
+	url.searchParams.set('autocorrect', '1');
+
+	try {
+		const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+		if (!res.ok) return [];
+		const data = (await res.json()) as {
+			toptags?: { tag?: { name?: string; count?: number }[] | { name?: string; count?: number } };
+			error?: number;
+		};
+		if (data.error) return [];
+		const raw = data.toptags?.tag;
+		const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+		const tags = arr
+			.filter((t) => t.name && (t.count ?? 0) > 0)
+			.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+			.map((t) => (t.name as string).toLowerCase().trim())
+			.filter((t) => t.length > 0);
+		const seen = new Set<string>();
+		const unique: string[] = [];
+		for (const t of filterStoplist(tags)) {
+			if (seen.has(t)) continue;
+			seen.add(t);
+			unique.push(t);
+			if (unique.length >= limit) break;
+		}
+		return unique;
+	} catch {
+		return [];
+	}
+}
+
+/** Resolve top tags for a batch of artists with a Supabase-backed cache.
+ *
+ * Cache key is the lowercased artist name. Cache hits return immediately.
+ * Misses are fetched from Last.fm sequentially (politeness over throughput
+ * for a background background job) and written back as one upsert at the
+ * end. Returns a Map keyed by lowercased artist name. Artists with no tags
+ * (Last.fm hiccup, unknown artist, or just no tags) map to `[]`. */
+export async function getArtistTopTagsBatch(
+	supabase: import('@supabase/supabase-js').SupabaseClient,
+	artists: string[]
+): Promise<Map<string, string[]>> {
+	const result = new Map<string, string[]>();
+	const keys = Array.from(
+		new Set(artists.map((a) => a.toLowerCase().trim()).filter((a) => a.length > 0))
+	);
+	if (keys.length === 0) return result;
+
+	const { data: cached } = await supabase
+		.from('artist_tags')
+		.select('artist, tags')
+		.in('artist', keys);
+
+	const cachedKeys = new Set<string>();
+	for (const row of cached ?? []) {
+		// Re-apply the stoplist on read so cache rows written before the
+		// stoplist existed still surface only the specific tags.
+		result.set(row.artist, filterStoplist((row.tags as string[]) ?? []));
+		cachedKeys.add(row.artist);
+	}
+
+	const misses = keys.filter((k) => !cachedKeys.has(k));
+	if (misses.length === 0) return result;
+
+	const toUpsert: { artist: string; tags: string[] }[] = [];
+	for (const key of misses) {
+		const tags = await fetchArtistTopTags(key);
+		result.set(key, tags);
+		toUpsert.push({ artist: key, tags });
+	}
+
+	if (toUpsert.length > 0) {
+		await supabase.from('artist_tags').upsert(toUpsert, { onConflict: 'artist' });
+	}
+
+	return result;
+}
+
 function creds() {
 	const api_key = env.LAST_FM_API_KEY;
 	const secret = env.LAST_FM_API_SECRET;
