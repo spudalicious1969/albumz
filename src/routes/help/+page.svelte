@@ -93,6 +93,7 @@
 		<h2>Import &amp; export</h2>
 		<p><strong>Importing.</strong> Settings → Import / Export → drop in a CSV, XLS, or XLSX file. Discogs exports work out of the box; so do most spreadsheets where the column headers are roughly named "Artist", "Album", "Year", "Format", etc. You'll see a preview before anything commits — rows missing required fields are flagged with a skip reason.</p>
 		<p><strong>Exporting.</strong> Settings → Import / Export → <strong>Download CSV</strong>. It round-trips: download, edit, re-import.</p>
+		<p><strong>Duplicates.</strong> Settings → <strong>Duplicates</strong> scans your collection for the same artist + title (case-insensitive) and cleans up on confirm. Highest-metadata copy of each group is kept — cover, rating, notes, tags weighted — and the rest are removed. The import preview also flags would-be duplicates ahead of time so re-imports of the same CSV don't pile on.</p>
 	</section>
 
 	<section id="public" class="card">

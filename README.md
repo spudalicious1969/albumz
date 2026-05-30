@@ -107,6 +107,12 @@ You'll see a preview before anything commits. Rows missing required fields are f
 
 Settings → Import / Export → **Download CSV**. It round-trips: download, edit, re-import.
 
+### Duplicates
+
+If a CSV gets imported twice (or you add the same album by hand and forget), Settings → **Duplicates** has a scan + cleanup. Match is on `(artist, title)` case-insensitive. The cleanup keeps the copy with the most user-added metadata — cover, rating, notes, tags, year, format all weighted — and removes the rest. Older entry wins as the tiebreaker.
+
+The import preview also flags would-be duplicates ahead of time: rows that match an album already in your collection appear as **"Already in collection"** and default to skipped, so a re-import of the same CSV doesn't pile on.
+
 ---
 
 ## Your public page
