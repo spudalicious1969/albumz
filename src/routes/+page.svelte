@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import MosaicView from '$lib/components/MosaicView.svelte';
+	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import { lookup } from '$lib/lookup-state.svelte';
 	import { compareByKey } from '$lib/sort-key';
@@ -148,12 +149,15 @@
 		<span class="wordmark">album<span>z</span></span>
 		<span class="title-meta">Collection <span class="count">{owned.length}</span></span>
 		<div class="topbar-actions">
-			<select bind:value={sort} class="sort" aria-label="Sort by">
-				<option value="recent">Recent</option>
-				<option value="artist">Artist</option>
-				<option value="album">Album</option>
-				<option value="rating">Rating</option>
-			</select>
+			<SortDropdown
+				bind:value={sort}
+				options={[
+					{ value: 'recent', label: 'Recent' },
+					{ value: 'artist', label: 'Artist' },
+					{ value: 'album', label: 'Album' },
+					{ value: 'rating', label: 'Rating' }
+				]}
+			/>
 			<button
 				type="button"
 				class="btn-icon"
@@ -293,19 +297,6 @@
 		transition: background 0.15s, color 0.15s;
 	}
 	.btn-icon:hover { background: var(--surface-hover); color: var(--text); }
-	.sort {
-		padding: 0.45rem 0.7rem;
-		background: var(--surface);
-		color: var(--text);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		font-size: 0.85rem;
-		font-weight: 600;
-		font-family: inherit;
-		cursor: pointer;
-	}
-	.sort:hover { background: var(--surface-hover); }
-
 	.empty {
 		display: flex;
 		flex-direction: column;

@@ -4,6 +4,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { compareByKey } from '$lib/sort-key';
 	import { loadSort, saveSort } from '$lib/persist';
+	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -60,15 +61,15 @@
 		<a href="/" class="back">← Collection</a>
 		<h1>Wantlist <span class="count">{data.albums.length}</span></h1>
 		<div class="actions">
-			<label class="sort">
-				Sort
-				<select bind:value={sort}>
-					<option value="recent">Recently added</option>
-					<option value="artist">Artist</option>
-					<option value="title">Title</option>
-					<option value="format">Format</option>
-				</select>
-			</label>
+			<SortDropdown
+				bind:value={sort}
+				options={[
+					{ value: 'recent', label: 'Recently added' },
+					{ value: 'artist', label: 'Artist' },
+					{ value: 'title', label: 'Title' },
+					{ value: 'format', label: 'Format' }
+				]}
+			/>
 			<a href="/albums/new?ownership=WANT" class="btn-add">+ Add to wantlist</a>
 		</div>
 	</header>
@@ -184,22 +185,6 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-	}
-	.sort {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		font-size: 0.8rem;
-		color: var(--text-muted);
-	}
-	.sort select {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text);
-		border-radius: var(--radius);
-		padding: 0.35rem 0.55rem;
-		font-family: inherit;
-		font-size: 0.85rem;
 	}
 	.btn-add {
 		padding: 0.45rem 1rem;

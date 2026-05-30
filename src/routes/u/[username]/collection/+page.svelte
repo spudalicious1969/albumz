@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { compareByKey } from '$lib/sort-key';
 	import { loadSort, saveSort } from '$lib/persist';
+	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -94,11 +95,14 @@
 					</svg>
 				</button>
 			{/if}
-			<select bind:value={sort} class="sort" aria-label="Sort by">
-				<option value="artist">Sort: Artist</option>
-				<option value="album">Sort: Album</option>
-				<option value="rating">Sort: Rating</option>
-			</select>
+			<SortDropdown
+				bind:value={sort}
+				options={[
+					{ value: 'artist', label: 'Artist' },
+					{ value: 'album', label: 'Album' },
+					{ value: 'rating', label: 'Rating' }
+				]}
+			/>
 		</div>
 	</header>
 
@@ -197,14 +201,6 @@
 		background: var(--surface);
 		color: var(--text);
 	}
-	.sort {
-		padding: 0.55rem 0.85rem;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--surface);
-		color: var(--text);
-	}
-
 	.empty { padding: 4rem 0; text-align: center; color: var(--text-muted); }
 
 	.album-grid {
