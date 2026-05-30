@@ -174,6 +174,74 @@ const MECHANISM_TERMS = [
 	'top tags'
 ];
 
+// Format-specific tropes — the column doesn't know if the user has vinyl,
+// CDs, cassettes, or a mix, so these all assume a format we don't have.
+// Whole-word matching only (so "vinyl" matches but "the vinyls' fan club"
+// in a band name wouldn't — though there are no such fakes in test data).
+const FORMAT_TROPE_TERMS = [
+	'turntable',
+	'turntables',
+	'needle',
+	'needles',
+	'crackle',
+	'crackles',
+	'crates',
+	'crate digging',
+	'crate-digging',
+	'vinyl',
+	'the wax',
+	'b-side',
+	'a-side',
+	'flip side',
+	'flipped the record',
+	'spinning the platter',
+	'platter'
+];
+
+// Borrowed example phrases — these come from the prompt's own shape
+// examples or from past iterations that overused them. The model should
+// invent its own framings.
+const BORROWED_PHRASE_TERMS = [
+	'belongs in that same room',
+	'has legs',
+	'swing for the curious',
+	'a swing for',
+	'sits one shelf away',
+	'one shelf away'
+];
+
+// Virtual-shelf and streamed-as-category nouns — these abstract "streamed"
+// into a concept rather than just naming it as a verb. The streamed-vs-spun
+// rule in the prompt forbids using either as a category.
+const CATEGORY_NOUN_TERMS = [
+	'virtual shelf',
+	'virtual shelves',
+	'digital shelf',
+	'digital shelves',
+	'streamed selections',
+	'streamed selection',
+	'streamed picks',
+	'streamed pick',
+	'streamed tracks',
+	'streamed sessions',
+	'streamed side',
+	'streaming side',
+	'spun records',
+	'spun record',
+	'spun selections',
+	'spun selection',
+	'spun picks',
+	'spun pick',
+	'spun tracks',
+	'spun sessions',
+	'spun side',
+	'physical shelf',
+	'physical side',
+	'analog side',
+	'the streams',
+	'the two formats'
+];
+
 function findTerms(output, terms) {
 	const haystack = output.toLowerCase();
 	return terms.filter((t) => haystack.includes(t.toLowerCase()));
@@ -198,6 +266,9 @@ function probe(output) {
 	const echoesFound = findTerms(output, ECHO_TERMS);
 	const metaFound = findTerms(output, META_TERMS);
 	const mechanismFound = findTerms(output, MECHANISM_TERMS);
+	const formatFound = findTerms(output, FORMAT_TROPE_TERMS);
+	const borrowedFound = findTerms(output, BORROWED_PHRASE_TERMS);
+	const categoryFound = findTerms(output, CATEGORY_NOUN_TERMS);
 
 	return {
 		paraCount,
@@ -218,6 +289,12 @@ function probe(output) {
 		metaFound,
 		mechanismOk: mechanismFound.length === 0,
 		mechanismFound,
+		formatOk: formatFound.length === 0,
+		formatFound,
+		borrowedOk: borrowedFound.length === 0,
+		borrowedFound,
+		categoryOk: categoryFound.length === 0,
+		categoryFound,
 		lastSentence
 	};
 }
@@ -242,6 +319,9 @@ for (let i = 1; i <= N; i++) {
 	console.log(`no echo:      ${r.echoOk ? 'PASS' : `FAIL — ${r.echoesFound.join(', ')}`}`);
 	console.log(`no meta-lang: ${r.metaOk ? 'PASS' : `FAIL — ${r.metaFound.join(', ')}`}`);
 	console.log(`no mechanism: ${r.mechanismOk ? 'PASS' : `FAIL — ${r.mechanismFound.join(', ')}`}`);
+	console.log(`no format:    ${r.formatOk ? 'PASS' : `FAIL — ${r.formatFound.join(', ')}`}`);
+	console.log(`no borrowed:  ${r.borrowedOk ? 'PASS' : `FAIL — ${r.borrowedFound.join(', ')}`}`);
+	console.log(`no category:  ${r.categoryOk ? 'PASS' : `FAIL — ${r.categoryFound.join(', ')}`}`);
 	console.log(`final:        "${r.lastSentence}"`);
 	console.log('');
 }
@@ -259,7 +339,10 @@ if (N > 1) {
 		['rediscoveryOk', 'rediscovery present'],
 		['echoOk', 'no echo-of-rules'],
 		['metaOk', 'no structural meta-lang'],
-		['mechanismOk', 'no mechanism leaks']
+		['mechanismOk', 'no mechanism leaks'],
+		['formatOk', 'no format tropes'],
+		['borrowedOk', 'no borrowed phrases'],
+		['categoryOk', 'no category nouns']
 	];
 	for (const [key, label] of cols) {
 		const pass = results.filter((r) => r[key]).length;

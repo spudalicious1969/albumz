@@ -25,22 +25,31 @@ Form:
 - Output the prose body only. No greeting, no signoff, no meta-commentary about the digest itself.
 
 Language:
+- **Never use these words** (the column does not contain them under any circumstance): turntable, needle, crackle, crates, vinyl, virtual, digital, analog, physical, streaming, streamed, format, media. Before you finish, scan your prose for each of these and rewrite any sentence that contains one.
 - Never write raw counts like "you played X 7 times." Translate them into shape: "kept coming back to," "barely touched," "lingered on," "drifted past."
 - Never use the phrase "this week" more than twice.
 - Never refer to yourself ("I noticed," "I think") and never address the data ("the numbers show"). Address the user directly.
-- Don't assume the physical format. The user might own CDs, vinyl, cassettes, or a mix. Avoid format-specific tropes (turntable, needle, crackle, crates, "the vinyl") unless the data explicitly says vinyl. Stay neutral: "spun," "put on," "pulled out," "let it play."
+- Don't assume the physical format. The user might own CDs, vinyl, cassettes, or a mix. Avoid format-specific tropes — see the never-use list above. The format is named ONLY as the verb "spun" (for [s] entries) or "streamed" (for [*] entries); never as scene or object. Stay neutral: "spun," "put on," "pulled out," "let it play."
+  - Bad: "Saturday began on the turntable"
+  - Bad: "by the time the needle settled on Beams"
+  - Good: "Saturday began with Slowdive"
 - Day of week is the only time information you have. Never invent time-of-day details like "morning," "afternoon," "evening," "night," "sunrise," "twilight," "dusk." If you write any of those words, you are fabricating data. Day names (Monday, Tuesday, Wednesday…) are fine; clock-of-the-day language is not.
 
 How to talk about spun vs streamed:
 - The listening log marks each play with `[s]` for spun (physical) or `[*]` for streamed. Reflect that distinction by choosing the right verb: "spun X Wednesday" or "streamed Y Sunday." Both verbs are equivalent in weight — never elevate one or denigrate the other.
-- Never use "physical," "streamed," "streaming," "digital," "analog," "format," or "media" as nouns or as categories. These are not concepts the column discusses; they're just two verbs.
-- Never write a sentence that compares the two as concepts. If the grammatical subject of a sentence is "the digital selections," "the physical side," "the streams," "the two formats," or any abstraction over one mode vs the other, delete it and start over with a specific track or day as the subject.
+- Never use "physical," "streamed," "streaming," "digital," "analog," "virtual," "format," or "media" as nouns or as categories — see the never-use list above. These are not concepts the column discusses; they're just two verbs.
+- Never write a sentence that compares the two as concepts. If the grammatical subject of a sentence is "the digital selections," "the physical side," "the streams," "the streamed selections," "the virtual shelf," "the two formats," or any abstraction over one mode vs the other, delete it and start over with a specific track or day as the subject.
+- **Never use collective nouns for streamed or spun plays.** No "streamed selections," "streamed picks," "streamed tracks," "streamed sessions," "streamed side," "spun records," "spun selections," "spun picks," "spun side." The only valid way to refer to a streamed or spun play is by NAMING the specific track and using the verb. If you want to refer back to streamed plays from earlier in the column, name one of them by track again — never collect them into a group noun.
 - Good: "Sunday meant streaming — Big Thief's Vampire Empire, then Wednesday's Bath County, no real fanfare."
+- Good: "After Vampire Empire on Sunday, the streaming continued into Monday with Wristwatch."
 - Bad: "Sunday's digital sessions provided a necessary contrast to the physical spins."
+- Bad: "the streamed selections that followed"
+- Bad: "sitting unread on that virtual shelf"
+- Bad: "the streamed picks balanced out the week"
 
 Don't name the structure:
 - Never name a recommendation by its structural role. Do not write "the rediscovery pick," "the discovery pick," "the discovery nudge," "a rediscovery pick," "a discovery pick," "the discovery suggestion," or any phrase that points at the slot rather than the album. Slip the recommendation in as a natural suggestion that fits the surrounding sentences.
-- Examples of shape (write your own — don't borrow specific phrases like "axis," "belongs in that same room," "has legs"; those are worn out):
+- Examples of shape (write your own — don't borrow these specific phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for"; those are worn out):
   - Anchored to a real album from the week: "Wednesday's Cure session sits one shelf away from $ALBUM — worth pulling out if that mood lingers."
   - Wildcard framing when the hook says no specific link: "$ALBUM is sitting unread on someone else's shelf in Albumz; a swing for the curious, no claim it'll match Tuesday."
 - Bad: "The discovery pick this week is $ALBUM, which belongs in that same room."
@@ -86,11 +95,14 @@ One album from the wider Albumz catalog they don't own — a possible nudge outw
 {{discovery_pick}}
 Why this one for this user: {{discovery_hook}}
 
-Write the column now. Before you finish, verify all four:
+Write the column now. Before you finish, verify all seven:
 (1) {{rediscovery_pick}} is named in the prose.
 (2) {{discovery_pick}} is named in the prose.
 (3) The discovery lives in a paragraph that also names a specific album from the listening log above.
 (4) The final paragraph ends with a single year-shaped sentence (looking forward, sounding like a critic closing a year-in-review, even though it's one week).
+(5) The prose contains NONE of these words: turntable, needle, crackle, crates, vinyl, virtual, digital, analog, physical, streaming, streamed, format, media. If any are present, rewrite the offending sentence in neutral language.
+(6) No collective nouns for streamed or spun plays. Scan for "streamed selections," "streamed picks," "streamed tracks," "streamed side," "spun records," "spun selections," "spun side." If any are present, rewrite to name a specific track instead.
+(7) The prose does NOT borrow any of these worn-out phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for." If any are present, replace with original phrasing.
 ```
 
 ---
@@ -117,7 +129,10 @@ When testing prompt revisions, score the output on these specifically — they'r
 4. **Spun-vs-streamed mentioned without editorializing?** No sentences abstracting the two formats.
 5. **No structural meta-language?** No "the discovery pick," no "a rediscovery pick," no naming the slot.
 6. **No system mechanism leaks?** No "other users," "ratings," "wider community," "tags from those sessions."
-7. **Last paragraph closes with a year-shaped gesture?**
-8. **Reads like a column, not a report?** (Gut check. If it sounds like a dashboard wearing prose, it's failed.)
+7. **No format tropes?** No "turntable," "needle," "crackle," "crates," "vinyl" — these assume a format we don't know.
+8. **No banned-noun categories?** No "virtual shelf," "streamed selections," "digital sessions," "the streams" — these abstract the two verbs into concepts.
+9. **No borrowed example phrases?** No "axis," "belongs in that same room," "has legs," "swing for the curious."
+10. **Last paragraph closes with a year-shaped gesture?**
+11. **Reads like a column, not a report?** (Gut check. If it sounds like a dashboard wearing prose, it's failed.)
 
-If output fails 1–7 reproducibly, tune the prompt — not the model.
+If output fails 1–10 reproducibly, tune the prompt — not the model.
