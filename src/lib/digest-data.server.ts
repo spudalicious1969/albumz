@@ -194,23 +194,49 @@ export async function assembleDigest(
 	// brought Hayley Williams" when Thursday actually had no entries. With
 	// an explicit `(no plays)` marker per empty day, the prompt rule
 	// "only write about days that have entries" has a structural anchor.
+	//
+	// Mid-week digests must exclude FUTURE days entirely (vs marking them
+	// `(no plays)` — which is a lie for days that haven't started). For
+	// the current week, only include Mon through today (local). For past
+	// weeks (weekEnding earlier than today), include all 7 days.
 	const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+	const isoLocalDate = (d: Date) =>
+		new Intl.DateTimeFormat('en-CA', {
+			timeZone: LOCAL_TZ,
+			year: 'numeric',
+			month: '2-digit',
+			day: '2-digit'
+		}).format(d);
+	const todayDateStr = isoLocalDate(new Date());
+	const weekEndingDateStr = weekEnding.toISOString().slice(0, 10);
+	const isPastWeek = weekEndingDateStr < todayDateStr;
+	const todayDow = new Date().toLocaleDateString('en-US', {
+		weekday: 'short',
+		timeZone: LOCAL_TZ
+	});
+	const todayIdx = DAY_ORDER.indexOf(todayDow as (typeof DAY_ORDER)[number]);
+	const daysToInclude = isPastWeek
+		? DAY_ORDER
+		: DAY_ORDER.slice(0, todayIdx >= 0 ? todayIdx + 1 : DAY_ORDER.length);
+
 	const dayBuckets = new Map<string, Event[]>();
-	for (const d of DAY_ORDER) dayBuckets.set(d, []);
+	for (const d of daysToInclude) dayBuckets.set(d, []);
 	for (const e of capped) {
 		const day = dayOfWeekLocal(e.timestamp);
 		dayBuckets.get(day)?.push(e);
 	}
-	const listening_log = DAY_ORDER.map((day) => {
-		const plays = dayBuckets.get(day) ?? [];
-		if (plays.length === 0) return `${day}: (no plays)`;
-		const lines = plays.map((e) => {
-			const sourceMark = e.source === 'streamed' ? '[*]' : '[s]';
-			const albumPart = e.album ? ` (${e.album})` : '';
-			return `  ${e.artist} — ${e.track}${albumPart} ${sourceMark}`;
-		});
-		return `${day}:\n${lines.join('\n')}`;
-	}).join('\n\n');
+	const listening_log = daysToInclude
+		.map((day) => {
+			const plays = dayBuckets.get(day) ?? [];
+			if (plays.length === 0) return `${day}: (no plays)`;
+			const lines = plays.map((e) => {
+				const sourceMark = e.source === 'streamed' ? '[*]' : '[s]';
+				const albumPart = e.album ? ` (${e.album})` : '';
+				return `  ${e.artist} — ${e.track}${albumPart} ${sourceMark}`;
+			});
+			return `${day}:\n${lines.join('\n')}`;
+		})
+		.join('\n\n');
 
 	// Owned albums — used for both rediscovery and discovery-exclusion.
 	const { data: ownedAlbums } = await supabase
