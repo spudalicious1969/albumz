@@ -187,14 +187,30 @@ export async function assembleDigest(
 
 	const capped =
 		events.length > LISTENING_LOG_CAP ? events.slice(-LISTENING_LOG_CAP) : events;
-	const listening_log = capped
-		.map((e) => {
-			const dow = dayOfWeekLocal(e.timestamp);
+
+	// Group plays by day so empty days are visibly empty in the log. The
+	// flat shape (one line per play with a day prefix) let the model
+	// hallucinate plays on days that had none — it would write "Thursday
+	// brought Hayley Williams" when Thursday actually had no entries. With
+	// an explicit `(no plays)` marker per empty day, the prompt rule
+	// "only write about days that have entries" has a structural anchor.
+	const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
+	const dayBuckets = new Map<string, Event[]>();
+	for (const d of DAY_ORDER) dayBuckets.set(d, []);
+	for (const e of capped) {
+		const day = dayOfWeekLocal(e.timestamp);
+		dayBuckets.get(day)?.push(e);
+	}
+	const listening_log = DAY_ORDER.map((day) => {
+		const plays = dayBuckets.get(day) ?? [];
+		if (plays.length === 0) return `${day}: (no plays)`;
+		const lines = plays.map((e) => {
 			const sourceMark = e.source === 'streamed' ? '[*]' : '[s]';
 			const albumPart = e.album ? ` (${e.album})` : '';
-			return `${dow} — ${e.artist} — ${e.track}${albumPart} ${sourceMark}`;
-		})
-		.join('\n');
+			return `  ${e.artist} — ${e.track}${albumPart} ${sourceMark}`;
+		});
+		return `${day}:\n${lines.join('\n')}`;
+	}).join('\n\n');
 
 	// Owned albums — used for both rediscovery and discovery-exclusion.
 	const { data: ownedAlbums } = await supabase

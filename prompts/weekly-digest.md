@@ -34,6 +34,7 @@ Language:
   - Bad: "by the time the needle settled on Beams"
   - Good: "Saturday began with Slowdive"
 - Day of week is the only time information you have. Never invent time-of-day details like "morning," "afternoon," "evening," "night," "sunrise," "twilight," "dusk." If you write any of those words, you are fabricating data. Day names (Monday, Tuesday, Wednesday…) are fine; clock-of-the-day language is not.
+- **Day fidelity is absolute.** The listening log is grouped by day: each day section starts with `Mon:`, `Tue:`, etc., and lists that day's plays as indented lines. Days with no plays are marked `(no plays)`. You may only write about plays on days that have entries in the log. If `Thu: (no plays)` is in the log, you cannot write "Thursday brought X" or "Thursday's session" — that day did not happen for music. You cannot move a track from the day it was logged to a different day for narrative flow. Attributing a play to the wrong day is fabrication.
 
 How to talk about spun vs streamed:
 - The listening log marks each play with `[s]` for spun (physical) or `[*]` for streamed. Reflect that distinction by choosing the right verb: "spun X Wednesday" or "streamed Y Sunday." Both verbs are equivalent in weight — never elevate one or denigrate the other.
@@ -49,10 +50,11 @@ How to talk about spun vs streamed:
 
 Don't name the structure:
 - Never name a recommendation by its structural role. Do not write "the rediscovery pick," "the discovery pick," "the discovery nudge," "a rediscovery pick," "a discovery pick," "the discovery suggestion," or any phrase that points at the slot rather than the album. Slip the recommendation in as a natural suggestion that fits the surrounding sentences.
-- Examples of shape (write your own — don't borrow these specific phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for"; those are worn out):
-  - Anchored to a real album from the week: "Wednesday's Cure session sits one shelf away from $ALBUM — worth pulling out if that mood lingers."
-  - Wildcard framing when the hook says no specific link: "$ALBUM is sitting unread on someone else's shelf in Albumz; a swing for the curious, no claim it'll match Tuesday."
+- Examples of shape (write your own — don't borrow these specific phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for," "sits one shelf away," "one shelf away"; those are worn out). The shapes below use $PLACEHOLDERS to make clear they are templates, NOT prose to copy:
+  - Anchored to a real album from the week: when $ALBUM thematically extends a real play from this week, frame the suggestion around the actual play's mood — e.g. naming the actual artist/track from the listening log and how $ALBUM might extend that thread. Never write a sentence like "$DAY's $ARTIST session sits ..." if $DAY and $ARTIST aren't both in the listening log.
+  - Wildcard framing when the hook says no specific link: $ALBUM is on someone else's shelf in Albumz, surfaced for the curious — no claim it'll match $REAL_DAY.
 - Bad: "The discovery pick this week is $ALBUM, which belongs in that same room."
+- Bad: "$DAY's $ARTIST session sits one shelf away from $ALBUM." (Don't ever lift this construction — both the phrase and the implicit $DAY/$ARTIST attribution are fabrications unless the data confirms them.)
 
 Don't expose the mechanism:
 - Never refer to "other users," "the community," "the wider Albumz community," "ratings," "users with overlapping collections," or any platform-side mechanism. The reader doesn't see the gears. Motivate any suggestion from the music itself or from the user's own week.
@@ -95,14 +97,15 @@ One album from the wider Albumz catalog they don't own — a possible nudge outw
 {{discovery_pick}}
 Why this one for this user: {{discovery_hook}}
 
-Write the column now. Before you finish, verify all seven:
+Write the column now. Before you finish, verify all eight:
 (1) {{rediscovery_pick}} is named in the prose.
 (2) {{discovery_pick}} is named in the prose.
 (3) The discovery lives in a paragraph that also names a specific album from the listening log above.
 (4) The final paragraph ends with a single year-shaped sentence (looking forward, sounding like a critic closing a year-in-review, even though it's one week).
 (5) The prose contains NONE of these words: turntable, needle, crackle, crates, vinyl, virtual, digital, analog, physical, streaming, streamed, format, media. If any are present, rewrite the offending sentence in neutral language.
 (6) No collective nouns for streamed or spun plays. Scan for "streamed selections," "streamed picks," "streamed tracks," "streamed side," "spun records," "spun selections," "spun side." If any are present, rewrite to name a specific track instead.
-(7) The prose does NOT borrow any of these worn-out phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for." If any are present, replace with original phrasing.
+(7) The prose does NOT borrow any of these worn-out phrases: "axis," "belongs in that same room," "has legs," "swing for the curious," "a swing for," "sits one shelf away," "one shelf away." If any are present, replace with original phrasing.
+(8) Day fidelity: every day name (Monday, Tuesday, …) you wrote must correspond to a day in the listening log that had real entries (NOT `(no plays)`). Every artist or track you attributed to a day must actually appear in that day's section of the log. If either check fails, rewrite the offending sentence to attribute the play to its actual day, or remove the day reference.
 ```
 
 ---
@@ -111,7 +114,7 @@ Write the column now. Before you finish, verify all seven:
 
 Each list/field is filled by the server before sending to Ollama. Keep the shapes lightweight so the model isn't drowning in tokens.
 
-- `listening_log` — one line per play, in chronological order, marked `[s]` for spun or `[*]` for streamed. Shape: `Day — Artist — Track (Album) [s]`. Cap at ~30 total; if more, sample most recent + most repeated. Server keeps the chronology so the model can narrate day-by-day.
+- `listening_log` — grouped by day (Mon through Sun in order). Each day section starts with a day-name header (`Mon:`, `Tue:`, …) followed by indented lines for each play that day. Days with no plays are marked `(no plays)` so the absence is explicit. Per-line shape: `  Artist — Track (Album) [s|*]` (two leading spaces, then artist, track, optional album in parens, then `[s]` for spun or `[*]` for streamed). The grouping makes day-fidelity verifiable: any day name in the prose must correspond to a day that had real entries.
 - `top_tags` — comma-separated, max 5: `shoegaze, post-punk, jangle pop, ambient, krautrock`.
 - `patterns_observed` — server-computed bullets like `Three Radiohead spins clustered Tue–Thu`, `First Mountain Goats listen since February`, `Heavy stream day Saturday`. The model uses these as raw material; it doesn't have to use all of them.
 - `rediscovery_pick` / `discovery_pick` — `Artist — Album (Year)`.
@@ -131,8 +134,9 @@ When testing prompt revisions, score the output on these specifically — they'r
 6. **No system mechanism leaks?** No "other users," "ratings," "wider community," "tags from those sessions."
 7. **No format tropes?** No "turntable," "needle," "crackle," "crates," "vinyl" — these assume a format we don't know.
 8. **No banned-noun categories?** No "virtual shelf," "streamed selections," "digital sessions," "the streams" — these abstract the two verbs into concepts.
-9. **No borrowed example phrases?** No "axis," "belongs in that same room," "has legs," "swing for the curious."
-10. **Last paragraph closes with a year-shaped gesture?**
-11. **Reads like a column, not a report?** (Gut check. If it sounds like a dashboard wearing prose, it's failed.)
+9. **No borrowed example phrases?** No "axis," "belongs in that same room," "has legs," "swing for the curious," "sits one shelf away."
+10. **Day fidelity?** Every day name in the prose corresponds to a day with real entries. No "Thursday brought X" if Thursday was `(no plays)`. No track attributed to a day other than the one it's logged on.
+11. **Last paragraph closes with a year-shaped gesture?**
+12. **Reads like a column, not a report?** (Gut check. If it sounds like a dashboard wearing prose, it's failed.)
 
-If output fails 1–10 reproducibly, tune the prompt — not the model.
+If output fails 1–11 reproducibly, tune the prompt — not the model.

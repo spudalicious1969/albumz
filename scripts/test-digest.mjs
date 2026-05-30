@@ -36,21 +36,39 @@ const [systemPrompt, userTemplate] = fences;
 const data = {
 	display_name: 'Marcus',
 	week_ending: 'May 29, 2026',
+	// Listening log is grouped by day with explicit `(no plays)` markers for
+	// any day without entries — same shape the production data assembler
+	// produces. The test scenario deliberately leaves Mon empty so the
+	// day-fidelity rule has a real gap to be tested against (no prose should
+	// reference Monday plays since that day has none).
 	listening_log: [
-		'Wed — Slowdive — Star Roving (Slowdive) [s]',
-		'Wed — Slowdive — Sugar for the Pill (Slowdive) [s]',
-		'Thu — The Cure — Plainsong (Disintegration) [s]',
-		'Thu — The Cure — Pictures of You (Disintegration) [s]',
-		'Thu — The Cure — Lovesong (Disintegration) [s]',
-		'Fri — Ride — Vapour Trail (Nowhere) [s]',
-		'Fri — Codeine — D (Frigid Stars) [s]',
-		'Fri — Codeine — Cave-In (Frigid Stars) [s]',
-		'Sat — Slint — Nosferatu Man (Spiderland) [s]',
-		'Sat — Slint — Good Morning, Captain (Spiderland) [s]',
-		'Sun — Big Thief — Vampire Empire [*]',
-		'Sun — Wednesday — Bath County [*]',
-		'Mon — MJ Lenderman — Wristwatch [*]',
-		'Tue — Phoebe Bridgers — Funeral [*]'
+		'Mon: (no plays)',
+		'',
+		'Tue:',
+		'  Phoebe Bridgers — Funeral [*]',
+		'',
+		'Wed:',
+		'  Slowdive — Star Roving (Slowdive) [s]',
+		'  Slowdive — Sugar for the Pill (Slowdive) [s]',
+		'',
+		'Thu:',
+		'  The Cure — Plainsong (Disintegration) [s]',
+		'  The Cure — Pictures of You (Disintegration) [s]',
+		'  The Cure — Lovesong (Disintegration) [s]',
+		'',
+		'Fri:',
+		'  Ride — Vapour Trail (Nowhere) [s]',
+		'  Codeine — D (Frigid Stars) [s]',
+		'  Codeine — Cave-In (Frigid Stars) [s]',
+		'',
+		'Sat:',
+		'  Slint — Nosferatu Man (Spiderland) [s]',
+		'  Slint — Good Morning, Captain (Spiderland) [s]',
+		'',
+		'Sun:',
+		'  Big Thief — Vampire Empire [*]',
+		'  Wednesday — Bath County [*]',
+		'  MJ Lenderman — Wristwatch [*]'
 	].join('\n'),
 	top_tags: 'shoegaze, post-punk, slowcore, indie folk, dream pop',
 	patterns_observed: [
@@ -270,6 +288,12 @@ function probe(output) {
 	const borrowedFound = findTerms(output, BORROWED_PHRASE_TERMS);
 	const categoryFound = findTerms(output, CATEGORY_NOUN_TERMS);
 
+	// Day fidelity: the test data has Monday as `(no plays)`. Any mention
+	// of "Monday" in the prose is fabrication — the model invented plays
+	// on a day with none. Looser scenarios (multiple empty days) would
+	// need a richer probe; this binary check is sufficient here.
+	const mondayMentions = (output.match(/\bMonday\b/g) || []).length;
+
 	return {
 		paraCount,
 		paraOk: paraCount >= 4 && paraCount <= 6,
@@ -295,6 +319,8 @@ function probe(output) {
 		borrowedFound,
 		categoryOk: categoryFound.length === 0,
 		categoryFound,
+		dayFidelityOk: mondayMentions === 0,
+		mondayMentions,
 		lastSentence
 	};
 }
@@ -322,6 +348,7 @@ for (let i = 1; i <= N; i++) {
 	console.log(`no format:    ${r.formatOk ? 'PASS' : `FAIL — ${r.formatFound.join(', ')}`}`);
 	console.log(`no borrowed:  ${r.borrowedOk ? 'PASS' : `FAIL — ${r.borrowedFound.join(', ')}`}`);
 	console.log(`no category:  ${r.categoryOk ? 'PASS' : `FAIL — ${r.categoryFound.join(', ')}`}`);
+	console.log(`day fidelity: ${r.dayFidelityOk ? 'PASS' : `FAIL — invented ${r.mondayMentions} Monday mention(s) (data has Mon: no plays)`}`);
 	console.log(`final:        "${r.lastSentence}"`);
 	console.log('');
 }
@@ -342,7 +369,8 @@ if (N > 1) {
 		['mechanismOk', 'no mechanism leaks'],
 		['formatOk', 'no format tropes'],
 		['borrowedOk', 'no borrowed phrases'],
-		['categoryOk', 'no category nouns']
+		['categoryOk', 'no category nouns'],
+		['dayFidelityOk', 'day fidelity (no Mon)']
 	];
 	for (const [key, label] of cols) {
 		const pass = results.filter((r) => r[key]).length;
