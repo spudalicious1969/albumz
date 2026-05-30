@@ -67,6 +67,7 @@
 			{/if}
 			<div class="divider" role="separator"></div>
 			<a role="menuitem" href="/settings" onclick={close}>Settings</a>
+			<a role="menuitem" href="/help" onclick={close}>Help</a>
 			<form method="POST" action="/auth/logout">
 				<button type="submit" role="menuitem" class="signout">Sign out</button>
 			</form>

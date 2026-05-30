@@ -1,42 +1,254 @@
-# sv
+# Albumz
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A music collection manager for people who treat records like they treat books — kept, revisited, occasionally read aloud to a friend. Built around the idea that a collection isn't an inventory; it's a slow autobiography you write one purchase at a time.
 
-## Creating a project
+Albumz lives at **[albumz.spudalicio.us](https://albumz.spudalicio.us)**.
 
-If you're seeing this, you've probably already done this step. Congrats!
+It's a place to:
 
-```sh
-# create a new project
-npx sv create my-app
-```
+- catalog what you own and what you want
+- find the cover art the metadata folks left out
+- give your listening a public face — a profile page with a *Headliner* view that anyone can pull up to see what you're spinning right now
+- catch what's actually on the turntable, via your laptop mic, and let your Last.fm history reflect physical plays the same way streaming already does
 
-To recreate this project with the same configuration:
+This is the user guide. If you're a developer poking under the hood, the heart of the codebase is `src/routes` and `src/lib`; `ALBUMZ-HANDOFF.md` carries the implementation notes.
 
-```sh
-# recreate this project
-npx sv@0.15.3 create --template minimal --types ts --add prettier eslint --no-download-check --install npm .
-```
+---
 
-## Developing
+## The shortest tour
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+1. **Sign up** at `/register`, confirm your email, and pick a username on the welcome screen — that's the address of your public page.
+2. **Add albums** with the `+ Add` button on the home page, or **Import** a CSV / Discogs export from Settings.
+3. **Connect Last.fm** in Settings if you scrobble — this unlocks the Headliner stage and the Spin feature.
+4. **Visit your public page** at `albumz.spudalicio.us/u/<your-username>`. Pick a featured album in Settings to anchor it.
+5. **Open the Headliner** for a full-screen "what I'm playing right now" view. Install it as a PWA on a tablet next to the stereo if you want the full effect.
 
-```sh
-npm run dev
+---
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## Your collection
 
-## Building
+### Adding an album
 
-To create a production version of your app:
+Hit **+ Add** on the home page. You can:
 
-```sh
-npm run build
-```
+- Fill in artist + title yourself and let Albumz fetch the rest (cover, year, format, label, tracklist)
+- Type *only* an artist, or *only* a title — the discovery search will offer matches you can click to populate the form
+- Pick whether it's something you *own* or something you *want* — the same form handles both with the submit button label switching to match
 
-You can preview the production build with `npm run preview`.
+### Editing or fixing
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+On any album detail page, click **Edit details**. Inside the editor is a **🔎 Look up details** panel — give it a fragment of the artist or title and it'll surface candidates from Spotify, iTunes, Last.fm, MusicBrainz, and Deezer. One click fills artist / title / year and, if the album has no cover yet, stages one too. A single Save updates everything.
+
+You can also edit notes, rating, tags, format, label, year, and ownership.
+
+### Removing
+
+The detail page has a Delete button. There's no trash can — once it's gone it's gone.
+
+### Notes, tags, and ratings — what's the depth ceiling?
+
+The `notes` field is the depth ceiling, on purpose. If you want to write three paragraphs about how you found a record, do it there. Tags are free-form — make up your own vocabulary. Rating is 1–5 stars and entirely optional.
+
+Albumz won't ask you to log producers, engineers, pressing variants, or runout etches. If you want a database, use Discogs. If you want a place to *remember* music, you're already here.
+
+---
+
+## The Wantlist
+
+Anything you mark as **want** lives on its own page at `/wantlist`. The home page shows only what you actually own.
+
+Each wantlist album has a row of buy-links — Record Exchange first (Boise's local shop), then Discogs and the streaming services. When you finally pick the thing up, click **✓ I got it!** on the album page and it promotes to your collection.
+
+---
+
+## Covers, search, and the Look-up palette
+
+### Auto-search
+
+When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores the results by how well the artist and title match, and uses the top hit. The reranking matters — without it, search for "Wilco — Sky Blue Sky" used to come back with the wrong cover often enough to be a nuisance.
+
+### Manual cover picker
+
+If the auto-pick is wrong, click **Pick a cover** on the album page. Same upstream sources, but you choose.
+
+### Bulk backfill
+
+In Settings → Import / Export there's a **Backfill covers** button. It walks your whole collection — including the wantlist — and fills missing covers without touching ones you already have.
+
+### Look-up palette (⌘K / Ctrl-K)
+
+From anywhere in the signed-in app, hit **⌘K** (or **Ctrl-K** on Windows / Linux) and type. It checks your collection first — "do I already own this?" — then offers Discogs and Spotify lookups for anything that isn't a match. Useful when you're in a record shop staring at a sleeve.
+
+---
+
+## Sorting
+
+Both the home page and the full-collection page have a Sort control in the topbar:
+
+- **Recently added** — newest first
+- **Artist** — alphabetical, article-aware ("The Beths" sorts under *B*, not *T*)
+- **Album** — alphabetical, also article-aware
+- **Format** — vinyl / CD / cassette / etc.
+- **Year** *(home only)*
+
+Whatever you pick sticks — Albumz remembers your sort preference per page.
+
+---
+
+## Import & export
+
+### Importing
+
+Settings → **Import / Export** → drop in a CSV, XLS, or XLSX file. Discogs exports work out of the box; so do most spreadsheets where the column headers are roughly named "Artist", "Album", "Year", "Format", and so on.
+
+You'll see a preview before anything commits. Rows missing required fields are flagged with a skip reason; valid rows are imported, covers searched in the background.
+
+### Exporting
+
+Settings → Import / Export → **Download CSV**. It round-trips: download, edit, re-import.
+
+---
+
+## Your public page
+
+Every signed-in user gets a public address at `/u/<username>`. It shows:
+
+- A **featured album** (set one in Settings) — atmospheric hero with the cover, accent color extracted from the art, and a fade into the background that matches whatever's playing
+- **Recent additions** — a strip of the last 12 albums you added
+- A **Headliner** link if you have Last.fm connected
+- A link to your **full collection** for visitors who want to dig
+
+The featured album hero is overridden by your current Last.fm now-playing track, so if you're actively scrobbling, visitors see what's spinning rather than your pinned pick.
+
+There's also `/u/<username>/collection` — your full collection, searchable and sortable, presented for visitors with a calmer atmosphere than the editor view.
+
+---
+
+## The Headliner
+
+A full-screen "what I'm playing right now" view at `/headliner/<username>`. Designed to live on a tablet or a second monitor in the listening room. Background is a blurred version of the current cover; foreground is the cover itself, big, with track / artist / album text and a pulsing "live" dot when you're actively playing.
+
+The Headliner re-fetches every 15 seconds, so it'll keep up with track changes without needing a reload. It's also a **PWA** — open it in Chrome / Edge, click "Install", and you get an app icon that opens to full-screen mode.
+
+If you're the owner, you'll also see the **Tonight's set** card in the bottom-right. That's where Spin lives.
+
+---
+
+## Spin — tonight's set
+
+Spin is the part of Albumz that catches what's actually on the turntable.
+
+### What you see
+
+On your Headliner there's a small pill in the lower-right: **"Tonight's set."** Click it to expand the card. The card has:
+
+- A **mic toggle** — turn it on when you want Albumz to listen via your laptop microphone and identify what's playing
+- A **set list** — every track that's been identified during this session, latest at the top
+- An **End set** link — wipes the set list and closes out the session
+
+The label changes with the time of day: *this morning's set*, *this afternoon's set*, *this evening's set*, *tonight's set*.
+
+### Spun vs streamed
+
+Each track gets a small mark:
+
+- **◉ spun** — physical playback that Albumz heard through your mic and identified
+- **⇢ streamed** — a track that was on your Last.fm now-playing while Albumz was watching (you weren't playing it physically, you were streaming it)
+
+The distinction matters because Spotify already scrobbles your streams to Last.fm; Albumz quietly scrobbles your physical plays the same way, so your Last.fm history finally reflects everything you actually listened to.
+
+### The set is bigger than the Headliner
+
+You don't need to be on the Headliner page for the set to track. Open the card on the Headliner, then go off and browse the rest of the site — your session keeps running. Come back, the list is intact. The set ends when you close the tab or click **End set**, not when you wander off.
+
+### Without the mic
+
+Even with the mic off, opening the card on the Headliner shows your currently-streaming tracks as they play (provided you have Last.fm connected). The mic just adds physical-play detection.
+
+### Privacy notes
+
+The microphone only records when you explicitly turn it on, and audio is sent to a private identification service for matching — nothing is stored on disk after identification. Toggle it off anytime; the indicator pulses red when it's listening.
+
+---
+
+## Last.fm integration
+
+Settings → **Last.fm connection** → Connect. You'll authorize Albumz on Last.fm, get bounced back, and Albumz will:
+
+- Use your Last.fm username for now-playing displays on your public page and Headliner
+- Send `track.updateNowPlaying` whenever Spin identifies something (so the Headliner stage stays current)
+- **Scrobble** physical plays — about 60 seconds of confirmed presence on the same track is enough to count
+- *Not* scrobble streamed plays, since your streaming service already did
+
+You can disconnect at any time from the same panel.
+
+---
+
+## Avatars and themes
+
+### Avatars
+
+Three layers, used in order:
+
+1. An **avatar you upload** (square, resized to 256px WebP)
+2. A **Gravatar** matched to your email
+3. A **generated tile** with the first letter of your username and a color derived from the username string
+
+Upload from Settings → Profile. Remove to fall back to Gravatar / generated.
+
+### Themes
+
+Settings has theme pills — pick light, dark, or auto (follows your OS). The accent color throughout the app comes from whatever album cover is "active" — your featured album, the Headliner's current track, or the album you're viewing — so the palette shifts as you move around.
+
+---
+
+## Settings — what's where
+
+A quick map of the Settings page:
+
+- **Profile** — display name, username (yes, you can change it later), email, bio
+- **Avatar** — upload / remove
+- **Theme** — light / dark / auto
+- **Featured album** — search-as-you-type to anchor your public page
+- **Last.fm connection** — connect / disconnect
+- **Import / Export** — drop CSV / XLS, download CSV, backfill covers
+
+---
+
+## Keyboard shortcuts
+
+| Shortcut | Where | What it does |
+|---|---|---|
+| `⌘K` / `Ctrl-K` | Anywhere signed in | Open the Look-up palette |
+| `Esc` | Inside Look-up or pickers | Close |
+| `↑` / `↓` | Inside Look-up | Move through results |
+| `Enter` | Inside Look-up | Open the highlighted match |
+
+---
+
+## Troubleshooting
+
+- **My cover is wrong.** Open the album, click **Pick a cover**, and choose manually. If none of the candidates are right, click **Edit details** → 🔎 **Look up details** and pick a match from there.
+- **The Headliner is stuck on a track that finished an hour ago.** Make sure Last.fm is connected in Settings. Spin's `updateNowPlaying` only fires when the mic is identifying — if you're streaming and the Headliner is stale, your streaming service may have stopped scrobbling.
+- **Spin won't turn on.** It needs microphone permission and HTTPS. Browser permission prompts are per-origin; clearing site data resets them.
+- **The Wantlist link in the topbar shows a number — what is it?** The count of items you've marked want. It's only there as a quiet reminder.
+
+---
+
+## Privacy and ownership
+
+Your collection is yours. Your public page is public *by design* — that's the whole point — but nothing about *how* you use Albumz is shared with anyone else. There's no analytics tracker stitched into the page, no ad network, no "people you may know." If you delete your account, your data goes with it.
+
+---
+
+## Tech stack (for the curious)
+
+SvelteKit + Svelte 5 (runes), Supabase (Postgres + Auth + Row-Level Security), Apache reverse proxy, deployed via `adapter-node` on a private VPS. Album metadata pulled from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer. The Spin feature uses a private `shazamio` sidecar for identification.
+
+No paid services for AI features — Spin is the only mic-touching feature and it's strictly opt-in.
+
+---
+
+## Found something broken?
+
+Open an issue at [github.com/spudalicious1969/albumz/issues](https://github.com/spudalicious1969/albumz/issues), or just write to me. Albumz is small enough that bugs get looked at the same day.
