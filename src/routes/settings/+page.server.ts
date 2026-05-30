@@ -1,4 +1,5 @@
 import { redirect, fail } from '@sveltejs/kit';
+import { scanDuplicates, removeDuplicates } from '$lib/dedupe.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX_AVATAR_BYTES = 512 * 1024;  // 512 KB after client-side resize is plenty
@@ -157,5 +158,44 @@ export const actions: Actions = {
 		if (updateErr) return fail(500, { avatarError: updateErr.message });
 
 		return { savedAvatar: null };
+	},
+
+	scanDuplicates: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+		try {
+			const scan = await scanDuplicates(locals.supabase, user.id);
+			return {
+				dupeScan: {
+					totalDuplicates: scan.totalDuplicates,
+					groupCount: scan.groups.length,
+					preview: scan.groups.slice(0, 8).map((g) => ({
+						artist: g[0].artist,
+						title: g[0].title,
+						count: g.length
+					}))
+				}
+			};
+		} catch (err) {
+			return fail(500, { dupeError: err instanceof Error ? err.message : 'Scan failed.' });
+		}
+	},
+
+	removeDuplicates: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+		try {
+			const removed = await removeDuplicates(locals.supabase, user.id);
+			if (removed > 0) {
+				await locals.supabase.from('activity').insert({
+					user_id: user.id,
+					type: 'dedupe',
+					description: `Removed ${removed} duplicate ${removed === 1 ? 'album' : 'albums'}`
+				});
+			}
+			return { dupeRemoved: removed };
+		} catch (err) {
+			return fail(500, { dupeError: err instanceof Error ? err.message : 'Cleanup failed.' });
+		}
 	}
 };

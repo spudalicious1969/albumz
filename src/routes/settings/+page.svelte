@@ -329,6 +329,67 @@
 			{/if}
 		</section>
 
+		<!-- ── Duplicates ────────────────────────────────────────── -->
+		<section class="card">
+			<h2>Duplicates</h2>
+			<p class="muted">Scan your collection for albums with the same artist + title (case-insensitive). On cleanup, the entry with the most user-added metadata is kept; the rest are removed.</p>
+			<div class="data-row">
+				<form method="POST" action="?/scanDuplicates" use:enhance={() => async ({ update }) => update({ reset: false })}>
+					<button type="submit" class="btn-secondary">Scan for duplicates</button>
+				</form>
+				{#if form?.dupeError}
+					<span class="hint hint-err">{form.dupeError}</span>
+				{/if}
+				{#if form?.dupeRemoved !== undefined}
+					<span class="hint hint-ok">
+						{form.dupeRemoved === 0
+							? 'No duplicates found.'
+							: `Removed ${form.dupeRemoved} duplicate ${form.dupeRemoved === 1 ? 'album' : 'albums'}.`}
+					</span>
+				{/if}
+			</div>
+
+			{#if form?.dupeScan}
+				{#if form.dupeScan.totalDuplicates === 0}
+					<p class="dupe-empty">No duplicates found. Your collection is clean.</p>
+				{:else}
+					<div class="dupe-result">
+						<p>
+							Found <strong>{form.dupeScan.totalDuplicates}</strong>
+							duplicate {form.dupeScan.totalDuplicates === 1 ? 'album' : 'albums'}
+							across <strong>{form.dupeScan.groupCount}</strong>
+							{form.dupeScan.groupCount === 1 ? 'group' : 'groups'}.
+						</p>
+						{#if form.dupeScan.preview.length > 0}
+							<ul class="dupe-preview">
+								{#each form.dupeScan.preview as p}
+									<li>
+										<span class="dupe-album">{p.artist} — {p.title}</span>
+										<span class="dupe-count">×{p.count}</span>
+									</li>
+								{/each}
+								{#if form.dupeScan.groupCount > form.dupeScan.preview.length}
+									<li class="dupe-more">+ {form.dupeScan.groupCount - form.dupeScan.preview.length} more {form.dupeScan.groupCount - form.dupeScan.preview.length === 1 ? 'group' : 'groups'}</li>
+								{/if}
+							</ul>
+						{/if}
+						<form
+							method="POST"
+							action="?/removeDuplicates"
+							use:enhance={() => async ({ update }) => update({ reset: false })}
+							onsubmit={(e) => {
+								if (!confirm(`Remove ${form.dupeScan.totalDuplicates} duplicate ${form.dupeScan.totalDuplicates === 1 ? 'album' : 'albums'}? The highest-metadata copy of each will be kept.`)) {
+									e.preventDefault();
+								}
+							}}
+						>
+							<button type="submit" class="btn-primary">Remove duplicates</button>
+						</form>
+					</div>
+				{/if}
+			{/if}
+		</section>
+
 		<!-- ── Weekly digest (preview) ───────────────────────────── -->
 		<section class="card">
 			<h2>Weekly digest (preview)</h2>
@@ -403,6 +464,44 @@
 	.hint { font-size: 0.78rem; color: var(--text-muted); }
 	.hint code { font-family: ui-monospace, monospace; background: var(--bg-elevated); padding: 0.05rem 0.3rem; border-radius: 4px; }
 	.hint-err { color: oklch(55% 0.2 25); }
+	.hint-ok { color: oklch(55% 0.17 145); }
+
+	.dupe-empty {
+		margin: 1rem 0 0;
+		font-size: 0.9rem;
+		color: var(--text-muted);
+		font-style: italic;
+	}
+
+	.dupe-result {
+		margin-top: 1.1rem;
+		padding: 1.1rem 1.25rem;
+		background: var(--bg-elevated);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+	.dupe-result p { margin: 0 0 0.85rem; font-size: 0.95rem; color: var(--text); }
+
+	.dupe-preview {
+		list-style: none;
+		padding: 0;
+		margin: 0 0 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.dupe-preview li {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		font-size: 0.88rem;
+		padding: 0.25rem 0;
+		border-bottom: 1px solid color-mix(in oklch, var(--border) 50%, transparent);
+	}
+	.dupe-preview li:last-child { border-bottom: none; }
+	.dupe-album { color: var(--text); }
+	.dupe-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+	.dupe-more { color: var(--text-muted); font-style: italic; }
 
 	.digest-preview {
 		margin-top: 1.1rem;

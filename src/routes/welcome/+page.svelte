@@ -5,9 +5,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let username = $state(data.suggestedUsername);
-	let checkStatus: 'idle' | 'checking' | 'available' | 'taken' | 'invalid' = $state(
-		data.suggestedUsername ? 'idle' : 'idle'
-	);
+	let checkStatus = $state<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
 	let submitting = $state(false);
 
 	$effect(() => {

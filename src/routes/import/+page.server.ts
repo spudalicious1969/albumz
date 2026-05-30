@@ -1,5 +1,6 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { detectKind, parseAndNormalize } from '$lib/import/parse';
+import { existingAlbumKeys, dedupeKey } from '$lib/dedupe.server';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -40,6 +41,23 @@ export const actions: Actions = {
 			return fail(400, {
 				error: `Couldn't find required columns (artist + title). Detected headers: ${parsed.sourceHeaders.join(', ')}`
 			});
+		}
+
+		// Mark rows that already exist in the user's collection so they default
+		// to skipped. The .skipReason field is consumed by the preview UI.
+		const existing = await existingAlbumKeys(locals.supabase, user.id);
+		const seenInBatch = new Set<string>();
+		for (const row of parsed.rows) {
+			if (row.skipReason) continue;
+			if (!row.artist || !row.title) continue;
+			const key = dedupeKey(row.artist, row.title);
+			if (existing.has(key)) {
+				row.skipReason = 'Already in collection';
+			} else if (seenInBatch.has(key)) {
+				row.skipReason = 'Duplicate row in this file';
+			} else {
+				seenInBatch.add(key);
+			}
 		}
 
 		return { parsed };
