@@ -81,6 +81,30 @@
 			if (fileInputEl) fileInputEl.value = '';
 		}
 	}
+
+	// ── Weekly digest preview ─────────────────────────────────
+	let digestBusy = $state(false);
+	let digestError = $state<string | null>(null);
+	let digestBody = $state<string | null>(null);
+
+	async function generateDigest() {
+		digestBusy = true;
+		digestError = null;
+		digestBody = null;
+		try {
+			const res = await fetch('/api/digests/generate', { method: 'POST' });
+			if (!res.ok) {
+				const text = await res.text();
+				throw new Error(text || `Generation failed (${res.status})`);
+			}
+			const { digest } = await res.json();
+			digestBody = digest.body;
+		} catch (err) {
+			digestError = err instanceof Error ? err.message : 'Generation failed.';
+		} finally {
+			digestBusy = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Settings — albumz</title></svelte:head>
@@ -302,6 +326,27 @@
 			{/if}
 		</section>
 
+		<!-- ── Weekly digest (preview) ───────────────────────────── -->
+		<section class="card">
+			<h2>Weekly digest (preview)</h2>
+			<p class="muted">Generate a draft of last week's listening column. Local Ollama, qwen3.5. Drafts are not published — this is for preview only.</p>
+			<div class="data-row">
+				<button type="button" class="btn-secondary" onclick={generateDigest} disabled={digestBusy}>
+					{digestBusy ? 'Generating…' : "Generate last week's digest"}
+				</button>
+				{#if digestError}
+					<span class="hint hint-err">{digestError}</span>
+				{/if}
+			</div>
+			{#if digestBody}
+				<article class="digest-preview">
+					{#each digestBody.split(/\n\s*\n/) as para}
+						<p>{para}</p>
+					{/each}
+				</article>
+			{/if}
+		</section>
+
 		<!-- ── Import / Export ───────────────────────────────────── -->
 		<section class="card">
 			<h2>Import / Export</h2>
@@ -349,6 +394,20 @@
 	}
 	.hint { font-size: 0.78rem; color: var(--text-muted); }
 	.hint code { font-family: ui-monospace, monospace; background: var(--bg-elevated); padding: 0.05rem 0.3rem; border-radius: 4px; }
+	.hint-err { color: oklch(55% 0.2 25); }
+
+	.digest-preview {
+		margin-top: 1.1rem;
+		padding: 1.1rem 1.25rem;
+		background: var(--bg-elevated);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		font-size: 0.95rem;
+		line-height: 1.65;
+		color: var(--text);
+	}
+	.digest-preview p { margin: 0 0 0.9rem; }
+	.digest-preview p:last-child { margin-bottom: 0; }
 
 	.radio-row { display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
 	.radio-pill {
