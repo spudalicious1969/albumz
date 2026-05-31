@@ -21,3 +21,17 @@ export function saveSort(key: string, value: string): void {
 		// Storage quota or private-mode failure — silently ignore
 	}
 }
+
+export function loadReversed(key: string): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	return localStorage.getItem(key) === '1';
+}
+
+export function saveReversed(key: string, value: boolean): void {
+	if (typeof localStorage === 'undefined') return;
+	try {
+		localStorage.setItem(key, value ? '1' : '0');
+	} catch {
+		// Storage quota or private-mode failure — silently ignore
+	}
+}

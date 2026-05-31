@@ -1,29 +1,35 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { compareByKey } from '$lib/sort-key';
-	import { loadSort, saveSort } from '$lib/persist';
+	import { loadSort, saveSort, loadReversed, saveReversed } from '$lib/persist';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 	type Album = typeof data.albums[number];
 
-	const SORTS = ['artist', 'album', 'rating'] as const;
+	const SORTS = ['artist', 'album', 'rating', 'format'] as const;
 	type Sort = (typeof SORTS)[number];
 	const SORT_KEY = 'albumz:sort:collection';
+	const REV_KEY = 'albumz:sort:collection:rev';
 
 	let query = $state('');
 	let sort = $state<Sort>('artist');
+	let reversed = $state(false);
 	let hydrated = $state(false);
 	let searchOpen = $state(false);
 	let searchInputEl = $state<HTMLInputElement | null>(null);
 
 	onMount(() => {
 		sort = loadSort(SORT_KEY, SORTS, 'artist');
+		reversed = loadReversed(REV_KEY);
 		hydrated = true;
 	});
 	$effect(() => {
 		if (hydrated) saveSort(SORT_KEY, sort);
+	});
+	$effect(() => {
+		if (hydrated) saveReversed(REV_KEY, reversed);
 	});
 
 	function openSearch() {
@@ -48,12 +54,15 @@
 			})
 			: data.albums
 		).slice().sort((a: Album, b: Album) => {
+			let r: number;
 			switch (sort) {
-				case 'album':  return compareByKey(a.title, b.title);
-				case 'rating': return (b.rating ?? 0) - (a.rating ?? 0);
+				case 'album':  r = compareByKey(a.title, b.title); break;
+				case 'rating': r = (b.rating ?? 0) - (a.rating ?? 0); break;
+				case 'format': r = (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist); break;
 				case 'artist':
-				default:       return compareByKey(a.artist, b.artist);
+				default:       r = compareByKey(a.artist, b.artist);
 			}
+			return reversed ? -r : r;
 		})
 	);
 
@@ -97,10 +106,13 @@
 			{/if}
 			<SortDropdown
 				bind:value={sort}
+				bind:reversed
+				reversible
 				options={[
 					{ value: 'artist', label: 'Artist' },
 					{ value: 'album', label: 'Album' },
-					{ value: 'rating', label: 'Rating' }
+					{ value: 'rating', label: 'Rating' },
+					{ value: 'format', label: 'Format' }
 				]}
 			/>
 		</div>

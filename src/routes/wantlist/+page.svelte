@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { compareByKey } from '$lib/sort-key';
-	import { loadSort, saveSort } from '$lib/persist';
+	import { loadSort, saveSort, loadReversed, saveReversed } from '$lib/persist';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData } from './$types';
 
@@ -14,32 +14,44 @@
 	const SORTS = ['recent', 'artist', 'title', 'format'] as const;
 	type Sort = (typeof SORTS)[number];
 	const SORT_KEY = 'albumz:sort:wantlist';
+	const REV_KEY = 'albumz:sort:wantlist:rev';
 
 	let sort = $state<Sort>('recent');
+	let reversed = $state(false);
 	let hydrated = $state(false);
 	let promotingId = $state<string | null>(null);
 
 	onMount(() => {
 		sort = loadSort(SORT_KEY, SORTS, 'recent');
+		reversed = loadReversed(REV_KEY);
 		hydrated = true;
 	});
 	$effect(() => {
 		if (hydrated) saveSort(SORT_KEY, sort);
 	});
+	$effect(() => {
+		if (hydrated) saveReversed(REV_KEY, reversed);
+	});
 
 	const sorted = $derived.by(() => {
 		const list = [...data.albums];
-		switch (sort) {
-			case 'artist':
-				return list.sort((a, b) => compareByKey(a.artist, b.artist) || compareByKey(a.title, b.title));
-			case 'title':
-				return list.sort((a, b) => compareByKey(a.title, b.title));
-			case 'format':
-				return list.sort((a, b) => (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist));
-			case 'recent':
-			default:
-				return list.sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
-		}
+		const cmp = (a: WantAlbum, b: WantAlbum) => {
+			switch (sort) {
+				case 'artist':
+					return compareByKey(a.artist, b.artist) || compareByKey(a.title, b.title);
+				case 'title':
+					return compareByKey(a.title, b.title);
+				case 'format':
+					return (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist);
+				case 'recent':
+				default:
+					return (b.created_at ?? '').localeCompare(a.created_at ?? '');
+			}
+		};
+		return list.sort((a, b) => {
+			const r = cmp(a, b);
+			return reversed ? -r : r;
+		});
 	});
 
 	function buyLinks(album: WantAlbum) {
@@ -63,6 +75,8 @@
 		<div class="actions">
 			<SortDropdown
 				bind:value={sort}
+				bind:reversed
+				reversible
 				options={[
 					{ value: 'recent', label: 'Recently added' },
 					{ value: 'artist', label: 'Artist' },

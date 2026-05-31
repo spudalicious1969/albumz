@@ -6,7 +6,7 @@
 	import UserMenu from '$lib/components/UserMenu.svelte';
 	import { lookup } from '$lib/lookup-state.svelte';
 	import { compareByKey } from '$lib/sort-key';
-	import { loadSort, saveSort } from '$lib/persist';
+	import { loadSort, saveSort, loadReversed, saveReversed } from '$lib/persist';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import type { PageData } from './$types';
 
@@ -27,30 +27,39 @@
 	const missingAccents = $derived(albums.filter((a) => a.cover_url && !a.accent_color));
 	const needsArtwork = $derived(missingCovers.length + missingAccents.length);
 
-	const SORTS = ['recent', 'artist', 'album', 'rating'] as const;
+	const SORTS = ['recent', 'artist', 'album', 'rating', 'format'] as const;
 	type Sort = (typeof SORTS)[number];
 	const SORT_KEY = 'albumz:sort:home';
+	const REV_KEY = 'albumz:sort:home:rev';
 
 	let sort = $state<Sort>('recent');
+	let reversed = $state(false);
 	let hydrated = $state(false);
 
 	onMount(() => {
 		sort = loadSort(SORT_KEY, SORTS, 'recent');
+		reversed = loadReversed(REV_KEY);
 		hydrated = true;
 	});
 	$effect(() => {
 		if (hydrated) saveSort(SORT_KEY, sort);
 	});
+	$effect(() => {
+		if (hydrated) saveReversed(REV_KEY, reversed);
+	});
 
 	const sortedOwned = $derived(
 		owned.slice().sort((a, b) => {
+			let r: number;
 			switch (sort) {
-				case 'artist': return compareByKey(a.artist, b.artist);
-				case 'album':  return compareByKey(a.title, b.title);
-				case 'rating': return (b.rating ?? 0) - (a.rating ?? 0);
+				case 'artist': r = compareByKey(a.artist, b.artist); break;
+				case 'album':  r = compareByKey(a.title, b.title); break;
+				case 'rating': r = (b.rating ?? 0) - (a.rating ?? 0); break;
+				case 'format': r = (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist); break;
 				case 'recent':
-				default:       return b.created_at.localeCompare(a.created_at);
+				default:       r = b.created_at.localeCompare(a.created_at);
 			}
+			return reversed ? -r : r;
 		})
 	);
 
@@ -151,11 +160,14 @@
 		<div class="topbar-actions">
 			<SortDropdown
 				bind:value={sort}
+				bind:reversed
+				reversible
 				options={[
 					{ value: 'recent', label: 'Recent' },
 					{ value: 'artist', label: 'Artist' },
 					{ value: 'album', label: 'Album' },
-					{ value: 'rating', label: 'Rating' }
+					{ value: 'rating', label: 'Rating' },
+					{ value: 'format', label: 'Format' }
 				]}
 			/>
 			<button

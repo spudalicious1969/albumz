@@ -28,7 +28,7 @@ export const actions: Actions = {
 
 		const { error: updateError } = await locals.supabase
 			.from('albums')
-			.update({ ownership: 'OWN' })
+			.update({ ownership: 'OWN', created_at: new Date().toISOString() })
 			.eq('id', id)
 			.eq('user_id', user.id);
 
