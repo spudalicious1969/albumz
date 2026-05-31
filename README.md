@@ -136,6 +136,8 @@ A full-screen "what I'm playing right now" view at `/headliner/<username>`. Desi
 
 The Headliner re-fetches every 15 seconds, so it'll keep up with track changes without needing a reload. It's also a **PWA** — open it in Chrome / Edge, click "Install", and you get an app icon that opens to full-screen mode.
 
+**When nothing's playing** — no current track and no recent scrobble in the last hour — the Headliner dims into an **idle mosaic** of your own owned covers, slow-paced and atmospheric, with a small "Waiting for &lt;name&gt; to start something" overlay. Looks good across the room when the room is quiet.
+
 If you're the owner, you'll also see the **Tonight's set** card in the bottom-right. That's where Spin lives.
 
 ---
@@ -183,9 +185,13 @@ The digest is the part of Albumz that *narrates*. Last.fm has always been a ledg
 
 ### How it works
 
-Open Settings → **Weekly digest (preview)** → **Generate this week's digest**. About 10–20 seconds later, a draft of the week appears as a column written about your listening. It pulls from both Spin (physical plays) and Last.fm (everything you streamed) so the picture is complete, not just what the mic caught.
+A draft of your week is written automatically **every Sunday evening**. You'll see a small "Your weekly digest is ready" pill in the corner the next time you visit Albumz — click it to read the draft. It pulls from both Spin (physical plays) and Last.fm (everything you streamed) so the picture is complete, not just what the mic caught. Weeks with fewer than ten plays get skipped quietly.
 
 Generation happens locally on the host running Albumz — no paid AI API, no audio uploaded anywhere, no data shared with anyone.
+
+### Generating manually
+
+Want to preview the in-progress week mid-week, or regenerate after a discard? On your own archive at `/u/<your-username>/digests` there's a **Generate this week** button. Takes ~15–45 seconds.
 
 ### Drafts, publish, archive
 
@@ -202,14 +208,8 @@ Visitors browsing your public page see a **Digests** chip in the topbar when you
 - **Day-by-day narration** of what you actually put on, with track names and album names
 - **`spun` vs `streamed` markers** woven into the prose without being editorialized into a contest between formats
 - A **dormant pick** from your own shelf — an album you haven't pulled out in months, surfaced as a possible return
-- A **wildcard pick** from another Albumz collection — an album you don't own, surfaced as a swing for the curious
+- A **wildcard pick** from another Albumz collection — an album you don't own, surfaced as a swing for the curious. Picks aren't random; they're scored against the tag profile of what you played this week, so the "wildcard" actually shares something musical with your listening.
 - A **year-shaped closing sentence** that gestures at what this week is adding up to
-
-### What's still cooking
-
-Right now both picks are *random* — the prose acknowledges that ("a wildcard from another collection, no claim it'll match this week"). A future round will compute real musical similarity so the picks actually share something with what you played. The honest framing keeps the column trustworthy in the meantime.
-
-Also still ahead: scheduled auto-generation on Sunday nights, and an email teaser that drives readers from inbox to the on-site permalink.
 
 ---
 

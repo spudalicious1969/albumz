@@ -133,16 +133,16 @@
 	<section id="digest" class="card">
 		<h2>Weekly digest</h2>
 		<p>The digest is the part of Albumz that <em>narrates</em>. Last.fm has always been a ledger — plays, dates, counts, charts — and the digest is the columnist that ledger never had. Same data, rendered as warm prose a person would actually want to read.</p>
-		<p><strong>How it works.</strong> Settings → <strong>Weekly digest (preview)</strong> → <strong>Generate this week's digest</strong>. About 10–20 seconds later, a draft of the week appears as a column written about your listening. Generation happens locally on the host running Albumz — no paid AI API, no audio uploaded anywhere.</p>
-		<p><strong>Drafts, publish, archive.</strong> Each generated digest is a <strong>draft</strong> at first — owner-only. Open the draft permalink, read it, decide:</p>
+		<p><strong>How it works.</strong> A draft of your week is written automatically <strong>every Sunday evening</strong>. You'll see a small "Your weekly digest is ready" pill in the corner the next time you visit Albumz — click it to read the draft. Generation happens locally on the host running Albumz, no paid AI API and nothing audio leaves the room. Weeks with fewer than ten plays get skipped quietly.</p>
+		<p><strong>Generating manually.</strong> Want to preview the in-progress week mid-week, or regenerate after a discard? On your own archive at <code>/u/&lt;your-username&gt;/digests</code> there's a <strong>Generate this week</strong> button. Takes ~15–45 seconds.</p>
+		<p><strong>Drafts, publish, archive.</strong> Every digest starts as a <strong>draft</strong> — owner-only. Open the draft permalink, read it, decide:</p>
 		<ul>
-			<li><strong>Publish</strong> — readable at <code>/digests/&lt;id&gt;</code> to anyone with the link; shows in your archive at <code>/u/&lt;your-username&gt;/digests</code>.</li>
+			<li><strong>Publish</strong> — readable at <code>/digests/&lt;id&gt;</code> to anyone with the link; shows in your archive.</li>
 			<li><strong>Discard</strong> — hides it from everywhere, including future you.</li>
 			<li><strong>Unpublish</strong> — turns a published digest back into a draft.</li>
 		</ul>
 		<p>Visitors browsing your public page see a <strong>Digests</strong> chip in the topbar when you have any published columns to read.</p>
-		<p><strong>What's in the column.</strong> Day-by-day narration of what you actually put on with track names and album names, <code>spun</code> vs <code>streamed</code> markers woven into the prose, a dormant pick from your own shelf, a wildcard from another collection, and a year-shaped closing sentence.</p>
-		<p class="aside">Picks are currently random — the prose acknowledges that ("a wildcard, no claim it'll match this week"). A similarity layer is queued for a future round. Also queued: scheduled Sunday-night auto-generation and email teasers.</p>
+		<p><strong>What's in the column.</strong> Day-by-day narration of what you actually put on with track names and album names, <code>spun</code> vs <code>streamed</code> markers woven into the prose, a dormant pick from your own shelf, a wildcard from another collection, and a year-shaped closing sentence. Picks aren't random — they're scored against the tag profile of what you played this week, so a "wildcard" actually shares something musical with your listening.</p>
 	</section>
 
 	<section id="lastfm" class="card">
