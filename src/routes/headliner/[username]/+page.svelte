@@ -2,13 +2,19 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import HeadlinerSpinCard from '$lib/components/HeadlinerSpinCard.svelte';
+	import HeadlinerIdleMosaic from '$lib/components/HeadlinerIdleMosaic.svelte';
 	import type { PageData } from './$types';
 	import type { NowPlayingResult } from '$lib/now-playing';
 
 	let { data }: { data: PageData } = $props();
 
+	// A "recent" scrobble older than this is treated as idle — the room has gone
+	// quiet enough that the mosaic should take over from the last-streamed hero.
+	const IDLE_STALENESS_MS = 60 * 60 * 1000;
+
 	let current = $state<NowPlayingResult>(data.initial);
 	let accent = $state<string>('var(--accent)');
+	let nowMs = $state<number>(Date.now());
 	let timer: ReturnType<typeof setInterval> | null = null;
 
 	// Cover-fallback chain: try candidates in order, advance on <img> error.
@@ -41,6 +47,9 @@
 	});
 
 	async function refresh() {
+		// Tick the clock every poll so the staleness check re-evaluates even when
+		// Last.fm keeps returning the same scrobble.
+		nowMs = Date.now();
 		try {
 			const res = await fetch(`/api/now-playing/${data.profile.username}`);
 			if (!res.ok) return;
@@ -81,6 +90,13 @@
 				? (current.source === 'streamed' ? '⏵ Last Streamed' : '⏵ Last Spun')
 				: 'Headliner'
 	);
+	const isStale = $derived(
+		current.state === 'recent' &&
+		current.playedAt !== null &&
+		nowMs - new Date(current.playedAt).getTime() > IDLE_STALENESS_MS
+	);
+	const isIdle = $derived(current.state === 'none' || isStale);
+	const idleWithMosaic = $derived(isIdle && data.idleTiles.length > 0);
 </script>
 
 <svelte:head>
@@ -93,12 +109,16 @@
 </svelte:head>
 
 <div class="headliner" style="--hl-accent: {accent}">
-	{#if activeCoverUrl}
-		{#key activeCoverUrl}
-			<div class="bg-layer" style="background-image: url({activeCoverUrl})"></div>
-		{/key}
+	{#if idleWithMosaic}
+		<HeadlinerIdleMosaic tiles={data.idleTiles} />
+	{:else}
+		{#if activeCoverUrl}
+			{#key activeCoverUrl}
+				<div class="bg-layer" style="background-image: url({activeCoverUrl})"></div>
+			{/key}
+		{/if}
+		<div class="bg-veil"></div>
 	{/if}
-	<div class="bg-veil"></div>
 
 	<!-- Quiet back-link to the user's public page. `target="_blank"` keeps
 	     the installed PWA pristine — opens in a regular browser window. -->
@@ -110,45 +130,52 @@
 		title="Open {displayName}'s public page"
 	>← @{data.profile.username}</a>
 
-	<div class="stage">
-		{#if activeCoverUrl}
-			{#key activeCoverUrl}
-				<img
-					class="cover"
-					src={activeCoverUrl}
-					alt="{current.artist} – {current.album ?? current.track}"
-					onerror={() => coverIdx++}
-				/>
-			{/key}
-		{:else if current.state !== 'none'}
-			<div class="cover placeholder">
-				<span>{(current.artist ?? '?').slice(0, 1)}</span>
-			</div>
-		{:else}
-			<div class="cover placeholder idle">
-				<span class="wordmark">album<span>z</span></span>
-			</div>
-		{/if}
-
-		<div class="meta">
-			<p class="eyebrow">
-				<span class="dot" class:live={current.state === 'playing'}></span>
-				{eyebrow}
-			</p>
-			{#if current.track}
-				<h1 class="track">{current.track}</h1>
-			{/if}
-			{#if current.artist}
-				<p class="artist">{current.artist}</p>
-			{/if}
-			{#if current.album}
-				<p class="album">{current.album}</p>
-			{/if}
-			{#if current.state === 'none'}
-				<p class="idle-msg">Waiting for {displayName} to start something.</p>
-			{/if}
+	{#if idleWithMosaic}
+		<div class="idle-overlay">
+			<span class="wordmark idle-wordmark">album<span>z</span></span>
+			<p class="idle-msg">Waiting for {displayName} to start something.</p>
 		</div>
-	</div>
+	{:else}
+		<div class="stage">
+			{#if activeCoverUrl}
+				{#key activeCoverUrl}
+					<img
+						class="cover"
+						src={activeCoverUrl}
+						alt="{current.artist} – {current.album ?? current.track}"
+						onerror={() => coverIdx++}
+					/>
+				{/key}
+			{:else if current.state !== 'none'}
+				<div class="cover placeholder">
+					<span>{(current.artist ?? '?').slice(0, 1)}</span>
+				</div>
+			{:else}
+				<div class="cover placeholder idle">
+					<span class="wordmark">album<span>z</span></span>
+				</div>
+			{/if}
+
+			<div class="meta">
+				<p class="eyebrow">
+					<span class="dot" class:live={current.state === 'playing'}></span>
+					{eyebrow}
+				</p>
+				{#if current.track}
+					<h1 class="track">{current.track}</h1>
+				{/if}
+				{#if current.artist}
+					<p class="artist">{current.artist}</p>
+				{/if}
+				{#if current.album}
+					<p class="album">{current.album}</p>
+				{/if}
+				{#if current.state === 'none'}
+					<p class="idle-msg">Waiting for {displayName} to start something.</p>
+				{/if}
+			</div>
+		</div>
+	{/if}
 
 	{#if data.isOwner}
 		<HeadlinerSpinCard nowPlaying={current} />
@@ -338,5 +365,53 @@
 	}
 	.wordmark span {
 		text-shadow: 0 0 24px var(--hl-accent), 0 0 8px var(--hl-accent);
+	}
+
+	.idle-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 3;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		text-align: center;
+		pointer-events: none;
+		padding: 2rem;
+	}
+	/* Soft dark spotlight centered behind the text. The mosaic stays atmospheric
+	   at the edges; the middle just dims enough to anchor the wordmark. */
+	.idle-overlay::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: radial-gradient(
+			ellipse 55% 35% at center,
+			rgba(0, 0, 0, 0.6) 0%,
+			rgba(0, 0, 0, 0.35) 45%,
+			transparent 100%
+		);
+		pointer-events: none;
+		z-index: 0;
+	}
+	.idle-wordmark {
+		position: relative;
+		z-index: 1;
+		font-size: clamp(3rem, 8vw, 6rem);
+		color: color-mix(in oklch, #f0ead8 92%, transparent);
+		text-shadow:
+			0 0 40px rgba(0, 0, 0, 0.95),
+			0 0 18px rgba(0, 0, 0, 0.9),
+			0 2px 6px rgba(0, 0, 0, 0.95);
+	}
+	.idle-overlay .idle-msg {
+		position: relative;
+		z-index: 1;
+		max-width: 30ch;
+		color: color-mix(in oklch, #f0ead8 88%, transparent);
+		text-shadow:
+			0 0 20px rgba(0, 0, 0, 0.9),
+			0 1px 3px rgba(0, 0, 0, 0.95);
 	}
 </style>
