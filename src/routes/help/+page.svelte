@@ -34,6 +34,7 @@
 			<li><a href="#import">Import &amp; export</a></li>
 			<li><a href="#public">Your public page</a></li>
 			<li><a href="#headliner">The Headliner</a></li>
+			<li><a href="#dig">Dig — pull from the crate</a></li>
 			<li><a href="#spin">Spin — tonight's set</a></li>
 			<li><a href="#digest">Weekly digest</a></li>
 			<li><a href="#lastfm">Last.fm integration</a></li>
@@ -78,15 +79,16 @@
 
 	<section id="sort" class="card">
 		<h2>Sorting</h2>
-		<p>Both the home page and the full-collection page have a Sort control in the topbar:</p>
+		<p>The home page, full-collection page, and wantlist all share a Sort control in the topbar:</p>
 		<ul>
-			<li><strong>Recently added</strong> — newest first</li>
+			<li><strong>Recent</strong> — newest first (for the wantlist this is "recently added"; for the collection it's when the album entered your collection, which includes wantlist promotions)</li>
 			<li><strong>Artist</strong> — alphabetical, article-aware ("The Beths" sorts under <em>B</em>, not <em>T</em>)</li>
-			<li><strong>Album</strong> — alphabetical, also article-aware</li>
-			<li><strong>Format</strong> — vinyl / CD / cassette / etc.</li>
-			<li><strong>Year</strong> (home only)</li>
+			<li><strong>Album</strong> / <strong>Title</strong> — alphabetical, also article-aware</li>
+			<li><strong>Rating</strong> — highest stars first</li>
+			<li><strong>Format</strong> — groups by CD / LP / cassette / etc., nulls last, artist as the tiebreak</li>
 		</ul>
-		<p>Whatever you pick sticks. Albumz remembers your sort preference per page.</p>
+		<p>Next to the sort dropdown is a small arrow button that <strong>reverses</strong> whichever sort you've picked — useful for flipping artist to Z→A, rating to lowest first, recent to oldest first, and so on.</p>
+		<p>Whatever you pick sticks. Albumz remembers your sort and direction preference per page.</p>
 	</section>
 
 	<section id="import" class="card">
@@ -113,6 +115,13 @@
 		<p>A full-screen "what I'm playing right now" view at <code>/headliner/&lt;username&gt;</code>. Designed to live on a tablet or a second monitor in the listening room. Background is a blurred version of the current cover; foreground is the cover itself — big — with the track / artist / album text and a pulsing live dot when you're actively playing.</p>
 		<p>It refreshes every 15 seconds. It's also a <strong>PWA</strong> — open it in Chrome / Edge, click "Install", and you get an app icon that opens to full-screen mode.</p>
 		<p>If you're the owner, you'll also see the <strong>Tonight's set</strong> card in the bottom-right. That's where Spin lives.</p>
+	</section>
+
+	<section id="dig" class="card">
+		<h2>Dig — pull from the crate</h2>
+		<p>Tucked into the avatar menu (top right) is a single link: <strong>Dig</strong>. Click it and Albumz pulls one album from the back of the crate — something you own but haven't spun in at least a month — and shows it full-page, cover forward, with a quiet line above the title noting when (or whether) you last played it.</p>
+		<p>Two actions sit underneath: <strong>Pull another</strong> re-rolls without repeating what you just saw, and <strong>Open album</strong> drops you on the album page. Nothing else, no list, no metric — just one record at a time.</p>
+		<p>It's intentionally hidden in the menu rather than parked on the home page. Dig is meant to be a thing you walk over to, not a button that pesters you. Use it when you're staring at the shelf wondering what to play.</p>
 	</section>
 
 	<section id="spin" class="card">

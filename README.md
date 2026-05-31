@@ -10,6 +10,7 @@ It's a place to:
 - find the cover art the metadata folks left out
 - give your listening a public face — a profile page with a *Headliner* view that anyone can pull up to see what you're spinning right now
 - catch what's actually on the turntable, via your laptop mic, and let your Last.fm history reflect physical plays the same way streaming already does
+- rediscover something you forgot you owned — pull one dormant album out of the crate, presented like a record-shop find rather than a list entry
 
 This is the user guide. If you're a developer poking under the hood, the heart of the codebase is `src/routes` and `src/lib`; `ALBUMZ-HANDOFF.md` carries the implementation notes.
 
@@ -83,15 +84,17 @@ From anywhere in the signed-in app, hit **⌘K** (or **Ctrl-K** on Windows / Lin
 
 ## Sorting
 
-Both the home page and the full-collection page have a Sort control in the topbar:
+The home page, full-collection page, and wantlist all share a Sort control in the topbar:
 
-- **Recently added** — newest first
+- **Recent** — newest first (for the wantlist this is "recently added"; for the collection it's when the album entered your collection, including wantlist promotions)
 - **Artist** — alphabetical, article-aware ("The Beths" sorts under *B*, not *T*)
-- **Album** — alphabetical, also article-aware
-- **Format** — vinyl / CD / cassette / etc.
-- **Year** *(home only)*
+- **Album** / **Title** — alphabetical, also article-aware
+- **Rating** — highest stars first
+- **Format** — groups by CD / LP / cassette / etc., nulls last, artist as the tiebreak
 
-Whatever you pick sticks — Albumz remembers your sort preference per page.
+Next to the sort dropdown is a small arrow button that **reverses** whichever sort you've picked — flip artist to Z→A, rating to lowest first, recent to oldest first, and so on.
+
+Whatever you pick sticks — Albumz remembers your sort *and* direction preference per page.
 
 ---
 
@@ -139,6 +142,16 @@ The Headliner re-fetches every 15 seconds, so it'll keep up with track changes w
 **When nothing's playing** — no current track and no recent scrobble in the last hour — the Headliner dims into an **idle mosaic** of your own owned covers, slow-paced and atmospheric, with a small "Waiting for &lt;name&gt; to start something" overlay. Looks good across the room when the room is quiet.
 
 If you're the owner, you'll also see the **Tonight's set** card in the bottom-right. That's where Spin lives.
+
+---
+
+## Dig — pull from the crate
+
+Tucked into the avatar menu (top right) is a single link: **Dig**. Click it and Albumz pulls one album from the back of the crate — something you own but haven't spun in at least a month — and shows it full-page, cover forward, with a quiet line above the title noting when (or whether) you last played it.
+
+Two actions sit underneath: **Pull another** re-rolls without repeating what you just saw, and **Open album** drops you on the album page. Nothing else. No list, no metric — just one record at a time.
+
+It's intentionally hidden in the menu rather than parked on the home page. Dig is meant to be a thing you walk over to, not a button that pesters you. Use it when you're staring at the shelf wondering what to play.
 
 ---
 
