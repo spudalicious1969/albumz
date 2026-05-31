@@ -1,0 +1,14 @@
+[Unit]
+Description=Run Albumz weekly digest generator (Sundays at 21:00 local)
+
+[Timer]
+# Sundays, 21:00 local time. The script computes the just-closed Sunday's
+# week_ending from local time, so this fires on the calendar Sunday we
+# want digests written for.
+OnCalendar=Sun *-*-* 21:00:00
+# If the system was down at firing time, run the job at next boot.
+Persistent=true
+Unit=albumz-weekly-digest.service
+
+[Install]
+WantedBy=timers.target

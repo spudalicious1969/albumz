@@ -52,6 +52,17 @@ export function currentWeekEnding(d = new Date()): Date {
 	return result;
 }
 
+/** The most recent Sunday in local time — today if today is Sunday locally,
+ *  otherwise the prior Sunday. Used by the scheduled job to target the
+ *  just-closed week regardless of which UTC date the local Sunday-evening
+ *  fires on. */
+export function lastSundayLocal(d = new Date()): Date {
+	const local = new Date(d);
+	local.setHours(0, 0, 0, 0);
+	local.setDate(local.getDate() - local.getDay());
+	return new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+}
+
 function fmtWeekEnding(d: Date): string {
 	return d.toLocaleDateString('en-US', {
 		timeZone: 'UTC',
@@ -66,7 +77,7 @@ function keyOf(artist: string, title: string): string {
 }
 
 export type DigestAssembly =
-	| { ok: true; inputs: DigestInputs }
+	| { ok: true; inputs: DigestInputs; playCount: number }
 	| { ok: false; error: string };
 
 export async function assembleDigest(
@@ -352,6 +363,7 @@ export async function assembleDigest(
 
 	return {
 		ok: true,
+		playCount: events.length,
 		inputs: {
 			display_name: profile.display_name || profile.username,
 			week_ending: fmtWeekEnding(weekEnding),

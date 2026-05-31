@@ -3,16 +3,23 @@
 // POST /api/digests/generate
 //   ?week_ending=YYYY-MM-DD  (optional; defaults to previous Sunday)
 //
-// Owner-only. Re-running for the same week overwrites the draft via upsert,
-// except when the existing row is published — that case requires explicit
-// discard first to avoid silently overwriting something the user has already
-// committed to publicly.
+// Two auth paths:
+//   1. Session — uses session.user.id; ignores body.user_id. (Manual triggers.)
+//   2. Bearer DIGEST_SCHEDULER_SECRET — uses body.user_id; supports
+//      body.skip_if_quiet to skip weeks with <10 plays before invoking Ollama.
+//      Service-role Supabase client used for cross-user access.
+//
+// Re-running for the same week overwrites the draft via upsert, except when
+// the existing row is published — that case requires explicit discard first
+// to avoid silently overwriting something the user has already committed to.
 
 import { error, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { assembleDigest, currentWeekEnding } from '$lib/digest-data.server';
 import { SYSTEM_PROMPT, fillUserTemplate } from '$lib/digest-prompt';
 import { probeDigest, type ProbeReport } from '$lib/digest-probes';
+import { createSupabaseAdminClient } from '$lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { RequestHandler } from './$types';
 
 const DEFAULT_MODEL = 'qwen3.5:latest';
@@ -25,10 +32,36 @@ const DEFAULT_MODEL = 'qwen3.5:latest';
 // owner-review handles them. Each generation is ~5-10s on local Ollama,
 // so worst case adds ~20s to draft creation.
 const MAX_ATTEMPTS = 3;
+const QUIET_WEEK_THRESHOLD = 10;
 
-export const POST: RequestHandler = async ({ url, locals }) => {
-	const { user } = await locals.safeGetSession();
-	if (!user) error(401, 'Not signed in');
+interface GenerateBody {
+	user_id?: string;
+	skip_if_quiet?: boolean;
+}
+
+export const POST: RequestHandler = async ({ url, locals, request }) => {
+	// Body is optional; parse defensively. Bearer-auth callers send a body.
+	let reqBody: GenerateBody = {};
+	if (request.headers.get('content-type')?.includes('application/json')) {
+		try { reqBody = await request.json(); } catch { reqBody = {}; }
+	}
+
+	const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/)?.[1];
+	const schedulerSecret = env.DIGEST_SCHEDULER_SECRET;
+	const isScheduler = !!(bearer && schedulerSecret && bearer === schedulerSecret);
+
+	let userId: string;
+	let supabase: SupabaseClient;
+	if (isScheduler) {
+		if (!reqBody.user_id) error(400, 'user_id required when calling with scheduler bearer');
+		userId = reqBody.user_id;
+		supabase = createSupabaseAdminClient();
+	} else {
+		const { user } = await locals.safeGetSession();
+		if (!user) error(401, 'Not signed in');
+		userId = user.id;
+		supabase = locals.supabase;
+	}
 
 	const weekEndingParam = url.searchParams.get('week_ending');
 	const weekEnding = weekEndingParam
@@ -39,10 +72,10 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 
 	const weekEndingIso = weekEnding.toISOString().slice(0, 10);
 
-	const { data: existing } = await locals.supabase
+	const { data: existing } = await supabase
 		.from('digests')
 		.select('id, status')
-		.eq('user_id', user.id)
+		.eq('user_id', userId)
 		.eq('week_ending', weekEndingIso)
 		.maybeSingle();
 
@@ -50,8 +83,23 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 		error(409, 'A digest for this week is already published. Discard it first to regenerate.');
 	}
 
-	const assembled = await assembleDigest(locals.supabase, user.id, weekEnding);
-	if (!assembled.ok) error(400, assembled.error);
+	const assembled = await assembleDigest(supabase, userId, weekEnding);
+	if (!assembled.ok) {
+		// Scheduler treats assembly failures as skips (insufficient data is a
+		// normal state for some users), not as 4xx errors.
+		if (isScheduler) {
+			return json({ status: 'skipped', reason: assembled.error });
+		}
+		error(400, assembled.error);
+	}
+
+	if (reqBody.skip_if_quiet && assembled.playCount < QUIET_WEEK_THRESHOLD) {
+		return json({
+			status: 'skipped',
+			reason: 'insufficient_activity',
+			playCount: assembled.playCount
+		});
+	}
 
 	const ollamaUrl = env.OLLAMA_URL || 'http://localhost:11434/api/chat';
 	const userPrompt = fillUserTemplate(assembled.inputs);
@@ -115,18 +163,18 @@ export const POST: RequestHandler = async ({ url, locals }) => {
 	// first-attempt pass.
 	if (attemptReasons.length > 0) {
 		console.log(
-			`[digest] regen for ${user.id} week=${weekEndingIso}: ${attemptReasons.join(' | ')}` +
+			`[digest] regen for ${userId} week=${weekEndingIso}: ${attemptReasons.join(' | ')}` +
 				(finalReport?.criticalFail
 					? ` | FINAL still critical: ${finalReport.criticalReason}`
 					: ' | FINAL clean')
 		);
 	}
 
-	const { data: row, error: insertErr } = await locals.supabase
+	const { data: row, error: insertErr } = await supabase
 		.from('digests')
 		.upsert(
 			{
-				user_id: user.id,
+				user_id: userId,
 				week_ending: weekEndingIso,
 				body,
 				model_used: modelUsed,
