@@ -54,8 +54,28 @@
 			const res = await fetch(`/api/now-playing/${data.profile.username}`);
 			if (!res.ok) return;
 			const next: NowPlayingResult = await res.json();
-			// Only swap if something actually changed — avoids unnecessary re-extracts
-			if (next.track !== current.track || next.artist !== current.artist || next.coverUrl !== current.coverUrl) {
+
+			// Last.fm doesn't return 'none' for an active user — once we have data,
+			// any 'none' is a failed read (timeout, transient error), not real idle.
+			// Real idle is signaled by isStale on a 'recent' result.
+			if (next.state === 'none' && current.state !== 'none') return;
+
+			const sameTrack =
+				next.track === current.track && next.artist === current.artist;
+
+			if (sameTrack) {
+				// Same song still playing — keep the existing cover candidates so the
+				// {#key activeCoverUrl} blocks don't re-mount and restart fade-ins just
+				// because iTunes/Deezer reordered their results. Refresh the ephemeral
+				// fields (state, source, playedAt, plus album if Last.fm filled it in).
+				current = {
+					...current,
+					state: next.state,
+					source: next.source,
+					playedAt: next.playedAt,
+					album: next.album ?? current.album
+				};
+			} else {
 				current = next;
 			}
 		} catch {
