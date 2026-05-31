@@ -1,7 +1,11 @@
 import { LAST_FM_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
-const ITUNES_PROXY = 'https://spudalicio.us/proxy/itunes';
-const DEEZER_PROXY = 'https://spudalicio.us/proxy/deezer';
+// iTunes Search and Deezer have public, server-friendly REST APIs — these
+// defaults hit them directly. Override via env to route through a caching
+// reverse proxy on hosts that already run one.
+const ITUNES_PROXY = env.ITUNES_PROXY_URL || 'https://itunes.apple.com';
+const DEEZER_PROXY = env.DEEZER_PROXY_URL || 'https://api.deezer.com';
 
 // Last.fm serves this MD5 as its "empty" placeholder. Treat any URL containing
 // it as no-cover so the fallback chain doesn't latch onto a star icon.

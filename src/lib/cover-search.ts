@@ -1,8 +1,10 @@
 import { LAST_FM_API_KEY } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { getSpotifyToken } from './spotify-auth.server';
 
-const ITUNES_PROXY = 'https://spudalicio.us/proxy/itunes';
-const DEEZER_PROXY = 'https://spudalicio.us/proxy/deezer';
+// See now-playing.ts for rationale — direct endpoints by default, env-overridable.
+const ITUNES_PROXY = env.ITUNES_PROXY_URL || 'https://itunes.apple.com';
+const DEEZER_PROXY = env.DEEZER_PROXY_URL || 'https://api.deezer.com';
 
 export interface CoverResult {
 	url: string;
