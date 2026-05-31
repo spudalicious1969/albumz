@@ -23,8 +23,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	if (digestsErr) error(500, digestsErr.message);
 
+	const { user: viewer } = await locals.safeGetSession();
+	const isOwner = viewer?.id === profile.id;
+
 	return {
 		profile: { username: profile.username, displayName: profile.display_name ?? profile.username },
-		digests: digests ?? []
+		digests: digests ?? [],
+		isOwner
 	};
 };

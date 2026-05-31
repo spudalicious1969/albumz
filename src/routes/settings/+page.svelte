@@ -82,32 +82,6 @@
 		}
 	}
 
-	// ── Weekly digest preview ─────────────────────────────────
-	let digestBusy = $state(false);
-	let digestError = $state<string | null>(null);
-	let digestBody = $state<string | null>(null);
-	let digestId = $state<string | null>(null);
-
-	async function generateDigest() {
-		digestBusy = true;
-		digestError = null;
-		digestBody = null;
-		digestId = null;
-		try {
-			const res = await fetch('/api/digests/generate', { method: 'POST' });
-			if (!res.ok) {
-				const text = await res.text();
-				throw new Error(text || `Generation failed (${res.status})`);
-			}
-			const { digest } = await res.json();
-			digestBody = digest.body;
-			digestId = digest.id;
-		} catch (err) {
-			digestError = err instanceof Error ? err.message : 'Generation failed.';
-		} finally {
-			digestBusy = false;
-		}
-	}
 </script>
 
 <svelte:head><title>Settings — albumz</title></svelte:head>
@@ -390,32 +364,6 @@
 			{/if}
 		</section>
 
-		<!-- ── Weekly digest (preview) ───────────────────────────── -->
-		<section class="card">
-			<h2>Weekly digest (preview)</h2>
-			<p class="muted">Generate a draft of this week's listening column. Local Ollama, qwen3.5. Drafts are not published — this is for preview only.</p>
-			<div class="data-row">
-				<button type="button" class="btn-secondary" onclick={generateDigest} disabled={digestBusy}>
-					{digestBusy ? 'Generating…' : "Generate this week's digest"}
-				</button>
-				{#if digestError}
-					<span class="hint hint-err">{digestError}</span>
-				{/if}
-			</div>
-			{#if digestBody}
-				<article class="digest-preview">
-					{#each digestBody.split(/\n\s*\n/) as para}
-						<p>{para}</p>
-					{/each}
-				</article>
-				{#if digestId}
-					<p class="digest-link">
-						<a href="/digests/{digestId}">Open as draft permalink →</a>
-					</p>
-				{/if}
-			{/if}
-		</section>
-
 		<!-- ── Import / Export ───────────────────────────────────── -->
 		<section class="card">
 			<h2>Import / Export</h2>
@@ -502,30 +450,6 @@
 	.dupe-album { color: var(--text); }
 	.dupe-count { color: var(--text-muted); font-variant-numeric: tabular-nums; }
 	.dupe-more { color: var(--text-muted); font-style: italic; }
-
-	.digest-preview {
-		margin-top: 1.1rem;
-		padding: 1.1rem 1.25rem;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		font-size: 0.95rem;
-		line-height: 1.65;
-		color: var(--text);
-	}
-	.digest-preview p { margin: 0 0 0.9rem; }
-	.digest-preview p:last-child { margin-bottom: 0; }
-
-	.digest-link {
-		margin: 0.85rem 0 0;
-		font-size: 0.88rem;
-	}
-	.digest-link a {
-		color: var(--accent);
-		text-decoration: none;
-		font-weight: 600;
-	}
-	.digest-link a:hover { text-decoration: underline; }
 
 	.radio-row { display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
 	.radio-pill {

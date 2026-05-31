@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -19,6 +20,27 @@
 		const match = para.match(/^.+?[.!?](?=\s|$)/);
 		return (match?.[0] ?? para).trim();
 	}
+
+	let busy = $state(false);
+	let err = $state<string | null>(null);
+
+	async function generate() {
+		busy = true;
+		err = null;
+		try {
+			const res = await fetch('/api/digests/generate', { method: 'POST' });
+			if (!res.ok) {
+				const { message } = await res.json().catch(() => ({}));
+				throw new Error(message || `Generation failed (${res.status})`);
+			}
+			const { digest } = await res.json();
+			await goto(`/digests/${digest.id}`);
+		} catch (e) {
+			err = e instanceof Error ? e.message : 'Generation failed.';
+		} finally {
+			busy = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -33,6 +55,21 @@
 			<a href="/u/{data.profile.username}" class="back">← @{data.profile.username}</a>
 		</p>
 	</header>
+
+	{#if data.isOwner}
+		<div class="owner-bar">
+			<div class="owner-bar-text">
+				<p class="owner-lead">Drafts arrive automatically Sunday evening.</p>
+				<p class="owner-sub">Use this to preview the current week early or to regenerate after a discard. Takes ~15–45 seconds.</p>
+			</div>
+			<button type="button" class="btn-generate" onclick={generate} disabled={busy}>
+				{busy ? 'Generating…' : 'Generate this week'}
+			</button>
+		</div>
+		{#if err}
+			<p class="owner-err">{err}</p>
+		{/if}
+	{/if}
 
 	{#if data.digests.length === 0}
 		<div class="empty">
@@ -80,6 +117,56 @@
 	.byline { margin: 0; font-size: 0.95rem; }
 	.back { color: var(--text-muted); text-decoration: none; }
 	.back:hover { color: var(--text); }
+
+	.owner-bar {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		padding: 1rem 1.25rem;
+		margin-bottom: 1.5rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-left: 3px solid var(--accent);
+		border-radius: var(--radius);
+	}
+	.owner-bar-text { flex: 1; min-width: 0; }
+	.owner-lead {
+		margin: 0;
+		font-size: 0.92rem;
+		font-weight: 600;
+		color: var(--text);
+	}
+	.owner-sub {
+		margin: 0.2rem 0 0;
+		font-size: 0.78rem;
+		color: var(--text-muted);
+		line-height: 1.4;
+	}
+	.btn-generate {
+		flex-shrink: 0;
+		padding: 0.55rem 1.1rem;
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		border-radius: var(--radius);
+		font-weight: 600;
+		font-size: 0.88rem;
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+	.btn-generate:hover:not(:disabled) { opacity: 0.9; }
+	.btn-generate:disabled { opacity: 0.55; cursor: progress; }
+
+	.owner-err {
+		margin: -0.75rem 0 1.5rem;
+		font-size: 0.85rem;
+		color: oklch(60% 0.18 25);
+	}
+
+	@media (max-width: 560px) {
+		.owner-bar { flex-direction: column; align-items: stretch; gap: 0.85rem; }
+		.btn-generate { width: 100%; }
+	}
 
 	.empty {
 		padding: 4rem 0;
