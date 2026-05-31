@@ -9,6 +9,7 @@ export const load: LayoutLoad = async ({ data, depends }) => {
 		session: data.session,
 		user: data.user,
 		theme: data.theme,
-		profile: data.profile
+		profile: data.profile,
+		pendingDigest: data.pendingDigest
 	};
 };
