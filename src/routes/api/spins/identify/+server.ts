@@ -13,12 +13,12 @@ import { isOnLastfmNow, scrobble, updateNowPlaying } from '$lib/lastfm.server';
 import type { RequestHandler } from './$types';
 
 // Scrobble after this many confirmed chunks of the same track within the
-// dedupe window. 6 × 10s = ~60s of confirmed presence — covers short songs
-// (punk, hardcore, anything under 2 min) which a 12-chunk threshold would
+// dedupe window. 4 × 15s = ~60s of confirmed presence — covers short songs
+// (punk, hardcore, anything under 2 min) which a higher threshold would
 // silently miss. Shazam often skips the first chunk or two on quiet intros,
-// so 6 confirmed IDs usually maps to 70-90s of real audio. Last.fm accepts
+// so 4 confirmed IDs usually maps to 75-90s of real audio. Last.fm accepts
 // scrobbles regardless of timing as long as track is ≥30s.
-const SCROBBLE_CHUNK_THRESHOLD = 6;
+const SCROBBLE_CHUNK_THRESHOLD = 4;
 
 // "Same play" window — if we already scrobbled this artist+track within
 // this many minutes, don't scrobble again. Long enough to span any song,

@@ -11,7 +11,7 @@
 	import { onDestroy } from 'svelte';
 	import { spin } from '$lib/spin-state.svelte';
 
-	const CHUNK_MS = 10000;
+	const CHUNK_MS = 15000;
 
 	let stream: MediaStream | null = null;
 	let recorder: MediaRecorder | null = null;
