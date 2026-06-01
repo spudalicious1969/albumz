@@ -83,12 +83,24 @@
 		}
 	}
 
+	// Browsers throttle setInterval hard when the tab is hidden, so when the
+	// user returns the displayed state can be several minutes stale until the
+	// next poll lands. Re-poll immediately on visibility return and reset the
+	// timer so we don't double-fire.
+	function handleVisibilityChange() {
+		if (document.visibilityState !== 'visible') return;
+		refresh();
+		if (timer) clearInterval(timer);
+		timer = setInterval(refresh, 15_000);
+	}
+
 	// Lock body scroll + dark bg explicitly so cleanup is guaranteed.
 	// Doing this via `:global(body) { overflow:hidden }` leaves the rule
 	// stuck after SvelteKit client-side nav in some browsers (Chrome on
 	// macOS especially), trapping scroll on every subsequent page until refresh.
 	onMount(() => {
 		timer = setInterval(refresh, 15_000);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 		const prevOverflow = document.body.style.overflow;
 		const prevBg = document.body.style.background;
 		document.body.style.overflow = 'hidden';
@@ -100,6 +112,9 @@
 	});
 	onDestroy(() => {
 		if (timer) clearInterval(timer);
+		if (typeof document !== 'undefined') {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		}
 	});
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
