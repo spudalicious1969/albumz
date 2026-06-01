@@ -3,8 +3,28 @@
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import AlbumHero from '$lib/components/AlbumHero.svelte';
 	import ExternalLinks from '$lib/components/ExternalLinks.svelte';
+	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import Tracklist from '$lib/components/Tracklist.svelte';
 	import type { PageData, ActionData } from './$types';
+
+	const formatOptions = [
+		{ value: '', label: '—' },
+		{ value: 'LP', label: 'LP' },
+		{ value: 'CD', label: 'CD' },
+		{ value: '7"', label: '7"' },
+		{ value: '10"', label: '10"' },
+		{ value: '12"', label: '12"' },
+		{ value: 'Cassette', label: 'Cassette' },
+		{ value: 'Digital', label: 'Digital' }
+	];
+	const ratingOptions = [
+		{ value: '', label: '—' },
+		{ value: '1', label: '★' },
+		{ value: '2', label: '★★' },
+		{ value: '3', label: '★★★' },
+		{ value: '4', label: '★★★★' },
+		{ value: '5', label: '★★★★★' }
+	];
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	const album = $derived(data.album);
@@ -26,6 +46,8 @@
 	let editArtist = $state(album.artist);
 	let editTitle = $state(album.title);
 	let editYear = $state<number | ''>(album.year ?? '');
+	let editFormat = $state(album.format ?? '');
+	let editRating = $state(album.rating != null ? String(album.rating) : '');
 
 	let lookupOpen = $state(false);
 	let lookupSearching = $state(false);
@@ -39,6 +61,8 @@
 		editArtist = album.artist;
 		editTitle = album.title;
 		editYear = album.year ?? '';
+		editFormat = album.format ?? '';
+		editRating = album.rating != null ? String(album.rating) : '';
 	});
 
 	async function runLookup() {
@@ -257,32 +281,20 @@
 						<span class="label">Year</span>
 						<input type="number" name="year" min="1900" max="2099" bind:value={editYear} />
 					</label>
-					<label class="field">
+					<div class="field">
 						<span class="label">Format</span>
-						<select name="format" value={album.format ?? ''}>
-							<option value="">—</option>
-							<option>LP</option>
-							<option>CD</option>
-							<option value='7"'>7"</option>
-							<option value='10"'>10"</option>
-							<option value='12"'>12"</option>
-							<option>Cassette</option>
-							<option>Digital</option>
-						</select>
-					</label>
+						<SortDropdown options={formatOptions} bind:value={editFormat} ariaLabel="Format" />
+						<input type="hidden" name="format" value={editFormat} />
+					</div>
 					<label class="field">
 						<span class="label">Label</span>
 						<input type="text" name="label" value={album.label ?? ''} />
 					</label>
-					<label class="field">
+					<div class="field">
 						<span class="label">Rating</span>
-						<select name="rating" value={album.rating ?? ''}>
-							<option value="">—</option>
-							{#each [1, 2, 3, 4, 5] as n}
-								<option value={n}>{'★'.repeat(n)}</option>
-							{/each}
-						</select>
-					</label>
+						<SortDropdown options={ratingOptions} bind:value={editRating} ariaLabel="Rating" />
+						<input type="hidden" name="rating" value={editRating} />
+					</div>
 					<fieldset class="field">
 						<legend class="label">Ownership</legend>
 						<div class="radio-group">
@@ -506,6 +518,17 @@
 		font-family: inherit;
 	}
 	.field textarea { resize: vertical; }
+	.field :global(.sort-group) { display: flex; }
+	.field :global(.dropdown) { flex: 1; display: block; }
+	.field :global(.trigger) {
+		width: 100%;
+		justify-content: space-between;
+		padding: 0.55rem 0.75rem;
+		background: var(--bg-elevated);
+		font-size: 1rem;
+		font-weight: 400;
+	}
+	.field :global(.menu) { left: 0; right: auto; min-width: 100%; }
 	.radio-group { display: flex; gap: 1.25rem; align-items: center; padding-top: 0.3rem; }
 	.radio-group label, .checkbox {
 		display: flex; align-items: center; gap: 0.4rem;

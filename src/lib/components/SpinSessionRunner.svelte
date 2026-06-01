@@ -25,7 +25,17 @@
 	async function startSession() {
 		if (stream) return; // already running
 		try {
-			stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+			// Disable voice-DSP defaults — echo/noise/AGC are tuned for speech and
+			// flatten the spectral peaks Shazam fingerprints on. Dense or fuzzy
+			// productions get notched into mush otherwise; clean studio mixes
+			// usually survive but match strength is still better with raw audio.
+			stream = await navigator.mediaDevices.getUserMedia({
+				audio: {
+					echoCancellation: false,
+					noiseSuppression: false,
+					autoGainControl: false
+				}
+			});
 		} catch (err) {
 			const message = err instanceof Error ? err.message : 'Microphone access denied';
 			spin.setError(message);

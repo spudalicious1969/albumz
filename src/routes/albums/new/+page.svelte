@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
+	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -16,7 +17,28 @@
 	let artist = $state('');
 	let title = $state('');
 	let year = $state<number | ''>('');
+	let format = $state('');
+	let rating = $state('');
 	let ownership = $state<'OWN' | 'WANT'>('OWN');
+
+	const formatOptions = [
+		{ value: '', label: '—' },
+		{ value: 'LP', label: 'LP' },
+		{ value: 'CD', label: 'CD' },
+		{ value: '7"', label: '7"' },
+		{ value: '10"', label: '10"' },
+		{ value: '12"', label: '12"' },
+		{ value: 'Cassette', label: 'Cassette' },
+		{ value: 'Digital', label: 'Digital' }
+	];
+	const ratingOptions = [
+		{ value: '', label: '—' },
+		{ value: '1', label: '★' },
+		{ value: '2', label: '★★' },
+		{ value: '3', label: '★★★' },
+		{ value: '4', label: '★★★★' },
+		{ value: '5', label: '★★★★★' }
+	];
 
 	// Seed from the user's search terms whenever those change
 	$effect(() => {
@@ -137,32 +159,20 @@
 					<span class="label">Year</span>
 					<input type="number" name="year" min="1900" max="2099" bind:value={year} />
 				</label>
-				<label class="field">
+				<div class="field">
 					<span class="label">Format</span>
-					<select name="format">
-						<option value="">—</option>
-						<option>LP</option>
-						<option>CD</option>
-						<option value='7"'>7"</option>
-						<option value='10"'>10"</option>
-						<option value='12"'>12"</option>
-						<option>Cassette</option>
-						<option>Digital</option>
-					</select>
-				</label>
+					<SortDropdown options={formatOptions} bind:value={format} ariaLabel="Format" />
+					<input type="hidden" name="format" value={format} />
+				</div>
 				<label class="field">
 					<span class="label">Label</span>
 					<input type="text" name="label" />
 				</label>
-				<label class="field">
+				<div class="field">
 					<span class="label">Rating</span>
-					<select name="rating">
-						<option value="">—</option>
-						{#each [1,2,3,4,5] as n}
-							<option value={n}>{'★'.repeat(n)}</option>
-						{/each}
-					</select>
-				</label>
+					<SortDropdown options={ratingOptions} bind:value={rating} ariaLabel="Rating" />
+					<input type="hidden" name="rating" value={rating} />
+				</div>
 				<label class="field ownership">
 					<span class="label">Ownership</span>
 					<div class="radio-group">
@@ -294,6 +304,16 @@
 		color: var(--text);
 	}
 	.field textarea { resize: vertical; }
+	.field :global(.sort-group) { display: flex; }
+	.field :global(.dropdown) { flex: 1; display: block; }
+	.field :global(.trigger) {
+		width: 100%;
+		justify-content: space-between;
+		padding: 0.55rem 0.75rem;
+		font-size: 1rem;
+		font-weight: 400;
+	}
+	.field :global(.menu) { left: 0; right: auto; min-width: 100%; }
 	.radio-group { display: flex; gap: 1.25rem; align-items: center; padding-top: 0.3rem; }
 	.radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
 
