@@ -2,7 +2,6 @@
 	import { invalidate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	import favicon from '$lib/assets/favicon.svg';
 	import LookupPalette from '$lib/components/LookupPalette.svelte';
 	import SpinSessionRunner from '$lib/components/SpinSessionRunner.svelte';
 	import DigestPill from '$lib/components/DigestPill.svelte';
@@ -37,12 +36,6 @@
 		}
 	});
 </script>
-
-<svelte:head>
-	<link rel="icon" href={favicon} />
-	<link rel="manifest" href="/manifest.json" />
-	<meta name="theme-color" content="#08070a" />
-</svelte:head>
 
 {@render children()}
 
