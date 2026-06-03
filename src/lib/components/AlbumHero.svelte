@@ -69,16 +69,16 @@
 		inset: 0;
 		background-size: cover;
 		background-position: center;
-		filter: blur(80px) saturate(1.3);
+		filter: blur(80px) saturate(1.9) brightness(1.45);
 		transform: scale(1.15);
-		opacity: 0.4;
+		opacity: 0.75;
 		z-index: -3;
 		pointer-events: none;
 	}
 	.hero-accent {
 		position: fixed;
 		inset: 0;
-		background: radial-gradient(60% 40% at 50% 25%, color-mix(in oklch, var(--page-accent) 16%, transparent), transparent);
+		background: radial-gradient(60% 40% at 50% 25%, color-mix(in oklch, var(--page-accent) 40%, transparent), transparent);
 		z-index: -2;
 		pointer-events: none;
 	}

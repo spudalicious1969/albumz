@@ -66,6 +66,7 @@
 				<a role="menuitem" href="/headliner/{profile.username}" onclick={close}>Headliner</a>
 			{/if}
 			<a role="menuitem" href="/dig" onclick={close}>Dig</a>
+				<a role="menuitem" href="/discover" onclick={close}>Discover</a>
 			<div class="divider" role="separator"></div>
 			<a role="menuitem" href="/settings" onclick={close}>Settings</a>
 			<a role="menuitem" href="/help" onclick={close}>Help</a>

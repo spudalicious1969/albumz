@@ -35,6 +35,7 @@
 			<li><a href="#public">Your public page</a></li>
 			<li><a href="#headliner">The Headliner</a></li>
 			<li><a href="#dig">Dig — pull from the crate</a></li>
+				<li><a href="#discover">Discover — steer the next record</a></li>
 			<li><a href="#spin">Spin — tonight's set</a></li>
 			<li><a href="#digest">Weekly digest</a></li>
 			<li><a href="#lastfm">Last.fm integration</a></li>
@@ -124,7 +125,17 @@
 		<p>It's intentionally hidden in the menu rather than parked on the home page. Dig is meant to be a thing you walk over to, not a button that pesters you. Use it when you're staring at the shelf wondering what to play.</p>
 	</section>
 
-	<section id="spin" class="card">
+	<section id="discover" class="card">
+			<h2>Discover — steer the next record</h2>
+			<p>Discover is the part of Albumz that points you at music you don't yet own. At <code>/discover</code>, Albumz reads your last week of listening as the starting point, you type a free-text <em>nudge</em> — warmer, weirder, more electronic, in the spirit of some band — and 3–5 albums come back tilted that way, each with a short sentence explaining the angle.</p>
+			<p><strong>The steering frame.</strong> Discover isn't a recommender that hands you "more of what you played." It's a steering wheel: the system knows your baseline; you supply the direction. <em>"Like what I've been on but happier." "Weirder, more electronic." "Like The Beths but by dudes."</em> Whatever you'd say to a clerk who's been at the counter all week. The discovery happens in the angle of the nudge, not in the math of similarity.</p>
+			<p><strong>How it works.</strong> The system reads your top tags from the last seven days of Last.fm scrobbles. A local AI (Ollama, on the box running Albumz) translates your nudge into a Discogs catalog query — styles, era, sometimes a label. Discogs returns candidates. The same AI picks 3–5 of them, writes a short "why" sentence for each, and filters anything you already own out of the result.</p>
+			<p><strong>What you do with the picks.</strong> Each one shows cover, artist, title, year, label, country, style. A small <strong>Listen on Spotify</strong> link goes straight to the album so you can preview before committing. The cover itself links to the Discogs master page for digging deeper. <strong>Try a different direction</strong> rolls the wheel again.</p>
+			<p><strong>Needs Last.fm.</strong> Discover relies on your scrobbles for the baseline — connect Last.fm in Settings first, otherwise the page will tell you politely that there's nothing to steer from.</p>
+			<p class="aside">Like Dig, Discover is meant to be a moment you walk over to, not a feed that pesters you. Sit down, think about how you feel, ask for the nudge. The clerk has been at the counter all week.</p>
+		</section>
+
+		<section id="spin" class="card">
 		<h2>Spin — tonight's set</h2>
 		<p>Spin is the part of Albumz that catches what's actually on the turntable.</p>
 		<p><strong>What you see.</strong> On your Headliner there's a small pill in the lower-right: <em>"Tonight's set."</em> Click it to expand. The card has a mic toggle, a set list (latest at top), and an End set link that wipes everything and closes out the session. The label changes with the time of day — <em>this morning's set</em>, <em>this afternoon's set</em>, <em>this evening's set</em>, <em>tonight's set</em>.</p>

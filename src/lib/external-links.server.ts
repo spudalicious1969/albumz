@@ -10,7 +10,7 @@ import type { ExternalLink } from './external-links';
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const cache = new Map<string, { value: ExternalLink[]; expires: number }>();
 
-async function spotifyAlbumUrl(artist: string, title: string): Promise<string | null> {
+export async function spotifyAlbumUrl(artist: string, title: string): Promise<string | null> {
 	const token = await getSpotifyToken();
 	if (!token) return null;
 	try {

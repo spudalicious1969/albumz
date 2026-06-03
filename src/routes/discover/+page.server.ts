@@ -16,6 +16,9 @@ import {
 	curateCandidates,
 	type CuratedPick
 } from '$lib/discovery/curate.server';
+import { spotifyAlbumUrl } from '$lib/external-links.server';
+
+export type DisplayPick = CuratedPick & { spotifyUrl: string | null };
 
 // Discovery — steering wheel, not recommender. Full pipeline:
 //   1. Build listening baseline (Last.fm scrobbles → top tags + artists).
@@ -33,7 +36,7 @@ type DiscoverResult = {
 	perStyleCounts: Record<string, number> | null;
 	filteredOutFromCrate: number;
 	poolError: string | null;
-	picks: CuratedPick[] | null;
+	picks: DisplayPick[] | null;
 	curateError: string | null;
 };
 
@@ -114,6 +117,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		};
 	}
 
+	// Enrich each pick with a direct Spotify album URL (parallel lookups).
+	// Discogs link stays on the cover for "dig deeper"; the explicit
+	// "Listen on Spotify" link below the why is the listen-first action.
+	const picksWithSpotify: DisplayPick[] = await Promise.all(
+		curateResult.picks.map(async (p) => ({
+			...p,
+			spotifyUrl: await spotifyAlbumUrl(p.artist, p.title)
+		}))
+	);
+
 	return {
 		nudge,
 		result: {
@@ -123,7 +136,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			candidates: poolResult.candidates,
 			perStyleCounts: poolResult.perStyleCounts,
 			filteredOutFromCrate: poolResult.filteredOutFromCrate,
-			picks: curateResult.picks
+			picks: picksWithSpotify
 		}
 	};
 };
