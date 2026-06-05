@@ -1,39 +1,61 @@
-// Server-side tracklist resolver. Waterfall: Last.fm → Deezer → iTunes.
-// Each provider's response shape is normalized into a TracklistResult.
-// We fall through to the next source only when the previous returned no tracks.
+// Server-side tracklist resolver. Fans out to Spotify, Deezer, iTunes, and
+// Last.fm in parallel and picks the source returning the most tracks. The
+// previous waterfall stopped at the first non-empty result, which silently
+// truncated tracklists when Last.fm had the album in its DB with only one
+// scrobble-registered track (common for very new releases). Ties go to
+// whichever fetcher we listed first — ordering by track-quality reputation:
+// Spotify > Deezer > iTunes > Last.fm.
 
 import { env } from '$env/dynamic/private';
+import { getSpotifyToken } from './spotify-auth.server';
 import type { Track, TracklistResult, TracklistSource } from './tracklist';
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
+const PER_SOURCE_TIMEOUT_MS = 8000;
 const cache = new Map<string, { value: TracklistResult; expires: number }>();
 
 // Server-side calls don't need the CORS-fixing proxies — hit upstream directly
 // so Albumz isn't coupled to spudalicio.us being up.
+const SPOTIFY_API = 'https://api.spotify.com/v1';
 const DEEZER_API = 'https://api.deezer.com';
 const ITUNES_API = 'https://itunes.apple.com';
+
+const EMPTY: TracklistResult = { tracks: [], source: null, totalDuration: null };
+
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+	return Promise.race([
+		p,
+		new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))
+	]);
+}
 
 export async function fetchTracklist(artist: string, title: string): Promise<TracklistResult> {
 	const cacheKey = `${artist.toLowerCase()}::${title.toLowerCase()}`;
 	const hit = cache.get(cacheKey);
 	if (hit && hit.expires > Date.now()) return hit.value;
 
-	const empty: TracklistResult = { tracks: [], source: null, totalDuration: null };
+	const fetchers: Array<() => Promise<TracklistResult>> = [
+		() => fetchFromSpotify(artist, title),
+		() => fetchFromDeezer(artist, title),
+		() => fetchFromItunes(artist, title),
+		() => fetchFromLastfm(artist, title)
+	];
 
-	for (const fetcher of [fetchFromLastfm, fetchFromDeezer, fetchFromItunes]) {
-		try {
-			const result = await fetcher(artist, title);
-			if (result.tracks.length > 0) {
-				cache.set(cacheKey, { value: result, expires: Date.now() + CACHE_TTL_MS });
-				return result;
-			}
-		} catch {
-			// Try the next source.
-		}
-	}
+	const results = await Promise.all(
+		fetchers.map((f) =>
+			withTimeout(f().catch(() => EMPTY), PER_SOURCE_TIMEOUT_MS, EMPTY)
+		)
+	);
 
-	cache.set(cacheKey, { value: empty, expires: Date.now() + CACHE_TTL_MS });
-	return empty;
+	// Pick the longest tracklist. Reduce with strict `>` so earlier entries
+	// in the fetcher list win on ties — that's our quality preference order.
+	const best = results.reduce(
+		(max, r) => (r.tracks.length > max.tracks.length ? r : max),
+		EMPTY
+	);
+
+	cache.set(cacheKey, { value: best, expires: Date.now() + CACHE_TTL_MS });
+	return best;
 }
 
 function finalize(tracks: Track[], source: TracklistSource): TracklistResult {
@@ -43,6 +65,60 @@ function finalize(tracks: Track[], source: TracklistSource): TracklistResult {
 		source: tracks.length > 0 ? source : null,
 		totalDuration: totalDuration > 0 ? totalDuration : null
 	};
+}
+
+// ---------- Spotify ----------
+
+type SpotifyAlbumSearchHit = {
+	id?: string;
+	name?: string;
+	artists?: Array<{ name?: string }>;
+};
+
+type SpotifyAlbumTracks = {
+	items?: Array<{ name?: string; track_number?: number; duration_ms?: number }>;
+};
+
+async function fetchFromSpotify(artist: string, title: string): Promise<TracklistResult> {
+	const token = await getSpotifyToken();
+	if (!token) return finalize([], 'spotify');
+
+	const q = `artist:"${artist}" album:"${title}"`;
+	const searchUrl = `${SPOTIFY_API}/search?q=${encodeURIComponent(q)}&type=album&limit=5`;
+	const searchRes = await fetch(searchUrl, {
+		headers: { Authorization: `Bearer ${token}` }
+	});
+	if (!searchRes.ok) return finalize([], 'spotify');
+	const searchData = (await searchRes.json()) as {
+		albums?: { items?: SpotifyAlbumSearchHit[] };
+	};
+	const items = searchData.albums?.items ?? [];
+	if (items.length === 0) return finalize([], 'spotify');
+
+	const wantArtist = normalize(artist);
+	const wantTitle = normalize(title);
+	const match =
+		items.find(
+			(it) =>
+				normalize(it.artists?.[0]?.name ?? '') === wantArtist &&
+				normalize(it.name ?? '') === wantTitle
+		) ?? items[0];
+	if (!match.id) return finalize([], 'spotify');
+
+	const tracksRes = await fetch(`${SPOTIFY_API}/albums/${match.id}/tracks?limit=50`, {
+		headers: { Authorization: `Bearer ${token}` }
+	});
+	if (!tracksRes.ok) return finalize([], 'spotify');
+	const tracksData = (await tracksRes.json()) as SpotifyAlbumTracks;
+	const list = tracksData.items ?? [];
+
+	const tracks: Track[] = list.map((t, i) => ({
+		position: t.track_number && t.track_number > 0 ? t.track_number : i + 1,
+		name: t.name ?? '',
+		duration: t.duration_ms && t.duration_ms > 0 ? Math.round(t.duration_ms / 1000) : null
+	}));
+
+	return finalize(tracks, 'spotify');
 }
 
 // ---------- Last.fm ----------

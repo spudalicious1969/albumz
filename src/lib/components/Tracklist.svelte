@@ -9,6 +9,7 @@
 	}: { tracks: Track[]; totalDuration: number | null; source: TracklistSource | null } = $props();
 
 	const SOURCE_LABEL: Record<TracklistSource, string> = {
+		spotify: 'Spotify',
 		lastfm: 'Last.fm',
 		deezer: 'Deezer',
 		itunes: 'iTunes'

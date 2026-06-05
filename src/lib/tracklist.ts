@@ -7,7 +7,7 @@ export type Track = {
 	duration: number | null;
 };
 
-export type TracklistSource = 'lastfm' | 'deezer' | 'itunes';
+export type TracklistSource = 'spotify' | 'lastfm' | 'deezer' | 'itunes';
 
 export type TracklistResult = {
 	tracks: Track[];
