@@ -5,11 +5,13 @@
 //
 // Sources reused from per-album lookup:
 //   - year/label/cover: runDiscovery → Spotify/iTunes/Deezer/MB/LFM (scored)
-//   - tags: getArtistTopTagsBatch (Last.fm artist tags via local cache)
+//   - tags: Discogs release-level styles+genres first (curated, album-specific),
+//          Last.fm artist-tag cache as fallback when Discogs has no match.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { runDiscovery } from './album-search.server';
 import { getArtistTopTagsBatch } from './lastfm.server';
+import { fetchDiscogsTagsForAlbum } from './discogs-tags.server';
 
 const TAGS_PER_ALBUM_CAP = 8;
 
@@ -120,7 +122,12 @@ export async function backfillMissingMetadata(
 
 		if (wantsTags) {
 			attempted.tagSets++;
-			const tags = tagMap.get(artistKey(a.artist)) ?? [];
+			// Discogs first — release-level style+genre, curated. Falls back to
+			// Last.fm's artist-level tags from the pre-batched cache.
+			let tags = await fetchDiscogsTagsForAlbum(a.artist, a.title);
+			if (tags.length === 0) {
+				tags = tagMap.get(artistKey(a.artist)) ?? [];
+			}
 			if (tags.length > 0) {
 				updates.tags = tags.slice(0, TAGS_PER_ALBUM_CAP);
 				filled.tagSets++;
