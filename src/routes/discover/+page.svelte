@@ -58,6 +58,10 @@
 					{isSteering ? 'Steering…' : 'Steer'}
 				</button>
 			</form>
+
+			<p class="back-row">
+				<a class="btn-quiet" href="/">Back to collection</a>
+			</p>
 		</div>
 	{:else if data.result.baselineError}
 		<div class="error-shell">
@@ -147,6 +151,7 @@
 
 		<div class="actions">
 			<a class="btn-secondary" href="/discover">Try a different direction</a>
+			<a class="btn-quiet" href="/">Back to collection</a>
 		</div>
 
 		{#if data.result.candidates}
@@ -359,6 +364,28 @@
 		background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text)));
 	}
 
+	.btn-quiet {
+		padding: 0.7rem 1.2rem;
+		border-radius: var(--radius);
+		background: transparent;
+		color: var(--text-muted);
+		border: 1px solid transparent;
+		font-weight: 600;
+		font-size: 0.9rem;
+		text-decoration: none;
+		display: inline-block;
+	}
+
+	.btn-quiet:hover {
+		color: var(--text);
+		text-decoration: none;
+	}
+
+	.back-row {
+		margin: 1.4rem 0 0;
+		text-align: center;
+	}
+
 	.result-header {
 		text-align: center;
 		margin-bottom: 2.5rem;
@@ -502,6 +529,8 @@
 	.actions {
 		display: flex;
 		justify-content: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
 		margin-top: 3rem;
 	}
 
