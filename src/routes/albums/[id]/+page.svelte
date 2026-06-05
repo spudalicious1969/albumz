@@ -5,7 +5,14 @@
 	import ExternalLinks from '$lib/components/ExternalLinks.svelte';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import Tracklist from '$lib/components/Tracklist.svelte';
+	import BackfillSuggestion from '$lib/components/BackfillSuggestion.svelte';
 	import type { PageData, ActionData } from './$types';
+
+	type LookupSuggestions = {
+		tags: string[];
+		tagSource: 'discogs' | 'lastfm' | 'ai' | null;
+		label: string | null;
+	};
 
 	const formatOptions = [
 		{ value: '', label: '—' },
@@ -48,10 +55,14 @@
 	let editYear = $state<number | ''>(album.year ?? '');
 	let editFormat = $state(album.format ?? '');
 	let editRating = $state(album.rating != null ? String(album.rating) : '');
+	let editLabel = $state(album.label ?? '');
+	let editTags = $state(album.tags?.join(', ') ?? '');
 
 	let lookupOpen = $state(false);
 	let lookupSearching = $state(false);
 	let lookupResults = $state<CoverResult[]>([]);
+	let lookupSuggesting = $state(false);
+	let lookupSuggestions = $state<LookupSuggestions | null>(null);
 	// When a lookup pick fills in a cover, stage it here so the Save form picks it up
 	let stagedCoverUrl = $state('');
 	let stagedAccent = $state('');
@@ -63,21 +74,56 @@
 		editYear = album.year ?? '';
 		editFormat = album.format ?? '';
 		editRating = album.rating != null ? String(album.rating) : '';
+		editLabel = album.label ?? '';
+		editTags = album.tags?.join(', ') ?? '';
 	});
 
-	async function runLookup() {
+	// Visibility of the two suggestion rows — reactive to current form state so
+	// they auto-hide when the user types a value in (or accepts a suggestion).
+	const showTagSuggestion = $derived(
+		!editTags.trim() && (lookupSuggestions?.tags?.length ?? 0) > 0
+	);
+	const showLabelSuggestion = $derived(
+		!editLabel.trim() && !!lookupSuggestions?.label
+	);
+	const tagSourceLabel = $derived(
+		lookupSuggestions?.tagSource === 'discogs' ? 'Discogs'
+		: lookupSuggestions?.tagSource === 'lastfm' ? 'Last.fm'
+		: 'AI'
+	);
+
+	function runLookup() {
 		lookupSearching = true;
+		lookupSuggesting = true;
 		lookupResults = [];
-		try {
-			const params = new URLSearchParams();
-			if (editArtist.trim()) params.set('artist', editArtist.trim());
-			if (editTitle.trim()) params.set('title', editTitle.trim());
-			const res = await fetch(`/api/covers/search?${params.toString()}`);
-			const payload = await res.json();
-			lookupResults = payload.covers ?? [];
-		} finally {
-			lookupSearching = false;
-		}
+		lookupSuggestions = null;
+
+		const params = new URLSearchParams();
+		if (editArtist.trim()) params.set('artist', editArtist.trim());
+		if (editTitle.trim()) params.set('title', editTitle.trim());
+		const qs = params.toString();
+
+		// Two independent fetches, two independent loading states — each
+		// section of the panel renders as soon as its data lands.
+		fetch(`/api/covers/search?${qs}`)
+			.then((r) => r.json())
+			.then((p: { covers?: CoverResult[] }) => {
+				lookupResults = p.covers ?? [];
+			})
+			.catch(() => {})
+			.finally(() => {
+				lookupSearching = false;
+			});
+
+		fetch(`/api/albums/lookup-suggestions?${qs}`)
+			.then((r) => r.json())
+			.then((p: LookupSuggestions) => {
+				lookupSuggestions = p;
+			})
+			.catch(() => {})
+			.finally(() => {
+				lookupSuggesting = false;
+			});
 	}
 
 	function applyLookup(result: CoverResult) {
@@ -248,6 +294,34 @@
 							{/each}
 						</ul>
 					{/if}
+
+					{#if lookupSuggesting && !lookupSuggestions}
+						<p class="muted lookup-sug-loading">Looking up tags and label…</p>
+					{:else if lookupSuggestions && (showTagSuggestion || showLabelSuggestion)}
+						<div class="lookup-suggestions">
+							<h3 class="lookup-suggestions-title">More suggestions</h3>
+							{#if showTagSuggestion}
+								<BackfillSuggestion
+									field="tags"
+									suggested={lookupSuggestions.tags}
+									sourceLabel={tagSourceLabel}
+									onSave={(value) => {
+										editTags = Array.isArray(value) ? value.join(', ') : value;
+									}}
+								/>
+							{/if}
+							{#if showLabelSuggestion}
+								<BackfillSuggestion
+									field="label"
+									suggested={lookupSuggestions.label ?? ''}
+									sourceLabel="AI"
+									onSave={(value) => {
+										editLabel = Array.isArray(value) ? value.join(', ') : value;
+									}}
+								/>
+							{/if}
+						</div>
+					{/if}
 				</div>
 			{/if}
 
@@ -288,7 +362,7 @@
 					</div>
 					<label class="field">
 						<span class="label">Label</span>
-						<input type="text" name="label" value={album.label ?? ''} />
+						<input type="text" name="label" bind:value={editLabel} />
 					</label>
 					<div class="field">
 						<span class="label">Rating</span>
@@ -311,7 +385,7 @@
 					</label>
 					<label class="field full">
 						<span class="label">Tags <small>(comma-separated)</small></span>
-						<input type="text" name="tags" value={album.tags?.join(', ') ?? ''} />
+						<input type="text" name="tags" bind:value={editTags} />
 					</label>
 					<label class="field full">
 						<span class="label">Notes</span>
@@ -445,6 +519,23 @@
 	.lookup-hint {
 		font-size: 0.8rem;
 		margin-bottom: 0.75rem;
+	}
+	.lookup-sug-loading {
+		font-size: 0.8rem;
+		margin-top: 0.75rem;
+	}
+	.lookup-suggestions {
+		margin-top: 1rem;
+		padding-top: 0.9rem;
+		border-top: 1px solid var(--border);
+	}
+	.lookup-suggestions-title {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		margin: 0 0 0.5rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 	}
 	.lookup-search-row {
 		display: flex;

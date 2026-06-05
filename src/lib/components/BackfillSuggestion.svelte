@@ -1,13 +1,19 @@
 <script lang="ts">
-	// Inline Accept / Edit / Skip control for a single qwen-suggested field
-	// (tags or label) on a single album, rendered inside the backfill recap.
-	// Owns its own uiState because each suggestion is independently reviewed.
+	// Inline Accept / Edit / Skip control for a single suggested field
+	// (tags or label). Used in two contexts:
+	//   1. Backfill recap on /settings — pass `albumId`; default behavior POSTs
+	//      to the apply-suggestion API and persists immediately.
+	//   2. Lookup panel on /albums/[id] — pass `onSave` to bind the accepted
+	//      value into the parent's form state instead. Final commit happens
+	//      when the user clicks the form's Save button.
 	type Props = {
-		albumId: string;
 		field: 'tags' | 'label';
 		suggested: string[] | string;
+		albumId?: string;
+		onSave?: (value: string[] | string) => Promise<void> | void;
+		sourceLabel?: string;
 	};
-	let { albumId, field, suggested }: Props = $props();
+	let { field, suggested, albumId, onSave, sourceLabel = 'AI' }: Props = $props();
 
 	type State = 'idle' | 'editing' | 'saving' | 'saved' | 'skipped' | 'error';
 	let uiState = $state<State>('idle');
@@ -26,14 +32,19 @@
 		uiState = 'saving';
 		errorMsg = null;
 		try {
-			const res = await fetch(`/api/albums/${albumId}/apply-suggestion`, {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ field, value })
-			});
-			if (!res.ok) {
-				const data = (await res.json().catch(() => null)) as { message?: string } | null;
-				throw new Error(data?.message || `Save failed (${res.status})`);
+			if (onSave) {
+				await onSave(value);
+			} else {
+				if (!albumId) throw new Error('albumId required when onSave is not provided');
+				const res = await fetch(`/api/albums/${albumId}/apply-suggestion`, {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ field, value })
+				});
+				if (!res.ok) {
+					const data = (await res.json().catch(() => null)) as { message?: string } | null;
+					throw new Error(data?.message || `Save failed (${res.status})`);
+				}
 			}
 			uiState = 'saved';
 		} catch (err) {
@@ -81,7 +92,7 @@
 			/>
 		{:else}
 			<span class="suggestion-value">{suggestedDisplay()}</span>
-			<span class="ai-badge" title="Suggested by qwen — review before accepting">AI</span>
+			<span class="ai-badge" title="Source: {sourceLabel} — review before accepting">{sourceLabel}</span>
 		{/if}
 	</div>
 
