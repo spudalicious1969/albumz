@@ -27,6 +27,7 @@
 
 	let fileInputEl = $state<HTMLInputElement | null>(null);
 	let uploading = $state(false);
+	let backfilling = $state(false);
 	let avatarError = $state<string | null>(null);
 
 	const filteredAlbums = $derived(
@@ -369,10 +370,27 @@
 			<h2>Fill missing metadata</h2>
 			<p class="muted">Looks up release year, label, tags, and cover art for albums where those fields are empty. Touches only empty fields — never overwrites your existing data. Ownership, format, notes, and rating are left alone. This can take a few minutes for a large collection.</p>
 			<div class="data-row">
-				<form method="POST" action="?/backfillMetadata" use:enhance={() => async ({ update }) => update({ reset: false })}>
-					<button type="submit" class="btn-secondary">Backfill missing data</button>
+				<form
+					method="POST"
+					action="?/backfillMetadata"
+					use:enhance={() => {
+						backfilling = true;
+						return async ({ update }) => {
+							await update({ reset: false });
+							backfilling = false;
+						};
+					}}
+				>
+					<button type="submit" class="btn-secondary" disabled={backfilling}>
+						{backfilling ? 'Filling…' : 'Backfill missing data'}
+					</button>
 				</form>
-				{#if form?.backfillError}
+				{#if backfilling}
+					<span class="hint backfill-working">
+						<span class="pulse-dot" aria-hidden="true"></span>
+						Looking up Spotify, iTunes, Deezer, MusicBrainz, and Last.fm. Could take a few minutes — hang tight.
+					</span>
+				{:else if form?.backfillError}
 					<span class="hint hint-err">{form.backfillError}</span>
 				{:else if form?.backfillSummary}
 					{@const s = form.backfillSummary}
@@ -433,6 +451,22 @@
 		color: var(--text);
 	}
 	.hint { font-size: 0.78rem; color: var(--text-muted); }
+	.backfill-working { display: inline-flex; align-items: center; gap: 0.5rem; }
+	.pulse-dot {
+		display: inline-block;
+		width: 0.55rem;
+		height: 0.55rem;
+		border-radius: 50%;
+		background: var(--accent, oklch(70% 0.15 220));
+		animation: pulse 1.4s ease-in-out infinite;
+	}
+	@keyframes pulse {
+		0%, 100% { opacity: 0.35; transform: scale(0.85); }
+		50%      { opacity: 1;    transform: scale(1.1); }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.pulse-dot { animation: none; opacity: 0.8; }
+	}
 	.hint code { font-family: ui-monospace, monospace; background: var(--bg-elevated); padding: 0.05rem 0.3rem; border-radius: 4px; }
 	.hint-err { color: oklch(55% 0.2 25); }
 	.hint-ok { color: oklch(55% 0.17 145); }
