@@ -40,7 +40,7 @@
 	let confirmingDelete = $state(false);
 	let coverPickerOpen = $state(false);
 
-	type CoverResult = { url: string; artist: string; title: string; year?: number; source: string };
+	type CoverResult = { url: string; artist: string; title: string; year?: number; label?: string; source: string };
 
 	let coverSearching = $state(false);
 	let coverResults = $state<CoverResult[]>([]);
@@ -63,6 +63,7 @@
 	let lookupResults = $state<CoverResult[]>([]);
 	let lookupSuggesting = $state(false);
 	let lookupSuggestions = $state<LookupSuggestions | null>(null);
+	let suggestionsEl = $state<HTMLDivElement | null>(null);
 	// When a lookup pick fills in a cover, stage it here so the Save form picks it up
 	let stagedCoverUrl = $state('');
 	let stagedAccent = $state('');
@@ -130,6 +131,10 @@
 		editArtist = result.artist || editArtist;
 		editTitle = result.title || editTitle;
 		if (result.year) editYear = result.year;
+		// Fill label from the cover result too if label is currently blank.
+		// (Spotify/MB hits typically have this; the user's already on the
+		// "trust this result" path by clicking Use these details.)
+		if (!editLabel.trim() && result.label) editLabel = result.label;
 		// Auto-fill cover only if the album currently has none — preserves intentional covers
 		if (!album.cover_url && result.url) {
 			stagedCoverUrl = result.url;
@@ -138,7 +143,15 @@
 			img.onload = () => { stagedAccent = extractAccentColorFromImg(img); };
 			img.src = result.url;
 		}
-		lookupOpen = false;
+		// Only auto-close if there's nothing left to review. Otherwise keep
+		// the panel open and nudge the suggestions section into view so the
+		// user doesn't miss qwen's tag/label suggestions sitting below the fold.
+		const hasPending = lookupSuggesting || showTagSuggestion || showLabelSuggestion;
+		if (hasPending) {
+			suggestionsEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		} else {
+			lookupOpen = false;
+		}
 	}
 
 	async function openCoverPicker() {
@@ -298,7 +311,7 @@
 					{#if lookupSuggesting && !lookupSuggestions}
 						<p class="muted lookup-sug-loading">Looking up tags and label…</p>
 					{:else if lookupSuggestions && (showTagSuggestion || showLabelSuggestion)}
-						<div class="lookup-suggestions">
+						<div class="lookup-suggestions" bind:this={suggestionsEl}>
 							<h3 class="lookup-suggestions-title">More suggestions</h3>
 							{#if showTagSuggestion}
 								<BackfillSuggestion
