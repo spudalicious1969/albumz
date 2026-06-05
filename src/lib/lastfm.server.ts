@@ -194,12 +194,19 @@ export type LastfmScrobble = {
 	playedAtUnix: number;
 };
 
-/** Fetch a user's scrobbles within a time window. Powers the weekly digest:
- * the spins table only captures plays the user made while Spin's mic was on,
- * so we ask Last.fm for the broader picture and cross-reference back.
+/** Fetch a user's scrobbles within a time window. Powers the weekly digest
+ * and discovery baseline: the spins table only captures plays the user made
+ * while Spin's mic was on, so we ask Last.fm for the broader picture.
  *
- * Returns [] on any error so the caller can degrade gracefully — without
- * Last.fm we still have whatever spins/streamed entries Spin caught. */
+ * Paginates through the whole window — `limit` is per-page (Last.fm caps at
+ * 200), and we walk pages until the window's exhausted or we hit SAFETY_CAP.
+ * Heavy listeners (8h/day ≈ 160 scrobbles/day) overflow a single page on a
+ * 7-day window, so single-page truncation silently biased the baseline toward
+ * the most recent ~24h. Cap is generous on purpose — Albumz's audience is
+ * music nutjobs by self-selection.
+ *
+ * Returns [] on a hard failure; returns whatever we've collected so far if a
+ * mid-loop page errors, so callers degrade gracefully. */
 export async function fetchRecentTracks(
 	lastfmUsername: string,
 	fromUnix: number,
@@ -209,32 +216,49 @@ export async function fetchRecentTracks(
 	const key = env.LAST_FM_API_KEY;
 	if (!key) return [];
 
-	const url = new URL(ENDPOINT);
-	url.searchParams.set('method', 'user.getRecentTracks');
-	url.searchParams.set('user', lastfmUsername);
-	url.searchParams.set('api_key', key);
-	url.searchParams.set('format', 'json');
-	url.searchParams.set('limit', String(limit));
-	url.searchParams.set('from', String(fromUnix));
-	url.searchParams.set('to', String(toUnix));
+	const SAFETY_CAP = 5000;
+	const out: LastfmScrobble[] = [];
+	let page = 1;
 
-	try {
-		const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-		if (!res.ok) return [];
-		const data = await res.json();
-		const raw = (data?.recenttracks?.track ?? []) as RecentTrack[];
-		return raw
-			.filter((t) => t.name && t.artist && t.date?.uts)
-			.map((t) => ({
-				artist: (t.artist?.['#text'] ?? t.artist?.name ?? '') as string,
-				track: t.name as string,
-				album: (t.album?.['#text'] || null) as string | null,
-				playedAtUnix: Number(t.date?.uts)
-			}))
-			.filter((t) => t.artist && t.track);
-	} catch {
-		return [];
+	while (out.length < SAFETY_CAP) {
+		const url = new URL(ENDPOINT);
+		url.searchParams.set('method', 'user.getRecentTracks');
+		url.searchParams.set('user', lastfmUsername);
+		url.searchParams.set('api_key', key);
+		url.searchParams.set('format', 'json');
+		url.searchParams.set('limit', String(limit));
+		url.searchParams.set('from', String(fromUnix));
+		url.searchParams.set('to', String(toUnix));
+		url.searchParams.set('page', String(page));
+
+		try {
+			const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+			if (!res.ok) break;
+			const data = await res.json();
+			const raw = (data?.recenttracks?.track ?? []) as RecentTrack[];
+			const mapped = raw
+				.filter((t) => t.name && t.artist && t.date?.uts)
+				.map((t) => ({
+					artist: (t.artist?.['#text'] ?? t.artist?.name ?? '') as string,
+					track: t.name as string,
+					album: (t.album?.['#text'] || null) as string | null,
+					playedAtUnix: Number(t.date?.uts)
+				}))
+				.filter((t) => t.artist && t.track);
+
+			out.push(...mapped);
+
+			const totalPages = Number(
+				(data?.recenttracks as { '@attr'?: { totalPages?: string } })?.['@attr']?.totalPages ?? 1
+			);
+			if (page >= totalPages || raw.length < limit) break;
+			page++;
+		} catch {
+			break;
+		}
 	}
+
+	return out.slice(0, SAFETY_CAP);
 }
 
 // Tags so generic they don't anchor a hook: genre umbrellas, era buckets,
