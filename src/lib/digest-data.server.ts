@@ -28,11 +28,14 @@ function dayOfWeekLocal(unixSeconds: number): string {
 	});
 }
 
-// Listening-log cap. Originally 30, which silently dropped Tue–Thu plays on
-// heavy-listening weeks where Sat alone could be 50+ scrobbles. qwen3.5 has
-// 8192 ctx with ~6k tokens of headroom for input; 150 lines is comfortably
-// within budget while preserving full-week chronology.
-const LISTENING_LOG_CAP = 150;
+// Heavy-listener safety cap: the post-RLE line count per day. For an album-
+// spinner (typical Albumz user) consecutive plays from the same album collapse
+// into one run-line, so a day rarely exceeds ~15 runs. For a shuffle-heavy day
+// the runs don't compress and 30 keeps the prompt within qwen3.5's 8192 ctx
+// (with ~6k input budget). Tuned for the nutjob baseline — 160 scrobbles/day
+// listeners. The prior global event cap of 150 truncated to the last ~24h on
+// heavy weeks and silently dropped Mon-Wed from the narration.
+const MAX_RUNS_PER_DAY = 30;
 
 /** Returns the most recent Sunday on or before the given date, at 00:00 UTC. */
 export function previousSunday(d = new Date()): Date {
@@ -196,9 +199,6 @@ export async function assembleDigest(
 		return { ok: false, error: 'No plays recorded for this week — nothing to write about yet.' };
 	}
 
-	const capped =
-		events.length > LISTENING_LOG_CAP ? events.slice(-LISTENING_LOG_CAP) : events;
-
 	// Group plays by day so empty days are visibly empty in the log. The
 	// flat shape (one line per play with a day prefix) let the model
 	// hallucinate plays on days that had none — it would write "Thursday
@@ -230,9 +230,43 @@ export async function assembleDigest(
 		? DAY_ORDER
 		: DAY_ORDER.slice(0, todayIdx >= 0 ? todayIdx + 1 : DAY_ORDER.length);
 
+	// Run-length encode consecutive plays from the same album+source into one
+	// line. Whole-album spins (typical Albumz pattern) compress hard — 10 plays
+	// of Sade's Promise become one line. Loose listening (shuffle, singles) is
+	// left as one line per play. Runs only form on non-null album with matching
+	// artist+album+source. This is how the prompt fits a real heavy-listener
+	// week (~1,100 plays) into qwen3.5's input budget without truncating days.
+	const sameAlbum = (a: Event, b: Event): boolean =>
+		!!a.album &&
+		!!b.album &&
+		a.source === b.source &&
+		a.album.toLowerCase().trim() === b.album.toLowerCase().trim() &&
+		a.artist.toLowerCase().trim() === b.artist.toLowerCase().trim();
+
+	const rleEventsToLines = (plays: Event[]): string[] => {
+		const lines: string[] = [];
+		let i = 0;
+		while (i < plays.length) {
+			const head = plays[i];
+			const mark = head.source === 'streamed' ? '[*]' : '[s]';
+			let j = i + 1;
+			while (j < plays.length && sameAlbum(head, plays[j])) j++;
+			const runLen = j - i;
+			if (runLen === 1) {
+				const albumPart = head.album ? ` (${head.album})` : '';
+				lines.push(`  ${head.artist} — ${head.track}${albumPart} ${mark}`);
+			} else {
+				const trackList = plays.slice(i, j).map((e) => e.track).join(', ');
+				lines.push(`  ${head.artist} — ${head.album} ${mark} ×${runLen}: ${trackList}`);
+			}
+			i = j;
+		}
+		return lines;
+	};
+
 	const dayBuckets = new Map<string, Event[]>();
 	for (const d of daysToInclude) dayBuckets.set(d, []);
-	for (const e of capped) {
+	for (const e of events) {
 		const day = dayOfWeekLocal(e.timestamp);
 		dayBuckets.get(day)?.push(e);
 	}
@@ -240,11 +274,8 @@ export async function assembleDigest(
 		.map((day) => {
 			const plays = dayBuckets.get(day) ?? [];
 			if (plays.length === 0) return `${day}: (no plays)`;
-			const lines = plays.map((e) => {
-				const sourceMark = e.source === 'streamed' ? '[*]' : '[s]';
-				const albumPart = e.album ? ` (${e.album})` : '';
-				return `  ${e.artist} — ${e.track}${albumPart} ${sourceMark}`;
-			});
+			let lines = rleEventsToLines(plays);
+			if (lines.length > MAX_RUNS_PER_DAY) lines = lines.slice(-MAX_RUNS_PER_DAY);
 			return `${day}:\n${lines.join('\n')}`;
 		})
 		.join('\n\n');

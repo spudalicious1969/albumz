@@ -114,7 +114,10 @@ Write the column now. Before you finish, verify all eight:
 
 Each list/field is filled by the server before sending to Ollama. Keep the shapes lightweight so the model isn't drowning in tokens.
 
-- `listening_log` — grouped by day (Mon through Sun in order). Each day section starts with a day-name header (`Mon:`, `Tue:`, …) followed by indented lines for each play that day. Days with no plays are marked `(no plays)` so the absence is explicit. Per-line shape: `  Artist — Track (Album) [s|*]` (two leading spaces, then artist, track, optional album in parens, then `[s]` for spun or `[*]` for streamed). The grouping makes day-fidelity verifiable: any day name in the prose must correspond to a day that had real entries.
+- `listening_log` — grouped by day (Mon through Sun in order). Each day section starts with a day-name header (`Mon:`, `Tue:`, …) followed by indented lines for each play (or run of plays) that day. Days with no plays are marked `(no plays)` so the absence is explicit. Two line shapes appear:
+    - Single play: `  Artist — Track (Album) [s|*]` (two leading spaces, then artist, track, optional album in parens, then `[s]` for spun or `[*]` for streamed).
+    - **Album run** (consecutive plays from the same album): `  Artist — Album [s|*] ×N: Track1, Track2, Track3, …` — a run of N tracks played in sequence from one album. Treat a run as the user putting on that album; the tracks listed are the songs that landed on the log within that listening session, in order. Don't pretend the run is a single play; reflect the album-listening shape ("she settled into Sade's Promise for the morning, working through Hang On to Your Love into The Sweetest Taboo and Paradise…"). N tells you how committed the spin was — a run of 10 is a deep dive; a run of 2 is a couple-songs-then-moved-on.
+- The grouping makes day-fidelity verifiable: any day name in the prose must correspond to a day that had real entries.
 - `top_tags` — comma-separated, max 5: `shoegaze, post-punk, jangle pop, ambient, krautrock`.
 - `patterns_observed` — server-computed bullets like `Three Radiohead spins clustered Tue–Thu`, `First Mountain Goats listen since February`, `Heavy stream day Saturday`. The model uses these as raw material; it doesn't have to use all of them.
 - `rediscovery_pick` / `discovery_pick` — `Artist — Album (Year)`.
