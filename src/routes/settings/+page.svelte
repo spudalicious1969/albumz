@@ -364,6 +364,29 @@
 			{/if}
 		</section>
 
+		<!-- ── Backfill missing metadata ─────────────────────────── -->
+		<section class="card">
+			<h2>Fill missing metadata</h2>
+			<p class="muted">Looks up release year, label, tags, and cover art for albums where those fields are empty. Touches only empty fields — never overwrites your existing data. Ownership, format, notes, and rating are left alone. This can take a few minutes for a large collection.</p>
+			<div class="data-row">
+				<form method="POST" action="?/backfillMetadata" use:enhance={() => async ({ update }) => update({ reset: false })}>
+					<button type="submit" class="btn-secondary">Backfill missing data</button>
+				</form>
+				{#if form?.backfillError}
+					<span class="hint hint-err">{form.backfillError}</span>
+				{:else if form?.backfillSummary}
+					{@const s = form.backfillSummary}
+					{#if s.scanned === 0}
+						<span class="hint hint-ok">Nothing missing. Your collection is fully populated.</span>
+					{:else}
+						<span class="hint hint-ok">
+							Scanned {s.scanned} {s.scanned === 1 ? 'album' : 'albums'}, updated {s.affected} — {s.filledYears} years, {s.filledLabels} labels, {s.filledTagSets} tag sets, {s.filledCovers} covers.
+						</span>
+					{/if}
+				{/if}
+			</div>
+		</section>
+
 		<!-- ── Import / Export ───────────────────────────────────── -->
 		<section class="card">
 			<h2>Import / Export</h2>

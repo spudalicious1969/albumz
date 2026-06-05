@@ -1,5 +1,6 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { scanDuplicates, removeDuplicates } from '$lib/dedupe.server';
+import { backfillMissingMetadata } from '$lib/backfill.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX_AVATAR_BYTES = 512 * 1024;  // 512 KB after client-side resize is plenty
@@ -196,6 +197,24 @@ export const actions: Actions = {
 			return { dupeRemoved: removed };
 		} catch (err) {
 			return fail(500, { dupeError: err instanceof Error ? err.message : 'Cleanup failed.' });
+		}
+	},
+
+	backfillMetadata: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+		try {
+			const summary = await backfillMissingMetadata(locals.supabase, user.id);
+			if (summary.affected > 0) {
+				await locals.supabase.from('activity').insert({
+					user_id: user.id,
+					type: 'backfill',
+					description: `Filled missing metadata on ${summary.affected} ${summary.affected === 1 ? 'album' : 'albums'}`
+				});
+			}
+			return { backfillSummary: summary };
+		} catch (err) {
+			return fail(500, { backfillError: err instanceof Error ? err.message : 'Backfill failed.' });
 		}
 	}
 };
