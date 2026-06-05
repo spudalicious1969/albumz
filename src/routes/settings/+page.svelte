@@ -392,17 +392,41 @@
 					</span>
 				{:else if form?.backfillError}
 					<span class="hint hint-err">{form.backfillError}</span>
-				{:else if form?.backfillSummary}
-					{@const s = form.backfillSummary}
-					{#if s.scanned === 0}
-						<span class="hint hint-ok">Nothing missing. Your collection is fully populated.</span>
-					{:else}
-						<span class="hint hint-ok">
-							Scanned {s.scanned} {s.scanned === 1 ? 'album' : 'albums'}, updated {s.affected} — {s.filledYears} years, {s.filledLabels} labels, {s.filledTagSets} tag sets, {s.filledCovers} covers.
-						</span>
-					{/if}
 				{/if}
 			</div>
+
+			{#if !backfilling && form?.backfillSummary}
+				{@const s = form.backfillSummary}
+				{#if s.scanned === 0}
+					<p class="hint hint-ok">Nothing missing. Your collection is fully populated.</p>
+				{:else}
+					<div class="backfill-result">
+						<p class="hint hint-ok">
+							Scanned {s.scanned} {s.scanned === 1 ? 'album' : 'albums'} with gaps, updated {s.affected}.
+						</p>
+						<ul class="backfill-breakdown">
+							<li><span class="bf-label">Years:</span> filled {s.filled.years} of {s.attempted.years} attempted</li>
+							<li><span class="bf-label">Labels:</span> filled {s.filled.labels} of {s.attempted.labels} attempted</li>
+							<li><span class="bf-label">Tag sets:</span> filled {s.filled.tagSets} of {s.attempted.tagSets} attempted</li>
+							<li><span class="bf-label">Covers:</span> filled {s.filled.covers} of {s.attempted.covers} attempted</li>
+						</ul>
+						{#if s.stillMissing.length > 0}
+							<details class="backfill-missing">
+								<summary>{s.stillMissing.length} {s.stillMissing.length === 1 ? 'album' : 'albums'} still need a hand</summary>
+								<p class="bf-missing-note">External sources didn't have data for these gaps. Click through to fill them in by hand.</p>
+								<ul class="backfill-missing-list">
+									{#each s.stillMissing as a (a.id)}
+										<li>
+											<a href="/albums/{a.id}">{a.artist} — {a.title}</a>
+											<span class="bf-missing-fields">missing: {a.missingFields.join(', ')}</span>
+										</li>
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</div>
+				{/if}
+			{/if}
 		</section>
 
 		<!-- ── Import / Export ───────────────────────────────────── -->
@@ -452,6 +476,17 @@
 	}
 	.hint { font-size: 0.78rem; color: var(--text-muted); }
 	.backfill-working { display: inline-flex; align-items: center; gap: 0.5rem; }
+	.backfill-result { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+	.backfill-breakdown { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.25rem; font-size: 0.85rem; color: var(--text-muted); }
+	.bf-label { color: var(--text); font-weight: 600; margin-right: 0.4rem; }
+	.backfill-missing { font-size: 0.85rem; }
+	.backfill-missing summary { cursor: pointer; color: var(--text); font-weight: 600; padding: 0.4rem 0; }
+	.bf-missing-note { color: var(--text-muted); margin: 0.4rem 0 0.6rem; font-size: 0.82rem; }
+	.backfill-missing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; max-height: 18rem; overflow-y: auto; }
+	.backfill-missing-list li { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border, color-mix(in oklch, var(--text) 12%, transparent)); }
+	.backfill-missing-list a { color: var(--text); text-decoration: none; }
+	.backfill-missing-list a:hover { text-decoration: underline; }
+	.bf-missing-fields { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
 	.pulse-dot {
 		display: inline-block;
 		width: 0.55rem;

@@ -23,13 +23,19 @@ type AlbumRow = {
 	cover_url: string | null;
 };
 
+export type MissingField = 'year' | 'label' | 'tags' | 'cover';
+
 export type BackfillSummary = {
 	scanned: number;
 	affected: number;
-	filledYears: number;
-	filledLabels: number;
-	filledTagSets: number;
-	filledCovers: number;
+	attempted: { years: number; labels: number; tagSets: number; covers: number };
+	filled: { years: number; labels: number; tagSets: number; covers: number };
+	stillMissing: Array<{
+		id: string;
+		artist: string;
+		title: string;
+		missingFields: MissingField[];
+	}>;
 };
 
 function needsAnything(a: AlbumRow): boolean {
@@ -67,35 +73,44 @@ export async function backfillMissingMetadata(
 			? await getArtistTopTagsBatch(supabase, Array.from(artistsNeedingTags))
 			: new Map<string, string[]>();
 
-	let filledYears = 0;
-	let filledLabels = 0;
-	let filledTagSets = 0;
-	let filledCovers = 0;
+	const attempted = { years: 0, labels: 0, tagSets: 0, covers: 0 };
+	const filled = { years: 0, labels: 0, tagSets: 0, covers: 0 };
+	const stillMissing: BackfillSummary['stillMissing'] = [];
 	let affected = 0;
 
 	for (const a of candidates) {
 		const updates: Record<string, unknown> = {};
 
-		const needsLookup = a.year === null || !a.label || !a.cover_url;
+		const wantsYear = a.year === null;
+		const wantsLabel = !a.label;
+		const wantsCover = !a.cover_url;
+		const wantsTags = (a.tags?.length ?? 0) === 0;
+
+		// Discogs-style lookup only fires when a non-tag field is missing — saves
+		// API roundtrips for albums whose only gap is tags.
+		const needsLookup = wantsYear || wantsLabel || wantsCover;
 		if (needsLookup) {
+			if (wantsYear) attempted.years++;
+			if (wantsLabel) attempted.labels++;
+			if (wantsCover) attempted.covers++;
 			try {
 				const results = await runDiscovery(a.artist, a.title);
 				const top = results[0];
 				if (top) {
-					if (a.year === null && typeof top.year === 'number') {
+					if (wantsYear && typeof top.year === 'number') {
 						updates.year = top.year;
-						filledYears++;
+						filled.years++;
 					}
-					if (!a.label && top.label) {
+					if (wantsLabel && top.label) {
 						updates.label = top.label;
-						filledLabels++;
+						filled.labels++;
 					}
-					if (!a.cover_url && top.url) {
+					if (wantsCover && top.url) {
 						updates.cover_url = top.url;
 						// accent_color is derived from cover_url; clear it so the next
 						// render picks up a fresh accent for the new cover.
 						updates.accent_color = null;
-						filledCovers++;
+						filled.covers++;
 					}
 				}
 			} catch {
@@ -103,11 +118,12 @@ export async function backfillMissingMetadata(
 			}
 		}
 
-		if ((a.tags?.length ?? 0) === 0) {
+		if (wantsTags) {
+			attempted.tagSets++;
 			const tags = tagMap.get(artistKey(a.artist)) ?? [];
 			if (tags.length > 0) {
 				updates.tags = tags.slice(0, TAGS_PER_ALBUM_CAP);
-				filledTagSets++;
+				filled.tagSets++;
 			}
 		}
 
@@ -119,14 +135,34 @@ export async function backfillMissingMetadata(
 				.eq('user_id', userId);
 			if (!upErr) affected++;
 		}
+
+		// Anything still empty after the pass — surface so the owner can pick
+		// it up by hand.
+		const remaining: MissingField[] = [];
+		if (wantsYear && updates.year === undefined) remaining.push('year');
+		if (wantsLabel && updates.label === undefined) remaining.push('label');
+		if (wantsTags && updates.tags === undefined) remaining.push('tags');
+		if (wantsCover && updates.cover_url === undefined) remaining.push('cover');
+		if (remaining.length > 0) {
+			stillMissing.push({
+				id: a.id,
+				artist: a.artist,
+				title: a.title,
+				missingFields: remaining
+			});
+		}
 	}
+
+	stillMissing.sort((a, b) => {
+		const byArtist = a.artist.localeCompare(b.artist);
+		return byArtist !== 0 ? byArtist : a.title.localeCompare(b.title);
+	});
 
 	return {
 		scanned: candidates.length,
 		affected,
-		filledYears,
-		filledLabels,
-		filledTagSets,
-		filledCovers
+		attempted,
+		filled,
+		stillMissing
 	};
 }
