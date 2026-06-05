@@ -12,9 +12,16 @@
 	// quiet enough that the mosaic should take over from the last-streamed hero.
 	const IDLE_STALENESS_MS = 60 * 60 * 1000;
 
+	// Last.fm briefly returns 'recent' between tracks, which would otherwise
+	// flick the eyebrow from "Currently Streaming" to "Last Streamed" and stop
+	// the live dot pulsing. Hold the live presentation for this long after the
+	// most recent 'playing' ping so quick song changes don't visually drop.
+	const LIVE_GRACE_MS = 15 * 1000;
+
 	let current = $state<NowPlayingResult>(data.initial);
 	let accent = $state<string>('var(--accent)');
 	let nowMs = $state<number>(Date.now());
+	let lastPlayingAt = $state<number>(data.initial.state === 'playing' ? Date.now() : 0);
 	let timer: ReturnType<typeof setInterval> | null = null;
 
 	// Cover-fallback chain: try candidates in order, advance on <img> error.
@@ -33,7 +40,10 @@
 	);
 
 	// If we navigate /headliner/userA → /headliner/userB, reset to that user's initial
-	$effect(() => { current = data.initial; });
+	$effect(() => {
+		current = data.initial;
+		lastPlayingAt = data.initial.state === 'playing' ? Date.now() : 0;
+	});
 
 	// When the active cover changes, extract a fresh accent color from it.
 	// Following the candidate index means we pull color from whichever URL ends up displayed.
@@ -59,6 +69,8 @@
 			// any 'none' is a failed read (timeout, transient error), not real idle.
 			// Real idle is signaled by isStale on a 'recent' result.
 			if (next.state === 'none' && current.state !== 'none') return;
+
+			if (next.state === 'playing') lastPlayingAt = Date.now();
 
 			const sameTrack =
 				next.track === current.track && next.artist === current.artist;
@@ -118,17 +130,25 @@
 	});
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
+	// Treat a 'recent' result as still live for LIVE_GRACE_MS after the most
+	// recent 'playing' ping, so between-track gaps don't flick the UI.
+	const effectiveState = $derived(
+		current.state === 'recent' && lastPlayingAt > 0 && nowMs - lastPlayingAt < LIVE_GRACE_MS
+			? 'playing'
+			: current.state
+	);
 	const eyebrow = $derived(
-		current.state === 'playing'
+		effectiveState === 'playing'
 			? (current.source === 'streamed' ? '♪ Currently Streaming' : '♪ Currently Spinning')
-			: current.state === 'recent'
+			: effectiveState === 'recent'
 				? (current.source === 'streamed' ? '⏵ Last Streamed' : '⏵ Last Spun')
 				: 'Headliner'
 	);
 	const isStale = $derived(
 		current.state === 'recent' &&
 		current.playedAt !== null &&
-		nowMs - new Date(current.playedAt).getTime() > IDLE_STALENESS_MS
+		// playedAt is Last.fm's `date.uts` — Unix *seconds*, not ms.
+		nowMs - current.playedAt * 1000 > IDLE_STALENESS_MS
 	);
 	const isIdle = $derived(current.state === 'none' || isStale);
 	const idleWithMosaic = $derived(isIdle && data.idleTiles.length > 0);
@@ -193,7 +213,7 @@
 
 			<div class="meta">
 				<p class="eyebrow">
-					<span class="dot" class:live={current.state === 'playing'}></span>
+					<span class="dot" class:live={effectiveState === 'playing'}></span>
 					{eyebrow}
 				</p>
 				{#if current.track}
