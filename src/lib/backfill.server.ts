@@ -7,11 +7,14 @@
 //   - year/label/cover: runDiscovery → Spotify/iTunes/Deezer/MB/LFM (scored)
 //   - tags: Discogs release-level styles+genres first (curated, album-specific),
 //          Last.fm artist-tag cache as fallback when Discogs has no match.
+//   - tags + label final fallback: qwen3.5 (Ollama). Suggestions only — never
+//          auto-written. Surfaced in the recap with Accept/Edit/Skip review.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { runDiscovery } from './album-search.server';
 import { getArtistTopTagsBatch } from './lastfm.server';
 import { fetchDiscogsTagsForAlbum } from './discogs-tags.server';
+import { suggestMetadata, type AlbumSuggestion } from './qwen-suggest.server';
 
 const TAGS_PER_ALBUM_CAP = 8;
 
@@ -37,6 +40,10 @@ export type BackfillSummary = {
 		artist: string;
 		title: string;
 		missingFields: MissingField[];
+		// AI-suggested values for tags/label when real catalogs came up empty.
+		// null when qwen returned NONE (or for fields we don't suggest on:
+		// year/cover are catalog-only).
+		suggestion: AlbumSuggestion | null;
 	}>;
 };
 
@@ -144,18 +151,36 @@ export async function backfillMissingMetadata(
 		}
 
 		// Anything still empty after the pass — surface so the owner can pick
-		// it up by hand.
+		// it up by hand (or via qwen's suggestion for tags/label).
 		const remaining: MissingField[] = [];
 		if (wantsYear && updates.year === undefined) remaining.push('year');
 		if (wantsLabel && updates.label === undefined) remaining.push('label');
 		if (wantsTags && updates.tags === undefined) remaining.push('tags');
 		if (wantsCover && updates.cover_url === undefined) remaining.push('cover');
+
+		let suggestion: AlbumSuggestion | null = null;
+		const needsTagSuggestion = remaining.includes('tags');
+		const needsLabelSuggestion = remaining.includes('label');
+		if (needsTagSuggestion || needsLabelSuggestion) {
+			const raw = await suggestMetadata(a.artist, a.title);
+			const tagSug = needsTagSuggestion ? raw.tags : null;
+			const labelSug = needsLabelSuggestion ? raw.label : null;
+			if (tagSug || labelSug) {
+				// Cap suggested tags the same as catalog-sourced ones.
+				suggestion = {
+					tags: tagSug ? tagSug.slice(0, TAGS_PER_ALBUM_CAP) : null,
+					label: labelSug
+				};
+			}
+		}
+
 		if (remaining.length > 0) {
 			stillMissing.push({
 				id: a.id,
 				artist: a.artist,
 				title: a.title,
-				missingFields: remaining
+				missingFields: remaining,
+				suggestion
 			});
 		}
 	}

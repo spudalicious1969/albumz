@@ -3,6 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import Avatar from '$lib/components/Avatar.svelte';
+	import BackfillSuggestion from '$lib/components/BackfillSuggestion.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -411,14 +412,29 @@
 							<li><span class="bf-label">Covers:</span> filled {s.filled.covers} of {s.attempted.covers} attempted</li>
 						</ul>
 						{#if s.stillMissing.length > 0}
-							<details class="backfill-missing">
+							<details class="backfill-missing" open>
 								<summary>{s.stillMissing.length} {s.stillMissing.length === 1 ? 'album' : 'albums'} still need a hand</summary>
-								<p class="bf-missing-note">External sources didn't have data for these gaps. Click through to fill them in by hand.</p>
+								<p class="bf-missing-note">External sources didn't have data for these gaps. Tags and labels include AI suggestions where qwen recognized the album — review and accept, edit, or skip each. Year and cover always need a manual edit.</p>
 								<ul class="backfill-missing-list">
 									{#each s.stillMissing as a (a.id)}
-										<li>
-											<a href="/albums/{a.id}">{a.artist} — {a.title}</a>
-											<span class="bf-missing-fields">missing: {a.missingFields.join(', ')}</span>
+										<li class="bf-album">
+											<a class="bf-album-link" href="/albums/{a.id}">{a.artist} — {a.title}</a>
+											<ul class="bf-fields">
+												{#each a.missingFields as field (field)}
+													<li class="bf-field">
+														{#if field === 'tags' && a.suggestion?.tags}
+															<BackfillSuggestion albumId={a.id} field="tags" suggested={a.suggestion.tags} />
+														{:else if field === 'label' && a.suggestion?.label}
+															<BackfillSuggestion albumId={a.id} field="label" suggested={a.suggestion.label} />
+														{:else}
+															<span class="bf-no-suggestion">
+																<span class="field-label">{field}:</span>
+																<span class="bf-no-sug-text">no suggestion — <a href="/albums/{a.id}">edit manually</a></span>
+															</span>
+														{/if}
+													</li>
+												{/each}
+											</ul>
 										</li>
 									{/each}
 								</ul>
@@ -482,11 +498,16 @@
 	.backfill-missing { font-size: 0.85rem; }
 	.backfill-missing summary { cursor: pointer; color: var(--text); font-weight: 600; padding: 0.4rem 0; }
 	.bf-missing-note { color: var(--text-muted); margin: 0.4rem 0 0.6rem; font-size: 0.82rem; }
-	.backfill-missing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.35rem; max-height: 18rem; overflow-y: auto; }
-	.backfill-missing-list li { display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.3rem 0; border-bottom: 1px solid var(--border, color-mix(in oklch, var(--text) 12%, transparent)); }
-	.backfill-missing-list a { color: var(--text); text-decoration: none; }
-	.backfill-missing-list a:hover { text-decoration: underline; }
-	.bf-missing-fields { color: var(--text-muted); font-size: 0.78rem; white-space: nowrap; }
+	.backfill-missing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; max-height: 32rem; overflow-y: auto; }
+	.bf-album { display: grid; gap: 0.35rem; padding: 0.6rem 0.7rem; background: color-mix(in oklch, var(--text) 4%, transparent); border-radius: var(--radius); }
+	.bf-album-link { color: var(--text); text-decoration: none; font-weight: 600; }
+	.bf-album-link:hover { text-decoration: underline; }
+	.bf-fields { list-style: none; padding: 0; margin: 0.25rem 0 0; display: grid; gap: 0.35rem; }
+	.bf-field { display: block; }
+	.bf-no-suggestion { display: flex; gap: 0.5rem; align-items: baseline; font-size: 0.85rem; padding: 0.4rem 0; }
+	.bf-no-suggestion .field-label { color: var(--text-muted); font-size: 0.78rem; text-transform: capitalize; }
+	.bf-no-sug-text { color: var(--text-muted); }
+	.bf-no-sug-text a { color: var(--text); }
 	.pulse-dot {
 		display: inline-block;
 		width: 0.55rem;
