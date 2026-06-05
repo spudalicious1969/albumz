@@ -40,6 +40,8 @@ Hit **+ Add** on the home page. You can:
 
 On any album detail page, click **Edit details**. Inside the editor is a **🔎 Look up details** panel — give it a fragment of the artist or title and it'll surface candidates from Spotify, iTunes, Last.fm, MusicBrainz, and Deezer. One click fills artist / title / year and, if the album has no cover yet, stages one too. A single Save updates everything.
 
+Underneath the cover picker, the same panel also pulls in **suggestions for empty fields** — tags from Discogs (or Last.fm as a fallback), and a label / tag suggestion from a local AI as a final fallback. Each one is marked with its source and has **Accept / Edit / Skip** controls, so nothing writes to the album without your say-so.
+
 You can also edit notes, rating, tags, format, label, year, and ownership.
 
 ### Removing
@@ -74,7 +76,9 @@ If the auto-pick is wrong, click **Pick a cover** on the album page. Same upstre
 
 ### Bulk backfill
 
-In Settings → Import / Export there's a **Backfill covers** button. It walks your whole collection — including the wantlist — and fills missing covers without touching ones you already have.
+In Settings → Import / Export there's a **Backfill missing data** button. It walks your whole collection — including the wantlist — and fills missing **covers, years, labels, and tags** without touching anything you've already set. Sources are tried in priority order: Discogs first (release-level styles + genres for tags, year + label from the release record), Last.fm artist tags as a fallback, then a local AI as a final fallback for tags and label.
+
+The recap shows per-field results: what was attempted, what was filled, and what's still missing. Anything sourced from the AI surfaces in the recap with an **"AI"** badge and **Accept / Edit / Skip** controls — verifiable catalog data writes automatically, AI guesses don't.
 
 ### Look-up palette (⌘K / Ctrl-K)
 
@@ -266,7 +270,7 @@ A quick map of the Settings page:
 - **Theme** — light / dark / auto
 - **Featured album** — search-as-you-type to anchor your public page
 - **Last.fm connection** — connect / disconnect
-- **Import / Export** — drop CSV / XLS, download CSV, backfill covers
+- **Import / Export** — drop CSV / XLS, download CSV, backfill missing data (covers / years / labels / tags)
 
 ---
 

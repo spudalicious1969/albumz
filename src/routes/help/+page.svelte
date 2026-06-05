@@ -59,7 +59,7 @@
 	<section id="collection" class="card">
 		<h2>Your collection</h2>
 		<p><strong>Add an album.</strong> Hit <strong>+ Add</strong> on the home page. Fill in artist + title and Albumz fetches the rest — cover, year, format, label, tracklist. If you only have a fragment of an artist or title, the discovery search will offer matches you can click to populate the form. You choose whether the album is something you own or something you want.</p>
-		<p><strong>Edit or fix.</strong> On any album detail page, click <strong>Edit details</strong>. Inside the editor is a <strong>🔎 Look up details</strong> panel that searches Spotify, iTunes, Last.fm, MusicBrainz, and Deezer — one click fills artist / title / year, and stages a cover too if there isn't one yet.</p>
+		<p><strong>Edit or fix.</strong> On any album detail page, click <strong>Edit details</strong>. Inside the editor is a <strong>🔎 Look up details</strong> panel that searches Spotify, iTunes, Last.fm, MusicBrainz, and Deezer — one click fills artist / title / year, and stages a cover too if there isn't one yet. Underneath the cover picker, the same panel surfaces <strong>suggestions for empty fields</strong> — tags from Discogs (or Last.fm as a fallback), and a label / tag suggestion from a local AI as a final fallback. Each one is marked with its source and has <strong>Accept / Edit / Skip</strong> controls, so nothing writes without your say-so.</p>
 		<p><strong>Notes, tags, ratings.</strong> The <code>notes</code> field is the depth ceiling on purpose. Want to write three paragraphs about how you found a record? Do it there. Tags are free-form — make up your own vocabulary. Rating is 1–5 stars and entirely optional.</p>
 		<p class="aside">Albumz won't ask you to log producers, engineers, or pressing variants. If you want a database, use Discogs. If you want a place to remember music, you're already here.</p>
 	</section>
@@ -74,7 +74,8 @@
 		<h2>Covers &amp; look-up</h2>
 		<p><strong>Auto-search.</strong> When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores by how well artist and title match, and uses the top hit.</p>
 		<p><strong>Manual picker.</strong> If the auto-pick is wrong, click <strong>Pick a cover</strong> on the album page. Same sources, you choose.</p>
-		<p><strong>Bulk backfill.</strong> Settings → Import / Export → <strong>Backfill covers</strong>. Walks your collection — including the wantlist — and fills missing covers without touching ones you already have.</p>
+		<p><strong>Bulk backfill missing details.</strong> Settings → Import / Export → <strong>Backfill missing data</strong>. Walks your collection — including the wantlist — and fills missing <strong>covers, years, labels, and tags</strong> without touching anything you've already set. Sources are tried in priority order: Discogs first (release-level styles + genres for tags, year + label from the release record), Last.fm artist tags as a fallback, then a local AI as a final fallback for tags and label.</p>
+		<p>The recap shows per-field results: what was attempted, what was filled, and what's still missing. Anything sourced from the AI surfaces in the recap with an <strong>"AI"</strong> badge and <strong>Accept / Edit / Skip</strong> controls — verifiable catalog data writes automatically, AI guesses don't.</p>
 		<p><strong>Look-up palette (⌘K / Ctrl-K).</strong> From anywhere in the signed-in app. Checks your collection first ("do I already own this?"), then offers Discogs and Spotify lookups for anything that isn't a match. Useful when you're in a record shop staring at a sleeve.</p>
 	</section>
 
