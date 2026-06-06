@@ -28,6 +28,14 @@
 		lastfm: 'Last.fm'
 	};
 
+	const LOOKUP_SOURCE_LABEL: Record<string, string> = {
+		spotify: 'Spotify',
+		deezer: 'Deezer',
+		itunes: 'iTunes',
+		lastfm: 'Last.fm',
+		musicbrainz: 'MusicBrainz'
+	};
+
 	const formatOptions = [
 		{ value: '', label: '—' },
 		{ value: 'LP', label: 'LP' },
@@ -72,9 +80,75 @@
 	let editLabel = $state(album.label ?? '');
 	let editTags = $state(album.tags?.join(', ') ?? '');
 
+	type ResultGroup = {
+		artist: string;
+		title: string;
+		sources: CoverResult[];
+	};
+
+	// Normalize for grouping: lowercased, strip accents and punctuation, collapse
+	// whitespace. Means "Dominique Fils-Aimé" and "Dominique Fils-Aime" group as
+	// the same album, while genuinely different albums (Pinkerton by Weezer vs.
+	// Pinkerton by someone else) stay split because the artist part differs.
+	function normalizeForGroup(s: string): string {
+		return s
+			.toLowerCase()
+			.normalize('NFD')
+			.replace(/[̀-ͯ]/g, '')
+			.replace(/[^\w\s]/g, '')
+			.replace(/\s+/g, ' ')
+			.trim();
+	}
+
+	function groupResults(results: CoverResult[]): ResultGroup[] {
+		const groups = new Map<string, ResultGroup>();
+		for (const r of results) {
+			const key = `${normalizeForGroup(r.artist)}::${normalizeForGroup(r.title)}`;
+			let g = groups.get(key);
+			if (!g) {
+				g = { artist: r.artist, title: r.title, sources: [] };
+				groups.set(key, g);
+			} else {
+				// Keep the longest version of each — usually the more complete one.
+				if (r.artist.length > g.artist.length) g.artist = r.artist;
+				if (r.title.length > g.title.length) g.title = r.title;
+			}
+			g.sources.push(r);
+		}
+		return [...groups.values()];
+	}
+
+	function uniqueYears(group: ResultGroup): number[] {
+		const set = new Set<number>();
+		for (const s of group.sources) if (s.year) set.add(s.year);
+		return [...set].sort();
+	}
+
+	function uniqueLabels(group: ResultGroup): string[] {
+		const set = new Set<string>();
+		for (const s of group.sources) if (s.label?.trim()) set.add(s.label.trim());
+		return [...set];
+	}
+
+	// One thumbnail per source within a group. If a source returns multiple
+	// results for the same album (different editions / cover URLs), we keep
+	// the first — year/label disagreement detection still uses the full
+	// `sources` list, so no information is lost from the display.
+	function uniqueBySource(sources: CoverResult[]): CoverResult[] {
+		const seen = new Set<string>();
+		const out: CoverResult[] = [];
+		for (const s of sources) {
+			if (seen.has(s.source)) continue;
+			seen.add(s.source);
+			out.push(s);
+		}
+		return out;
+	}
+
 	let lookupOpen = $state(false);
 	let lookupSearching = $state(false);
 	let lookupResults = $state<CoverResult[]>([]);
+	const groupedResults = $derived(groupResults(lookupResults));
 	let lookupSuggesting = $state(false);
 	let lookupSuggestions = $state<LookupSuggestions | null>(null);
 	let suggestionsEl = $state<HTMLDivElement | null>(null);
@@ -383,23 +457,58 @@
 					</div>
 					{#if lookupSearching}
 						<p class="muted">Searching…</p>
-					{:else if lookupResults.length === 0}
+					{:else if groupedResults.length === 0}
 						<p class="muted">No matches found.</p>
 					{:else}
+						<p class="muted lookup-hint">Click a source thumbnail to apply that source's details. Where sources disagree on year or label, the alternates are called out below the title.</p>
 						<ul class="lookup-results">
-							{#each lookupResults as r (r.url)}
-								<li class="lookup-row">
-									{#if r.url}
-										<img class="lookup-thumb" src={r.url} alt="" loading="lazy" />
-									{:else}
-										<div class="lookup-thumb no-thumb"></div>
-									{/if}
-									<div class="lookup-meta">
-										<p class="lookup-artist">{r.artist}</p>
-										<p class="lookup-title">{r.title}{r.year ? ` · ${r.year}` : ''}</p>
-										<p class="lookup-source">{r.source}</p>
+							{#each groupedResults as group (group.artist + '::' + group.title)}
+								{@const years = uniqueYears(group)}
+								{@const labels = uniqueLabels(group)}
+								<li class="result-group">
+									<div class="group-header">
+										<p class="result-artist">{group.artist}</p>
+										<p class="result-title">{group.title}</p>
+										{#if years.length > 1}
+											<p class="result-detail">
+												<span class="detail-label">Years:</span>
+												{years.join(' · ')}
+											</p>
+										{:else if years.length === 1}
+											<p class="result-detail">
+												<span class="detail-label">Year:</span>
+												{years[0]}
+											</p>
+										{/if}
+										{#if labels.length > 1}
+											<p class="result-detail">
+												<span class="detail-label">Labels:</span>
+												{labels.join(' · ')}
+											</p>
+										{:else if labels.length === 1}
+											<p class="result-detail">
+												<span class="detail-label">Label:</span>
+												{labels[0]}
+											</p>
+										{/if}
 									</div>
-									<button type="button" class="btn-pill" onclick={() => applyLookup(r)}>Use these details</button>
+									<div class="source-strip">
+										{#each uniqueBySource(group.sources) as src (src.url + '::' + src.source)}
+											<button
+												type="button"
+												class="source-cover"
+												onclick={() => applyLookup(src)}
+												title="Apply details from {LOOKUP_SOURCE_LABEL[src.source] ?? src.source}{src.year ? ` (${src.year})` : ''}"
+											>
+												{#if src.url}
+													<img src={src.url} alt="" loading="lazy" />
+												{:else}
+													<div class="src-no-thumb"></div>
+												{/if}
+												<span class="source-name">{LOOKUP_SOURCE_LABEL[src.source] ?? src.source}</span>
+											</button>
+										{/each}
+									</div>
 								</li>
 							{/each}
 						</ul>
@@ -760,51 +869,100 @@
 		list-style: none;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
-		max-height: 360px;
+		gap: 1.1rem;
+		max-height: 460px;
 		overflow-y: auto;
+		padding: 0;
+		margin: 0;
 	}
-	.lookup-row {
-		display: grid;
-		grid-template-columns: 56px 1fr auto;
-		gap: 0.85rem;
-		align-items: center;
-		padding: 0.55rem 0.35rem;
-		border-radius: var(--radius);
-		transition: background 0.15s;
+
+	/* Grouped result: one entry per album (deduped across sources). Header
+	   carries the shared identity; year/label disagreements are surfaced
+	   below the title; the source strip shows each source's cover as the
+	   apply affordance. */
+	.result-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		padding: 0.5rem 0.25rem;
 	}
-	.lookup-row:hover {
-		background: color-mix(in oklch, var(--accent) 6%, transparent);
-	}
-	.lookup-thumb {
-		width: 56px;
-		height: 56px;
-		object-fit: cover;
-		border-radius: 6px;
-	}
-	.lookup-thumb.no-thumb {
-		background: var(--surface);
-	}
-	.lookup-meta { min-width: 0; }
-	.lookup-artist {
-		font-size: 0.78rem;
+	.group-header { min-width: 0; }
+	.result-artist {
+		font-size: 0.72rem;
 		font-weight: 700;
 		color: var(--text);
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.06em;
 	}
-	.lookup-title {
-		font-size: 0.88rem;
-		color: var(--text-muted);
-		line-height: 1.3;
+	.result-title {
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--text);
+		line-height: 1.25;
+		margin-top: 0.1rem;
 	}
-	.lookup-source {
-		font-size: 0.65rem;
+	.result-detail {
+		font-size: 0.78rem;
 		color: var(--text-muted);
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		opacity: 0.65;
 		margin-top: 0.2rem;
+	}
+	.detail-label {
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--text-muted);
+		opacity: 0.7;
+		margin-right: 0.35rem;
+	}
+
+	.source-strip {
+		display: flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+	/* Each source-cover is the apply affordance. Hover responds with a lift +
+	   accent glow, same atmospheric-response language as album cards. */
+	.source-cover {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		transition: transform 0.18s;
+	}
+	.source-cover img,
+	.source-cover .src-no-thumb {
+		width: 72px;
+		height: 72px;
+		object-fit: cover;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		transition: box-shadow 0.18s;
+	}
+	.src-no-thumb {
+		background: var(--surface);
+	}
+	.source-cover:hover {
+		transform: translateY(-2px);
+	}
+	.source-cover:hover img,
+	.source-cover:hover .src-no-thumb {
+		box-shadow:
+			var(--shadow-lift),
+			0 0 24px color-mix(in oklch, var(--accent) 35%, transparent);
+	}
+	.source-name {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		letter-spacing: 0.04em;
+		transition: color 0.18s;
+	}
+	.source-cover:hover .source-name {
+		color: var(--text);
 	}
 
 	/* ── Tracklist chooser ─────────────────────────────────────────── */
