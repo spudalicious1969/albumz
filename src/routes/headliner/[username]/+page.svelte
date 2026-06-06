@@ -193,6 +193,11 @@
 	const idleWithMosaic = $derived(
 		isIdle && idleStreak >= IDLE_CONFIRM_POLLS && data.idleTiles.length > 0
 	);
+	// The "quiet" state: idle but the mosaic hasn't taken over yet. Shows the
+	// ghost of the last cover at low opacity and a single line — "the room is
+	// quiet" — instead of a placeholder card. Deliberately restful rather than
+	// anticipatory; no "waiting for X to start something" framing.
+	const isQuietIdle = $derived(isIdle && !idleWithMosaic);
 </script>
 
 <svelte:head>
@@ -210,7 +215,11 @@
 	{:else}
 		{#if activeCoverUrl}
 			{#key activeCoverUrl}
-				<div class="bg-layer" style="background-image: url({activeCoverUrl})"></div>
+				<div
+					class="bg-layer"
+					class:quiet={isQuietIdle}
+					style="background-image: url({activeCoverUrl})"
+				></div>
 			{/key}
 		{/if}
 		<div class="bg-veil"></div>
@@ -229,7 +238,10 @@
 	{#if idleWithMosaic}
 		<div class="idle-overlay">
 			<span class="wordmark idle-wordmark">album<span>z</span></span>
-			<p class="idle-msg">Waiting for {displayName} to start something.</p>
+		</div>
+	{:else if isQuietIdle}
+		<div class="quiet-overlay">
+			<p class="quiet-msg">The room is quiet.</p>
 		</div>
 	{:else}
 		<div class="stage">
@@ -242,13 +254,9 @@
 						onerror={() => coverIdx++}
 					/>
 				{/key}
-			{:else if current.state !== 'none'}
+			{:else}
 				<div class="cover placeholder">
 					<span>{(current.artist ?? '?').slice(0, 1)}</span>
-				</div>
-			{:else}
-				<div class="cover placeholder idle">
-					<span class="wordmark">album<span>z</span></span>
 				</div>
 			{/if}
 
@@ -265,9 +273,6 @@
 				{/if}
 				{#if current.album}
 					<p class="album">{current.album}</p>
-				{/if}
-				{#if current.state === 'none'}
-					<p class="idle-msg">Waiting for {displayName} to start something.</p>
 				{/if}
 			</div>
 		</div>
@@ -297,6 +302,10 @@
 		transform: scale(1.15);
 		opacity: 0.55;
 		animation: bg-fade-in 1.2s ease-out forwards;
+	}
+	/* Quiet idle: ghost the last cover instead of presenting it. */
+	.bg-layer.quiet {
+		animation-name: bg-fade-in-quiet;
 	}
 	.bg-veil {
 		position: absolute;
@@ -334,6 +343,10 @@
 	@keyframes bg-fade-in {
 		from { opacity: 0; }
 		to   { opacity: 0.55; }
+	}
+	@keyframes bg-fade-in-quiet {
+		from { opacity: 0; }
+		to   { opacity: 0.25; }
 	}
 
 	.stage {
@@ -381,7 +394,6 @@
 		font-weight: 800;
 		color: color-mix(in oklch, var(--hl-accent) 60%, #f0ead8);
 	}
-	.cover.idle { font-size: clamp(2rem, 6vw, 4.5rem); letter-spacing: 0.09em; }
 
 	@keyframes cover-in {
 		from { opacity: 0; transform: scale(0.96); }
@@ -444,11 +456,6 @@
 		text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
 		animation: text-in 1s ease-out 0.35s both;
 	}
-	.idle-msg {
-		color: color-mix(in oklch, #f0ead8 65%, transparent);
-		font-size: clamp(1rem, 1.6vw, 1.4rem);
-		text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
-	}
 
 	@keyframes text-in {
 		from { opacity: 0; transform: translateY(8px); }
@@ -461,6 +468,30 @@
 	}
 	.wordmark span {
 		text-shadow: 0 0 24px var(--hl-accent), 0 0 8px var(--hl-accent);
+	}
+
+	.quiet-overlay {
+		position: absolute;
+		inset: 0;
+		z-index: 2;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		pointer-events: none;
+		padding: 2rem;
+		animation: quiet-in 2s ease-out 0.4s both;
+	}
+	.quiet-msg {
+		font-size: clamp(1rem, 1.5vw, 1.4rem);
+		font-weight: 400;
+		letter-spacing: 0.08em;
+		color: color-mix(in oklch, #f0ead8 55%, transparent);
+		text-shadow: 0 1px 16px rgba(0, 0, 0, 0.85);
+	}
+	@keyframes quiet-in {
+		from { opacity: 0; }
+		to   { opacity: 1; }
 	}
 
 	.idle-overlay {
@@ -500,14 +531,5 @@
 			0 0 40px rgba(0, 0, 0, 0.95),
 			0 0 18px rgba(0, 0, 0, 0.9),
 			0 2px 6px rgba(0, 0, 0, 0.95);
-	}
-	.idle-overlay .idle-msg {
-		position: relative;
-		z-index: 1;
-		max-width: 30ch;
-		color: color-mix(in oklch, #f0ead8 88%, transparent);
-		text-shadow:
-			0 0 20px rgba(0, 0, 0, 0.9),
-			0 1px 3px rgba(0, 0, 0, 0.95);
 	}
 </style>
