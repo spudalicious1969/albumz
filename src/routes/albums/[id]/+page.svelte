@@ -274,7 +274,7 @@
 	<title>{album.artist} – {album.title} — albumz</title>
 </svelte:head>
 
-<div class="page">
+<div class="page" style={album.accent_color ? `--accent: ${album.accent_color}` : ''}>
 	<header class="topbar">
 		<a href={album.ownership === 'WANT' ? '/wantlist' : '/'} class="back">
 			← {album.ownership === 'WANT' ? 'Wantlist' : 'Collection'}
@@ -618,6 +618,14 @@
 		position: relative;
 		min-height: 100dvh;
 		padding-bottom: 4rem;
+		/* The album's own accent_color overrides --accent for this page, so the
+		   entire room — buttons, pills, glows — breathes in the album's color
+		   instead of the brand red. Semantic states (danger, success, error)
+		   stay fixed via their own hardcoded color values. */
+		transition: --accent 1.5s ease-out;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.page { transition: none; }
 	}
 
 	.topbar {
@@ -637,16 +645,21 @@
 	}
 	.btn-secondary {
 		padding: 0.5rem 1rem;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		color: var(--text);
+		background: transparent;
+		border: 1px solid color-mix(in oklch, var(--text-muted) 28%, transparent);
+		color: var(--text-muted);
 		border-radius: var(--radius);
 		font-weight: 600;
 		font-size: 0.85rem;
 		cursor: pointer;
 		font-family: inherit;
+		transition: background 0.2s, border-color 0.2s, color 0.2s;
 	}
-	.btn-secondary:hover { background: var(--surface-hover); }
+	.btn-secondary:hover {
+		background: color-mix(in oklch, var(--accent) 8%, transparent);
+		border-color: color-mix(in oklch, var(--accent) 45%, var(--border));
+		color: var(--text);
+	}
 	.btn-pill {
 		padding: 0.5rem 1rem;
 		background: transparent;
@@ -988,16 +1001,22 @@
 		font-family: inherit;
 	}
 	.btn-danger {
-		padding: 0.6rem 1.25rem;
+		padding: 0.5rem 1rem;
 		background: transparent;
-		color: oklch(60% 0.22 25);
-		border: 1px solid oklch(60% 0.22 25 / 0.5);
+		color: color-mix(in oklch, oklch(60% 0.22 25) 55%, var(--text-muted));
+		border: 1px solid color-mix(in oklch, oklch(60% 0.22 25) 22%, var(--border));
 		border-radius: var(--radius);
 		font-weight: 600;
+		font-size: 0.85rem;
 		cursor: pointer;
 		font-family: inherit;
+		transition: color 0.2s, border-color 0.2s, background 0.2s;
 	}
-	.btn-danger:hover { background: oklch(60% 0.22 25 / 0.1); }
+	.btn-danger:hover {
+		color: oklch(60% 0.22 25);
+		border-color: color-mix(in oklch, oklch(60% 0.22 25) 55%, var(--border));
+		background: oklch(60% 0.22 25 / 0.08);
+	}
 
 	.danger { margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); max-width: 980px; }
 	.danger p { color: var(--text-muted); margin-bottom: 1rem; }
