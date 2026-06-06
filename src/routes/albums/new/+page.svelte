@@ -255,7 +255,7 @@
 
 <style>
 	.page {
-		max-width: 860px;
+		max-width: 1100px;
 		margin: 0 auto;
 		padding: 2rem 1.5rem 4rem;
 	}
@@ -313,7 +313,7 @@
 	.result-groups {
 		list-style: none;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 		gap: 0.85rem 1.25rem;
 		padding: 0;
 		margin: 0;
