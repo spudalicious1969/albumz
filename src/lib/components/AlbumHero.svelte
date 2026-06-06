@@ -41,11 +41,15 @@
 			<p class="eyebrow">{ownershipLabel}</p>
 			<h1 class="title">{album.title}</h1>
 			<p class="artist">{album.artist}</p>
-			<p class="sub">
-				{#if album.year}<span class="pill year">{album.year}</span>{/if}
-				{#if album.format}<span class="pill format">{album.format}</span>{/if}
-				{#if album.label}<span class="pill label">{album.label}</span>{/if}
-			</p>
+			{#if album.year || album.format || album.label}
+				<p class="meta-line">
+					{#if album.year}<span class="meta-year">{album.year}</span>{/if}
+					{#if album.year && (album.format || album.label)}<span class="meta-sep">·</span>{/if}
+					{#if album.format}<span>{album.format}</span>{/if}
+					{#if album.format && album.label}<span class="meta-sep">·</span>{/if}
+					{#if album.label}<span>{album.label}</span>{/if}
+				</p>
+			{/if}
 			{#if album.rating}
 				<p class="rating">{'★'.repeat(album.rating)}<span class="rating-empty">{'★'.repeat(5 - album.rating)}</span></p>
 			{/if}
@@ -144,34 +148,38 @@
 		color: var(--text-muted);
 		margin-bottom: 0.85rem;
 	}
-	.sub { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-	.pill {
-		display: inline-block;
-		padding: 0.18rem 0.65rem;
-		border: 1px solid var(--border);
-		border-radius: 100px;
-		font-size: 0.72rem;
+	/* Inline meta line replaces the year/format/label pills. The year keeps
+	   its accent color (small visual tie to the cover); format and label go
+	   muted; separators are dimmer still. Plain text, no chrome. */
+	.meta-line {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+		align-items: baseline;
+		font-size: 0.82rem;
 		color: var(--text-muted);
-		background: var(--surface);
 	}
-	.pill.year { border-color: color-mix(in oklch, var(--page-accent) 40%, var(--border)); color: var(--page-accent); }
+	.meta-year {
+		color: var(--page-accent);
+		font-weight: 600;
+	}
+	.meta-sep { color: var(--border); }
 
 	.rating { color: var(--page-accent); margin-top: 0.85rem; letter-spacing: 0.12em; font-size: 1rem; }
 	.rating-empty { color: var(--border); }
 
+	/* Tags as plain hashtag text rather than pills — they're not clickable,
+	   so the pill chrome was misleading. */
 	.tags {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
+		gap: 0.7rem;
 		list-style: none;
 		margin-top: 0.9rem;
+		padding: 0;
 	}
 	.tags li {
-		padding: 0.18rem 0.6rem;
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: 100px;
-		font-size: 0.7rem;
+		font-size: 0.78rem;
 		color: var(--text-muted);
 	}
 

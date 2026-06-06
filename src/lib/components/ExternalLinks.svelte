@@ -31,8 +31,6 @@
 			>
 				<span class="dot" style="background: {brandColor[link.service]}"></span>
 				<span class="name">{link.name}</span>
-				{#if !link.isDirect}<span class="kind">search</span>{/if}
-				<span class="arrow" aria-hidden="true">↗</span>
 			</a>
 		{/each}
 	</div>
@@ -55,49 +53,40 @@
 	.grid {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.25rem 0.4rem;
 	}
+	/* Quiet at rest — no border, no fill, no arrow, no inline "search" label.
+	   The brand dot does the at-a-glance recognition; the name confirms it.
+	   On hover the chip brushes with the page accent so it feels like the
+	   room lighting up the affordance you're focused on. */
 	.chip {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.5rem;
-		padding: 0.45rem 0.85rem;
-		background: var(--surface);
-		border: 1px solid var(--border);
+		gap: 0.45rem;
+		padding: 0.35rem 0.7rem;
+		background: transparent;
+		border: 1px solid transparent;
 		border-radius: 100px;
-		color: var(--text);
+		color: var(--text-muted);
 		text-decoration: none;
-		font-size: 0.83rem;
+		font-size: 0.82rem;
 		font-weight: 500;
-		transition: background 0.15s, border-color 0.15s, transform 0.15s;
+		transition: color 0.18s, background 0.18s, border-color 0.18s;
 	}
 	.chip:hover {
-		background: var(--surface-hover);
-		border-color: color-mix(in oklch, var(--accent) 40%, var(--border));
+		color: var(--text);
+		background: color-mix(in oklch, var(--accent) 7%, transparent);
+		border-color: color-mix(in oklch, var(--accent) 30%, transparent);
 		text-decoration: none;
-		transform: translateY(-1px);
 	}
-	.chip.direct {
-		background: color-mix(in oklch, var(--surface) 80%, var(--bg-elevated));
-		border-color: color-mix(in oklch, var(--accent) 25%, var(--border));
-	}
+	.chip:hover .dot { opacity: 1; }
 
 	.dot {
 		display: inline-block;
-		width: 8px;
-		height: 8px;
+		width: 7px;
+		height: 7px;
 		border-radius: 50%;
-		box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-	}
-	.kind {
-		font-size: 0.66rem;
-		text-transform: uppercase;
-		letter-spacing: 0.1em;
-		color: var(--text-muted);
-		opacity: 0.7;
-	}
-	.arrow {
-		font-size: 0.7rem;
-		color: var(--text-muted);
+		opacity: 0.78;
+		transition: opacity 0.18s;
 	}
 </style>
