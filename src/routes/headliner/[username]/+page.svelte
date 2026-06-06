@@ -18,10 +18,17 @@
 	// most recent 'playing' ping so quick song changes don't visually drop.
 	const LIVE_GRACE_MS = 15 * 1000;
 
+	// Number of consecutive idle poll responses required before the mosaic
+	// takes over. A single bad SSR fetch or transient Last.fm hiccup used to
+	// flash the mosaic in for one cycle; requiring two confirmed idle polls
+	// (~30s) rules that out without making the real idle transition feel slow.
+	const IDLE_CONFIRM_POLLS = 2;
+
 	let current = $state<NowPlayingResult>(data.initial);
 	let accent = $state<string>('var(--accent)');
 	let nowMs = $state<number>(Date.now());
 	let lastPlayingAt = $state<number>(data.initial.state === 'playing' ? Date.now() : 0);
+	let idleStreak = $state(0);
 	let timer: ReturnType<typeof setInterval> | null = null;
 
 	// Cover-fallback chain: try candidates in order, advance on <img> error.
@@ -43,6 +50,7 @@
 	$effect(() => {
 		current = data.initial;
 		lastPlayingAt = data.initial.state === 'playing' ? Date.now() : 0;
+		idleStreak = 0;
 	});
 
 	// When the active cover changes, extract a fresh accent color from it.
@@ -90,6 +98,16 @@
 			} else {
 				current = next;
 			}
+
+			// Bump or reset the confirmed-idle streak. The mosaic only takes over
+			// once we've seen IDLE_CONFIRM_POLLS in a row, so a single sketchy
+			// response (SSR miss, Last.fm hiccup) can never flash it in.
+			const polledIsStale =
+				current.state === 'recent' &&
+				current.playedAt !== null &&
+				Date.now() - current.playedAt * 1000 > IDLE_STALENESS_MS;
+			if (current.state === 'none' || polledIsStale) idleStreak++;
+			else idleStreak = 0;
 		} catch {
 			// transient errors are fine; we'll try again next tick
 		}
@@ -151,7 +169,9 @@
 		nowMs - current.playedAt * 1000 > IDLE_STALENESS_MS
 	);
 	const isIdle = $derived(current.state === 'none' || isStale);
-	const idleWithMosaic = $derived(isIdle && data.idleTiles.length > 0);
+	const idleWithMosaic = $derived(
+		isIdle && idleStreak >= IDLE_CONFIRM_POLLS && data.idleTiles.length > 0
+	);
 </script>
 
 <svelte:head>
