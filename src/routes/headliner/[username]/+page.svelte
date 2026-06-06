@@ -22,7 +22,15 @@
 	// takes over. A single bad SSR fetch or transient Last.fm hiccup used to
 	// flash the mosaic in for one cycle; requiring two confirmed idle polls
 	// (~30s) rules that out without making the real idle transition feel slow.
+	// Trade-off: a cold mount with a real 'none' from SSR (genuine idle user)
+	// also has to wait through the streak before the mosaic appears, showing
+	// the placeholder card for ~30s. Worth it to immunize against bad SSR.
 	const IDLE_CONFIRM_POLLS = 2;
+
+	// How often we poll Last.fm via /api/now-playing. Drives both the staleness
+	// check cadence (nowMs only ticks here) and how fast we recover from a
+	// transient miss.
+	const POLL_INTERVAL_MS = 15 * 1000;
 
 	let current = $state<NowPlayingResult>(data.initial);
 	let accent = $state<string>('var(--accent)');
@@ -55,13 +63,17 @@
 
 	// When the active cover changes, extract a fresh accent color from it.
 	// Following the candidate index means we pull color from whichever URL ends up displayed.
+	// The cancellation guard prevents a slow-loading stale Image from clobbering
+	// the accent after the cover has already advanced past it.
 	$effect(() => {
 		const url = activeCoverUrl;
 		if (!url) { accent = 'var(--accent)'; return; }
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
-		img.onload = () => { accent = extractAccentColorFromImg(img); };
+		let cancelled = false;
+		img.onload = () => { if (!cancelled) accent = extractAccentColorFromImg(img); };
 		img.src = url;
+		return () => { cancelled = true; };
 	});
 
 	async function refresh() {
@@ -88,6 +100,11 @@
 				// {#key activeCoverUrl} blocks don't re-mount and restart fade-ins just
 				// because iTunes/Deezer reordered their results. Refresh the ephemeral
 				// fields (state, source, playedAt, plus album if Last.fm filled it in).
+				//
+				// Invariant: coverCandidates is only replaced when the track changes
+				// (the `else` branch below). That guarantees coverIdx stays valid for
+				// the array it indexes into. If you ever update candidates mid-track
+				// (e.g. retry with better art), also reset coverIdx to 0 here.
 				current = {
 					...current,
 					state: next.state,
@@ -121,7 +138,7 @@
 		if (document.visibilityState !== 'visible') return;
 		refresh();
 		if (timer) clearInterval(timer);
-		timer = setInterval(refresh, 15_000);
+		timer = setInterval(refresh, POLL_INTERVAL_MS);
 	}
 
 	// Lock body scroll + dark bg explicitly so cleanup is guaranteed.
@@ -129,7 +146,7 @@
 	// stuck after SvelteKit client-side nav in some browsers (Chrome on
 	// macOS especially), trapping scroll on every subsequent page until refresh.
 	onMount(() => {
-		timer = setInterval(refresh, 15_000);
+		timer = setInterval(refresh, POLL_INTERVAL_MS);
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 		const prevOverflow = document.body.style.overflow;
 		const prevBg = document.body.style.background;
@@ -162,6 +179,10 @@
 				? (current.source === 'streamed' ? '⏵ Last Streamed' : '⏵ Last Spun')
 				: 'Headliner'
 	);
+	// `nowMs` only updates inside refresh(), so isStale re-evaluates per poll,
+	// not per second. Practical effect: real idle is detected at
+	// last_scrobble + IDLE_STALENESS_MS + (0..POLL_INTERVAL_MS), and the mosaic
+	// appears IDLE_CONFIRM_POLLS * POLL_INTERVAL_MS later. Predictable lag, not a bug.
 	const isStale = $derived(
 		current.state === 'recent' &&
 		current.playedAt !== null &&
