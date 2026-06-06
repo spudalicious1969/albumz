@@ -80,12 +80,17 @@
 		text-align: center;
 	}
 
+	/* Soft container — kept a subtle surface fill so the rows group visually,
+	   but no outer border. The section title eyebrow already signposts the
+	   group; the border was doubling the work and making the tracklist read
+	   as the lone boxed UI element on an otherwise atmospheric page. */
 	.list {
 		list-style: none;
-		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		overflow: hidden;
-		background: var(--surface);
+		background: color-mix(in oklch, var(--surface) 70%, transparent);
+		padding: 0;
+		margin: 0;
 	}
 	.row {
 		display: grid;
@@ -93,12 +98,16 @@
 		gap: 0.75rem;
 		align-items: center;
 		padding: 0.65rem 1rem;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid color-mix(in oklch, var(--border) 55%, transparent);
 		font-size: 0.92rem;
-		transition: background 0.1s;
+		transition: background 0.15s;
 	}
 	.row:last-child { border-bottom: none; }
-	.row:hover { background: var(--surface-hover); }
+	/* Hover breathes in the album's accent, same family as every other hover
+	   on the page after the synesthesia work. */
+	.row:hover {
+		background: color-mix(in oklch, var(--accent) 9%, transparent);
+	}
 
 	.pos {
 		font-variant-numeric: tabular-nums;
