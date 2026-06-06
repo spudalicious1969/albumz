@@ -237,7 +237,13 @@
 		// Only auto-close if there's nothing left to review. Otherwise keep
 		// the panel open and nudge the suggestions section into view so the
 		// user doesn't miss qwen's tag/label suggestions sitting below the fold.
-		const hasPending = lookupSuggesting || showTagSuggestion || showLabelSuggestion;
+		// Tracklist candidates count too — picking details shouldn't silently
+		// abandon a tracklist-source decision the user is still making.
+		const hasPending =
+			lookupSuggesting ||
+			showTagSuggestion ||
+			showLabelSuggestion ||
+			tracklistCandidates.length > 0;
 		if (hasPending) {
 			suggestionsEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 		} else {
@@ -360,7 +366,7 @@
 			<!-- Look up details — fills artist/title/year from a search result -->
 			<div class="lookup">
 				<button type="button" class="btn-secondary" onclick={() => { lookupOpen = !lookupOpen; if (lookupOpen && lookupResults.length === 0) runLookup(); }}>
-					{lookupOpen ? 'Close lookup' : '🔎 Look up details'}
+					{lookupOpen ? 'Close lookup' : 'Look up details'}
 				</button>
 				{#if stagedCoverUrl}
 					<span class="staged-pill">✓ New cover staged — save to apply</span>
@@ -578,7 +584,11 @@
 					</label>
 					<label class="field full">
 						<span class="label">Notes</span>
-						<textarea name="notes" rows="3">{album.notes ?? ''}</textarea>
+						<textarea
+							name="notes"
+							rows="3"
+							placeholder="What this record means to you. Links: [text](https://…)"
+						>{album.notes ?? ''}</textarea>
 					</label>
 				</div>
 
@@ -711,12 +721,14 @@
 		color: var(--accent);
 		font-weight: 600;
 	}
+	/* Lookup panel: open content area, not a stacked-modal container.
+	   The form below has its own surface+border for grouping fields; the
+	   lookup is review-of-suggestions, which reads more naturally as inline
+	   content with a divider above and below. */
 	.lookup-panel {
-		background: var(--surface);
-		border: 1px solid var(--border);
-		border-radius: var(--radius-lg);
-		padding: 1rem 1.25rem;
+		padding: 0.5rem 0 1.25rem;
 		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--border);
 	}
 	.lookup-hint {
 		font-size: 0.8rem;
@@ -757,10 +769,12 @@
 		grid-template-columns: 56px 1fr auto;
 		gap: 0.85rem;
 		align-items: center;
-		padding: 0.6rem;
-		background: var(--bg-elevated);
-		border: 1px solid var(--border);
+		padding: 0.55rem 0.35rem;
 		border-radius: var(--radius);
+		transition: background 0.15s;
+	}
+	.lookup-row:hover {
+		background: color-mix(in oklch, var(--accent) 6%, transparent);
 	}
 	.lookup-thumb {
 		width: 56px;
@@ -841,14 +855,17 @@
 		grid-template-columns: 1fr auto;
 		gap: 0.5rem;
 		align-items: center;
-		padding: 0.55rem 0.7rem;
-		background: var(--bg-elevated, color-mix(in oklch, var(--surface, #fff) 96%, var(--text) 4%));
-		border: 1px solid var(--border);
+		padding: 0.5rem 0.35rem;
 		border-radius: 6px;
+		transition: background 0.15s, border-color 0.15s;
+	}
+	.tracklist-candidate:hover {
+		background: color-mix(in oklch, var(--accent) 6%, transparent);
 	}
 	.tracklist-candidate.is-pinned {
-		border-color: color-mix(in oklch, var(--accent, oklch(70% 0.15 220)) 50%, var(--border));
-		background: color-mix(in oklch, var(--accent, oklch(70% 0.15 220)) 8%, var(--bg-elevated));
+		background: color-mix(in oklch, var(--accent) 10%, transparent);
+		box-shadow: inset 3px 0 0 var(--accent);
+		padding-left: 0.65rem;
 	}
 	.tracklist-row {
 		display: flex;
@@ -955,6 +972,18 @@
 		font-family: inherit;
 	}
 	.field textarea { resize: vertical; }
+	/* Notes is content, not metadata — style the textarea to feel like writing
+	   in the read-view note panel: accent left border, soft fill, italic. */
+	.field textarea[name="notes"] {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-left: 3px solid var(--accent);
+		padding: 0.85rem 1rem;
+		font-style: italic;
+		line-height: 1.5;
+		min-height: 4.5rem;
+	}
+	.field textarea[name="notes"]::placeholder { font-style: italic; }
 	.field :global(.sort-group) { display: flex; }
 	.field :global(.dropdown) { flex: 1; display: block; }
 	.field :global(.trigger) {

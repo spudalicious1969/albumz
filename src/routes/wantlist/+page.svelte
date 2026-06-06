@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { compareByKey } from '$lib/sort-key';
+	import { notesToHtml } from '$lib/notes';
 	import { loadSort, saveSort, loadReversed, saveReversed } from '$lib/persist';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import type { PageData } from './$types';
@@ -130,7 +131,7 @@
 							{#if album.format}<span class="dim">· {album.format}</span>{/if}
 						</span>
 						{#if album.notes}
-							<span class="notes">{album.notes}</span>
+							<span class="notes">{@html notesToHtml(album.notes)}</span>
 						{/if}
 						{#if album.tags && album.tags.length > 0}
 							<span class="tags">
@@ -317,6 +318,12 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
+	.notes :global(a) {
+		color: var(--row-accent);
+		text-decoration: underline;
+		text-decoration-color: color-mix(in oklch, var(--row-accent) 45%, transparent);
+	}
+	.notes :global(a:hover) { text-decoration-color: var(--row-accent); }
 	.tags {
 		display: flex;
 		gap: 0.3rem;

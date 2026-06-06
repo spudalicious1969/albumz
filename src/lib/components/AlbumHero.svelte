@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { notesToHtml } from '$lib/notes';
+
 	type Album = {
 		artist: string;
 		title: string;
@@ -19,6 +21,7 @@
 	const ownershipLabel = $derived(
 		eyebrow ?? (album.ownership === 'WANT' ? '☆ On Wantlist' : '★ In Collection')
 	);
+	const notesHtml = $derived(notesToHtml(album.notes));
 </script>
 
 <div class="hero-shell" style="--page-accent: {accent}">
@@ -59,7 +62,7 @@
 				</ul>
 			{/if}
 			{#if album.notes}
-				<p class="notes">{album.notes}</p>
+				<p class="notes">{@html notesHtml}</p>
 			{/if}
 		</div>
 	</div>
@@ -193,5 +196,15 @@
 		line-height: 1.5;
 		white-space: pre-wrap;
 		color: var(--text);
+	}
+	.notes :global(a) {
+		color: var(--page-accent);
+		text-decoration: underline;
+		text-decoration-color: color-mix(in oklch, var(--page-accent) 45%, transparent);
+		text-underline-offset: 2px;
+		transition: text-decoration-color 0.18s;
+	}
+	.notes :global(a:hover) {
+		text-decoration-color: var(--page-accent);
 	}
 </style>
