@@ -172,11 +172,18 @@
 			? 'playing'
 			: current.state
 	);
-	const eyebrow = $derived(
+	// Eyebrow split so the leading symbol can carry the same single-character-glow
+	// language as the wordmark's `z` — a tiny jewel that signals "this is Albumz".
+	const eyebrowSymbol = $derived(
+		effectiveState === 'playing' ? '♪'
+			: effectiveState === 'recent' ? '⏵'
+				: ''
+	);
+	const eyebrowLabel = $derived(
 		effectiveState === 'playing'
-			? (current.source === 'streamed' ? '♪ Currently Streaming' : '♪ Currently Spinning')
+			? (current.source === 'streamed' ? 'Currently Streaming' : 'Currently Spinning')
 			: effectiveState === 'recent'
-				? (current.source === 'streamed' ? '⏵ Last Streamed' : '⏵ Last Spun')
+				? (current.source === 'streamed' ? 'Last Streamed' : 'Last Spun')
 				: 'Headliner'
 	);
 	// `nowMs` only updates inside refresh(), so isStale re-evaluates per poll,
@@ -263,7 +270,9 @@
 			<div class="meta">
 				<p class="eyebrow">
 					<span class="dot" class:live={effectiveState === 'playing'}></span>
-					{eyebrow}
+					<span class="eyebrow-text">
+						{#if eyebrowSymbol}<span class="eyebrow-symbol">{eyebrowSymbol}</span> {/if}{eyebrowLabel}
+					</span>
 				</p>
 				{#if current.track}
 					<h1 class="track">{current.track}</h1>
@@ -417,6 +426,17 @@
 		align-items: center;
 		gap: 0.5rem;
 		text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+	}
+	/* Single-character jewel — same glow language as the wordmark's `z`,
+	   echoed once in the most active part of the Headliner. Cream character
+	   on accent halo (matching the wordmark recipe) so the glow has contrast
+	   to bleed from. */
+	.eyebrow-symbol {
+		color: #f0ead8;
+		font-weight: 700;
+		text-shadow:
+			0 0 24px var(--hl-accent),
+			0 0 8px var(--hl-accent);
 	}
 	.dot {
 		width: 0.55em; height: 0.55em;
