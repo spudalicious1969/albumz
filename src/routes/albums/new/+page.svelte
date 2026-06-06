@@ -2,6 +2,14 @@
 	import { enhance } from '$app/forms';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
+	import {
+		groupResults,
+		uniqueYears,
+		uniqueLabels,
+		uniqueBySource,
+		LOOKUP_SOURCE_LABEL
+	} from '$lib/lookup-grouping';
+	import type { CoverResult } from '$lib/cover-types';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -11,6 +19,7 @@
 	let searching = $state(false);
 
 	const covers = $derived((form as { covers?: typeof data.covers })?.covers ?? data.covers);
+	const groupedCovers = $derived(groupResults(covers as CoverResult[]));
 	const prefill = $derived((form as { prefill?: typeof data.prefill })?.prefill ?? data.prefill);
 
 	// Form fields — live state so picking a cover can update them
@@ -112,31 +121,67 @@
 		</form>
 	</section>
 
-	<!-- Step 2: Pick a cover -->
+	<!-- Step 2: Pick an album (grouped by record; sources shown as thumbnails) -->
 	{#if covers?.length}
 		<section class="covers-section">
 			<p class="eyebrow">Pick an album</p>
-			<div class="cover-grid">
-				{#each covers as cover}
-					<button
-						type="button"
-						class="cover-option"
-						class:selected={selectedCover === cover.url}
-						onclick={() => onCoverSelect(cover)}
-					>
-						<img src={cover.url} alt="{cover.artist} – {cover.title}" loading="lazy" />
-						<span class="cover-label">{cover.artist}<br />{cover.title}</span>
-					</button>
+			<p class="hint">Click a source thumbnail to apply that source's details. Where sources disagree on year or label, the alternates are called out below the title.</p>
+			<ul class="result-groups">
+				{#each groupedCovers as group (group.artist + '::' + group.title)}
+					{@const years = uniqueYears(group)}
+					{@const labels = uniqueLabels(group)}
+					<li class="result-group">
+						<div class="group-header">
+							<p class="result-artist">{group.artist}</p>
+							<p class="result-title">{group.title}</p>
+							{#if years.length > 1}
+								<p class="result-detail">
+									<span class="detail-label">Years:</span>{years.join(' · ')}
+								</p>
+							{:else if years.length === 1}
+								<p class="result-detail">
+									<span class="detail-label">Year:</span>{years[0]}
+								</p>
+							{/if}
+							{#if labels.length > 1}
+								<p class="result-detail">
+									<span class="detail-label">Labels:</span>{labels.join(' · ')}
+								</p>
+							{:else if labels.length === 1}
+								<p class="result-detail">
+									<span class="detail-label">Label:</span>{labels[0]}
+								</p>
+							{/if}
+						</div>
+						<div class="source-strip">
+							{#each uniqueBySource(group.sources) as src (src.url + '::' + src.source)}
+								<button
+									type="button"
+									class="source-cover"
+									class:selected={selectedCover === src.url}
+									onclick={() => onCoverSelect(src)}
+									title="Apply details from {LOOKUP_SOURCE_LABEL[src.source]}{src.year ? ` (${src.year})` : ''}"
+								>
+									{#if src.url}
+										<img src={src.url} alt="" loading="lazy" />
+									{:else}
+										<div class="src-no-thumb"></div>
+									{/if}
+									<span class="source-name">{LOOKUP_SOURCE_LABEL[src.source]}</span>
+								</button>
+							{/each}
+						</div>
+					</li>
 				{/each}
-				<button
-					type="button"
-					class="cover-option no-cover"
-					class:selected={selectedCover === ''}
-					onclick={onNoCover}
-				>
-					<span>No cover</span>
-				</button>
-			</div>
+			</ul>
+			<button
+				type="button"
+				class="no-cover-option"
+				class:selected={selectedCover === ''}
+				onclick={onNoCover}
+			>
+				Skip cover — add without artwork
+			</button>
 		</section>
 	{/if}
 
@@ -186,7 +231,11 @@
 				</label>
 				<label class="field full">
 					<span class="label">Notes</span>
-					<textarea name="notes" rows="3"></textarea>
+					<textarea
+						name="notes"
+						rows="3"
+						placeholder="What this record means to you. Links: [text](https://…)"
+					></textarea>
 				</label>
 			</div>
 
@@ -250,40 +299,136 @@
 	}
 
 	.covers-section { margin: 2rem 0; }
-	.covers-section .eyebrow { margin-bottom: 0.75rem; }
-	.cover-grid {
+	.covers-section .eyebrow { margin-bottom: 0.4rem; }
+	.hint {
+		font-size: 0.78rem;
+		color: var(--text-muted);
+		margin-bottom: 0.85rem;
+	}
+
+	/* Grid so multiple albums show side-by-side instead of stacking vertically.
+	   /albums/new often returns many distinct records (different albums by the
+	   same artist), so the single-column vertical layout we use in the editor
+	   would create a long scroll before the form fields. */
+	.result-groups {
+		list-style: none;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-		gap: 0.75rem;
-	}
-	.cover-option {
-		border: 2px solid transparent;
-		border-radius: var(--radius);
-		background: var(--surface);
-		cursor: pointer;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 0.85rem 1.25rem;
 		padding: 0;
-		overflow: hidden;
-		transition: border-color 0.15s, box-shadow 0.15s;
+		margin: 0;
 	}
-	.cover-option img { width: 100%; aspect-ratio: 1; object-fit: cover; }
-	.cover-label {
-		display: block;
-		font-size: 0.65rem;
-		padding: 0.3rem 0.4rem;
-		color: var(--text-muted);
-		line-height: 1.3;
-	}
-	.cover-option.no-cover {
-		aspect-ratio: 1;
+	.result-group {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.8rem;
-		color: var(--text-muted);
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 0.4rem 0.25rem;
+		min-width: 0;
 	}
-	.cover-option.selected {
+	.group-header { min-width: 0; }
+	.result-artist {
+		font-size: 0.72rem;
+		font-weight: 700;
+		color: var(--text);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+	.result-title {
+		font-size: 0.95rem;
+		font-weight: 600;
+		color: var(--text);
+		line-height: 1.25;
+		margin-top: 0.1rem;
+		overflow-wrap: break-word;
+	}
+	.result-detail {
+		font-size: 0.78rem;
+		color: var(--text-muted);
+		margin-top: 0.2rem;
+	}
+	.detail-label {
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--text-muted);
+		opacity: 0.7;
+		margin-right: 0.35rem;
+	}
+
+	.source-strip {
+		display: flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+	.source-cover {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		font-family: inherit;
+		transition: transform 0.18s;
+	}
+	.source-cover img,
+	.source-cover .src-no-thumb {
+		width: 56px;
+		height: 56px;
+		object-fit: cover;
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		transition: box-shadow 0.18s, outline-color 0.18s;
+		outline: 2px solid transparent;
+		outline-offset: 2px;
+	}
+	.src-no-thumb { background: var(--surface); }
+	.source-cover:hover { transform: translateY(-2px); }
+	.source-cover:hover img,
+	.source-cover:hover .src-no-thumb {
+		box-shadow:
+			var(--shadow-lift),
+			0 0 24px color-mix(in oklch, var(--accent) 35%, transparent);
+	}
+	.source-cover.selected img,
+	.source-cover.selected .src-no-thumb {
+		outline-color: var(--accent);
+		box-shadow:
+			var(--shadow-lift),
+			0 0 28px color-mix(in oklch, var(--accent) 45%, transparent);
+	}
+	.source-name {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		letter-spacing: 0.04em;
+		transition: color 0.18s;
+	}
+	.source-cover:hover .source-name,
+	.source-cover.selected .source-name { color: var(--text); }
+
+	.no-cover-option {
+		margin-top: 1.25rem;
+		padding: 0.55rem 1rem;
+		background: transparent;
+		border: 1px solid color-mix(in oklch, var(--text-muted) 28%, transparent);
+		color: var(--text-muted);
+		border-radius: var(--radius);
+		font-size: 0.85rem;
+		font-weight: 500;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background 0.2s, border-color 0.2s, color 0.2s;
+	}
+	.no-cover-option:hover {
+		color: var(--text);
+		border-color: color-mix(in oklch, var(--accent) 45%, var(--border));
+		background: color-mix(in oklch, var(--accent) 8%, transparent);
+	}
+	.no-cover-option.selected {
+		color: var(--text);
 		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent);
+		background: color-mix(in oklch, var(--accent) 12%, transparent);
 	}
 
 	.details-section { margin-top: 2rem; }
@@ -304,6 +449,18 @@
 		color: var(--text);
 	}
 	.field textarea { resize: vertical; }
+	/* Notes is content, not metadata — styled to feel like writing in the
+	   read-view note panel: accent left border, soft fill, italic. */
+	.field textarea[name="notes"] {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-left: 3px solid var(--accent);
+		padding: 0.85rem 1rem;
+		font-style: italic;
+		line-height: 1.5;
+		min-height: 4.5rem;
+	}
+	.field textarea[name="notes"]::placeholder { font-style: italic; }
 	.field :global(.sort-group) { display: flex; }
 	.field :global(.dropdown) { flex: 1; display: block; }
 	.field :global(.trigger) {

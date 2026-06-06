@@ -13,6 +13,14 @@
 		type TracklistResult,
 		type TracklistSource
 	} from '$lib/tracklist';
+	import type { CoverResult } from '$lib/cover-types';
+	import {
+		groupResults,
+		uniqueYears,
+		uniqueLabels,
+		uniqueBySource,
+		LOOKUP_SOURCE_LABEL
+	} from '$lib/lookup-grouping';
 	import type { PageData, ActionData } from './$types';
 
 	type LookupSuggestions = {
@@ -28,13 +36,6 @@
 		lastfm: 'Last.fm'
 	};
 
-	const LOOKUP_SOURCE_LABEL: Record<string, string> = {
-		spotify: 'Spotify',
-		deezer: 'Deezer',
-		itunes: 'iTunes',
-		lastfm: 'Last.fm',
-		musicbrainz: 'MusicBrainz'
-	};
 
 	const formatOptions = [
 		{ value: '', label: '—' },
@@ -62,7 +63,6 @@
 	let confirmingDelete = $state(false);
 	let coverPickerOpen = $state(false);
 
-	type CoverResult = { url: string; artist: string; title: string; year?: number; label?: string; source: string };
 
 	let coverSearching = $state(false);
 	let coverResults = $state<CoverResult[]>([]);
@@ -79,71 +79,6 @@
 	let editRating = $state(album.rating != null ? String(album.rating) : '');
 	let editLabel = $state(album.label ?? '');
 	let editTags = $state(album.tags?.join(', ') ?? '');
-
-	type ResultGroup = {
-		artist: string;
-		title: string;
-		sources: CoverResult[];
-	};
-
-	// Normalize for grouping: lowercased, strip accents and punctuation, collapse
-	// whitespace. Means "Dominique Fils-Aimé" and "Dominique Fils-Aime" group as
-	// the same album, while genuinely different albums (Pinkerton by Weezer vs.
-	// Pinkerton by someone else) stay split because the artist part differs.
-	function normalizeForGroup(s: string): string {
-		return s
-			.toLowerCase()
-			.normalize('NFD')
-			.replace(/[̀-ͯ]/g, '')
-			.replace(/[^\w\s]/g, '')
-			.replace(/\s+/g, ' ')
-			.trim();
-	}
-
-	function groupResults(results: CoverResult[]): ResultGroup[] {
-		const groups = new Map<string, ResultGroup>();
-		for (const r of results) {
-			const key = `${normalizeForGroup(r.artist)}::${normalizeForGroup(r.title)}`;
-			let g = groups.get(key);
-			if (!g) {
-				g = { artist: r.artist, title: r.title, sources: [] };
-				groups.set(key, g);
-			} else {
-				// Keep the longest version of each — usually the more complete one.
-				if (r.artist.length > g.artist.length) g.artist = r.artist;
-				if (r.title.length > g.title.length) g.title = r.title;
-			}
-			g.sources.push(r);
-		}
-		return [...groups.values()];
-	}
-
-	function uniqueYears(group: ResultGroup): number[] {
-		const set = new Set<number>();
-		for (const s of group.sources) if (s.year) set.add(s.year);
-		return [...set].sort();
-	}
-
-	function uniqueLabels(group: ResultGroup): string[] {
-		const set = new Set<string>();
-		for (const s of group.sources) if (s.label?.trim()) set.add(s.label.trim());
-		return [...set];
-	}
-
-	// One thumbnail per source within a group. If a source returns multiple
-	// results for the same album (different editions / cover URLs), we keep
-	// the first — year/label disagreement detection still uses the full
-	// `sources` list, so no information is lost from the display.
-	function uniqueBySource(sources: CoverResult[]): CoverResult[] {
-		const seen = new Set<string>();
-		const out: CoverResult[] = [];
-		for (const s of sources) {
-			if (seen.has(s.source)) continue;
-			seen.add(s.source);
-			out.push(s);
-		}
-		return out;
-	}
 
 	let lookupOpen = $state(false);
 	let lookupSearching = $state(false);

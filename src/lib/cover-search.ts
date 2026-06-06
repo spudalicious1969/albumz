@@ -1,19 +1,13 @@
 import { LAST_FM_API_KEY } from '$env/static/private';
 import { env } from '$env/dynamic/private';
 import { getSpotifyToken } from './spotify-auth.server';
+import type { CoverResult } from './cover-types';
+
+export type { CoverResult } from './cover-types';
 
 // See now-playing.ts for rationale — direct endpoints by default, env-overridable.
 const ITUNES_PROXY = env.ITUNES_PROXY_URL || 'https://itunes.apple.com';
 const DEEZER_PROXY = env.DEEZER_PROXY_URL || 'https://api.deezer.com';
-
-export interface CoverResult {
-	url: string;
-	artist: string;
-	title: string;
-	year?: number;
-	label?: string;
-	source: 'itunes' | 'deezer' | 'musicbrainz' | 'lastfm' | 'spotify';
-}
 
 // Priority bias when two sources tie on artist/title match. Spotify has the
 // cleanest metadata; iTunes is dense; Deezer is good for edge cases; MB+LFM
