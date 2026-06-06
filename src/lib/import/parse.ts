@@ -53,7 +53,11 @@ export function parseAndNormalize(buffer: Buffer, kind: FileKind): ParsedFile {
 			return col ? row[col] : '';
 		};
 
-		const artist = String(get('artist') ?? '').trim();
+		// Strip Discogs artist disambiguator suffix ("Helium (3)" → "Helium").
+		// Only artists get (N) on Discogs; release titles are disambiguated by
+		// other metadata, so leave titles alone (they legitimately contain
+		// parens like "(Deluxe Edition)").
+		const artist = String(get('artist') ?? '').trim().replace(/\s+\(\d+\)$/, '');
 		const title  = String(get('title')  ?? '').trim();
 
 		const out: ImportRow = {
