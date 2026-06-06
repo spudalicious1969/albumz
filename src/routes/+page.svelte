@@ -63,6 +63,16 @@
 		})
 	);
 
+	// ── Ambient background: blurred cover of whatever the cursor is on ────
+	// Sticks on the last-hovered card so scanning the grid doesn't flicker.
+	// Defaults to the first card in current sort so the room feels furnished
+	// on first paint, before any hover.
+	let hoveredId = $state<string | null>(null);
+	const ambientAlbum = $derived(
+		sortedOwned.find((a) => a.id === hoveredId) ?? sortedOwned[0] ?? null
+	);
+	const ambientCoverUrl = $derived(ambientAlbum?.cover_url ?? null);
+
 	type Phase = 'idle' | 'covers' | 'accents';
 	let phase = $state<Phase>('idle');
 	let phaseProgress = $state({ done: 0, total: 0, found: 0, notFound: 0 });
@@ -153,6 +163,9 @@
 {#if data.mode === 'mosaic'}
 	<MosaicView tiles={data.tiles} />
 {:else}
+{#if ambientCoverUrl}
+	<div class="ambient-layer" style="background-image: url({ambientCoverUrl})"></div>
+{/if}
 <div class="page">
 	<header class="topbar">
 		<span class="wordmark">album<span>z</span></span>
@@ -219,7 +232,12 @@
 	{:else}
 		<div class="album-grid">
 			{#each sortedOwned as album (album.id)}
-				<a href="/albums/{album.id}" class="album-card" style="--card-accent: {album.accent_color ?? 'var(--accent)'}">
+				<a
+					href="/albums/{album.id}"
+					class="album-card"
+					style="--card-accent: {album.accent_color ?? 'var(--accent)'}"
+					onmouseenter={() => (hoveredId = album.id)}
+				>
 					{#if album.cover_url}
 						<img src={album.cover_url} alt="{album.artist} – {album.title}" loading="lazy" />
 					{:else}
@@ -247,6 +265,23 @@
 		max-width: 1200px;
 		margin: 0 auto;
 		padding: 0 1.5rem 4rem;
+		position: relative;
+		z-index: 1;
+	}
+
+	/* Ambient: blurred cover of the currently-hovered card. Fixed so it stays
+	   put while the grid scrolls over it. Snap-changes on hover (no fade) —
+	   the room responds to the cursor rather than catching up to it. */
+	.ambient-layer {
+		position: fixed;
+		inset: -10%;
+		background-size: cover;
+		background-position: center;
+		filter: blur(80px) saturate(1.4);
+		transform: scale(1.15);
+		opacity: 0.12;
+		z-index: 0;
+		pointer-events: none;
 	}
 
 	.topbar {
