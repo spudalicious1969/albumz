@@ -54,6 +54,14 @@
 		});
 	});
 
+	// ── Ambient background + page-accent synesthesia, mirrored from /+page ──
+	let hoveredId = $state<string | null>(null);
+	const ambientAlbum = $derived(
+		sorted.find((a) => a.id === hoveredId) ?? sorted[0] ?? null
+	);
+	const ambientCoverUrl = $derived(ambientAlbum?.cover_url ?? null);
+	const ambientAccent = $derived(ambientAlbum?.accent_color ?? null);
+
 	function buyLinks(album: WantAlbum) {
 		const q = encodeURIComponent(`${album.artist} ${album.title}`);
 		return [
@@ -68,7 +76,10 @@
 
 <svelte:head><title>Wantlist — albumz</title></svelte:head>
 
-<div class="page">
+{#if ambientCoverUrl}
+	<div class="ambient-layer" style="background-image: url({ambientCoverUrl})"></div>
+{/if}
+<div class="page" style={ambientAccent ? `--accent: ${ambientAccent}` : ''}>
 	<header class="topbar">
 		<a href="/" class="back">← Collection</a>
 		<h1>Wantlist <span class="count">{data.albums.length}</span></h1>
@@ -97,7 +108,11 @@
 	{:else}
 		<div class="list">
 			{#each sorted as album (album.id)}
-				<article class="row" style="--row-accent: {album.accent_color ?? 'var(--accent)'}">
+				<article
+					class="row"
+					style="--row-accent: {album.accent_color ?? 'var(--accent)'}"
+					onmouseenter={() => (hoveredId = album.id)}
+				>
 					<a href="/albums/{album.id}" class="thumb-link" aria-label="Open {album.title}">
 						<div class="thumb">
 							{#if album.cover_url}
@@ -161,6 +176,28 @@
 		max-width: 1000px;
 		margin: 0 auto;
 		padding: 0 1.5rem 4rem;
+		position: relative;
+		z-index: 1;
+		transition: --accent 1.5s ease-out;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.page { transition: none; }
+	}
+
+	/* Ambient: same recipe as /+page but at a lower opacity. The wantlist's
+	   narrower page width leaves more side margin showing the bg, so 0.12
+	   would read proportionally heavier here than on /+page. Plus this is a
+	   utility surface — bg should be quieter, not noisier. */
+	.ambient-layer {
+		position: fixed;
+		inset: -10%;
+		background-size: cover;
+		background-position: center;
+		filter: blur(80px) saturate(1.4);
+		transform: scale(1.15);
+		opacity: 0.08;
+		z-index: 0;
+		pointer-events: none;
 	}
 
 	.topbar {
