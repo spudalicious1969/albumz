@@ -1,3 +1,13 @@
+/* Register --accent so it can transition between values. Without this, CSS
+   custom property changes snap instantly — registration tells the engine
+   --accent is a color, which makes it interpolatable for transitions. Used
+   by the home page to breathe the page accent toward the hovered album. */
+@property --accent {
+	syntax: '<color>';
+	inherits: true;
+	initial-value: oklch(58% 0.18 22);
+}
+
 /* ── Design tokens ─────────────────────────────────────────────── */
 :root {
 	--bg:           #f0ead8;

@@ -72,6 +72,7 @@
 		sortedOwned.find((a) => a.id === hoveredId) ?? sortedOwned[0] ?? null
 	);
 	const ambientCoverUrl = $derived(ambientAlbum?.cover_url ?? null);
+	const ambientAccent = $derived(ambientAlbum?.accent_color ?? null);
 
 	type Phase = 'idle' | 'covers' | 'accents';
 	let phase = $state<Phase>('idle');
@@ -166,7 +167,7 @@
 {#if ambientCoverUrl}
 	<div class="ambient-layer" style="background-image: url({ambientCoverUrl})"></div>
 {/if}
-<div class="page">
+<div class="page" style={ambientAccent ? `--accent: ${ambientAccent}` : ''}>
 	<header class="topbar">
 		<span class="wordmark">album<span>z</span></span>
 		<span class="title-meta">Collection <span class="count">{owned.length}</span></span>
@@ -267,6 +268,13 @@
 		padding: 0 1.5rem 4rem;
 		position: relative;
 		z-index: 1;
+		/* Breathe the page accent toward whatever card the cursor is on.
+		   Slower than the ambient bg snap so the color shift feels like a
+		   mood drift, not a flicker. */
+		transition: --accent 1.5s ease-out;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.page { transition: none; }
 	}
 
 	/* Ambient: blurred cover of the currently-hovered card. Fixed so it stays
