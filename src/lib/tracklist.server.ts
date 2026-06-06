@@ -29,11 +29,15 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
 	]);
 }
 
-export async function fetchTracklist(artist: string, title: string): Promise<TracklistResult> {
-	const cacheKey = `${artist.toLowerCase()}::${title.toLowerCase()}`;
-	const hit = cache.get(cacheKey);
-	if (hit && hit.expires > Date.now()) return hit.value;
-
+/**
+ * Fan out to all sources and return every non-error result (including empties).
+ * Ordering reflects quality preference: Spotify > Deezer > iTunes > Last.fm.
+ * Used by the lookup-panel chooser so the user can compare and pin a snapshot.
+ */
+export async function fetchTracklistCandidates(
+	artist: string,
+	title: string
+): Promise<TracklistResult[]> {
 	const fetchers: Array<() => Promise<TracklistResult>> = [
 		() => fetchFromSpotify(artist, title),
 		() => fetchFromDeezer(artist, title),
@@ -41,11 +45,19 @@ export async function fetchTracklist(artist: string, title: string): Promise<Tra
 		() => fetchFromLastfm(artist, title)
 	];
 
-	const results = await Promise.all(
+	return Promise.all(
 		fetchers.map((f) =>
 			withTimeout(f().catch(() => EMPTY), PER_SOURCE_TIMEOUT_MS, EMPTY)
 		)
 	);
+}
+
+export async function fetchTracklist(artist: string, title: string): Promise<TracklistResult> {
+	const cacheKey = `${artist.toLowerCase()}::${title.toLowerCase()}`;
+	const hit = cache.get(cacheKey);
+	if (hit && hit.expires > Date.now()) return hit.value;
+
+	const results = await fetchTracklistCandidates(artist, title);
 
 	// Pick the longest tracklist. Reduce with strict `>` so earlier entries
 	// in the fetcher list win on ties — that's our quality preference order.

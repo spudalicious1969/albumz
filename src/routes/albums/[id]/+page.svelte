@@ -1,17 +1,31 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import AlbumHero from '$lib/components/AlbumHero.svelte';
 	import ExternalLinks from '$lib/components/ExternalLinks.svelte';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
 	import Tracklist from '$lib/components/Tracklist.svelte';
 	import BackfillSuggestion from '$lib/components/BackfillSuggestion.svelte';
+	import {
+		formatDuration,
+		formatTotalDuration,
+		type TracklistResult,
+		type TracklistSource
+	} from '$lib/tracklist';
 	import type { PageData, ActionData } from './$types';
 
 	type LookupSuggestions = {
 		tags: string[];
 		tagSource: 'discogs' | 'lastfm' | 'ai' | null;
 		label: string | null;
+	};
+
+	const TRACKLIST_SOURCE_LABEL: Record<TracklistSource, string> = {
+		spotify: 'Spotify',
+		deezer: 'Deezer',
+		itunes: 'iTunes',
+		lastfm: 'Last.fm'
 	};
 
 	const formatOptions = [
@@ -68,6 +82,18 @@
 	let stagedCoverUrl = $state('');
 	let stagedAccent = $state('');
 
+	// ── Tracklist chooser state ──────────────────────────────────────────
+	let tracklistLoading = $state(false);
+	let tracklistCandidates = $state<TracklistResult[]>([]);
+	let expandedSource = $state<TracklistSource | null>(null);
+	let pinningSource = $state<TracklistSource | null>(null);
+	let pinErrorMsg = $state<string | null>(null);
+	let clearingPin = $state(false);
+	// Currently-pinned source from the loaded album row (null if auto-pick).
+	const pinnedSource = $derived<TracklistSource | null>(
+		(album.tracklist as { source?: TracklistSource } | null | undefined)?.source ?? null
+	);
+
 	// Re-sync the edit-state vars if the underlying album changes (e.g. after Save invalidates)
 	$effect(() => {
 		editArtist = album.artist;
@@ -96,15 +122,19 @@
 	function runLookup() {
 		lookupSearching = true;
 		lookupSuggesting = true;
+		tracklistLoading = true;
 		lookupResults = [];
 		lookupSuggestions = null;
+		tracklistCandidates = [];
+		expandedSource = null;
+		pinErrorMsg = null;
 
 		const params = new URLSearchParams();
 		if (editArtist.trim()) params.set('artist', editArtist.trim());
 		if (editTitle.trim()) params.set('title', editTitle.trim());
 		const qs = params.toString();
 
-		// Two independent fetches, two independent loading states — each
+		// Three independent fetches, three independent loading states — each
 		// section of the panel renders as soon as its data lands.
 		fetch(`/api/covers/search?${qs}`)
 			.then((r) => r.json())
@@ -125,6 +155,67 @@
 			.finally(() => {
 				lookupSuggesting = false;
 			});
+
+		fetch(`/api/albums/tracklist-candidates?${qs}`)
+			.then((r) => r.json())
+			.then((p: { candidates?: TracklistResult[] }) => {
+				tracklistCandidates = p.candidates ?? [];
+			})
+			.catch(() => {})
+			.finally(() => {
+				tracklistLoading = false;
+			});
+	}
+
+	async function pinTracklist(candidate: TracklistResult) {
+		if (!candidate.source) return;
+		pinningSource = candidate.source;
+		pinErrorMsg = null;
+		try {
+			const res = await fetch(`/api/albums/${album.id}/apply-suggestion`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					field: 'tracklist',
+					value: { tracks: candidate.tracks, source: candidate.source }
+				})
+			});
+			if (!res.ok) {
+				const data = (await res.json().catch(() => null)) as { message?: string } | null;
+				throw new Error(data?.message || `Pin failed (${res.status})`);
+			}
+			await invalidateAll();
+		} catch (err) {
+			pinErrorMsg = err instanceof Error ? err.message : 'Pin failed.';
+		} finally {
+			pinningSource = null;
+		}
+	}
+
+	async function clearTracklistPin() {
+		clearingPin = true;
+		pinErrorMsg = null;
+		try {
+			const res = await fetch(`/api/albums/${album.id}/apply-suggestion`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ field: 'tracklist', value: null })
+			});
+			if (!res.ok) {
+				const data = (await res.json().catch(() => null)) as { message?: string } | null;
+				throw new Error(data?.message || `Clear failed (${res.status})`);
+			}
+			await invalidateAll();
+		} catch (err) {
+			pinErrorMsg = err instanceof Error ? err.message : 'Clear failed.';
+		} finally {
+			clearingPin = false;
+		}
+	}
+
+	function toggleExpand(source: TracklistSource | null) {
+		if (!source) return;
+		expandedSource = expandedSource === source ? null : source;
 	}
 
 	function applyLookup(result: CoverResult) {
@@ -335,6 +426,91 @@
 							{/if}
 						</div>
 					{/if}
+
+					<div class="tracklist-chooser">
+						<div class="tracklist-chooser-header">
+							<h3 class="lookup-suggestions-title">Tracklist</h3>
+							{#if pinnedSource}
+								<span class="pinned-pill">
+									Pinned: {TRACKLIST_SOURCE_LABEL[pinnedSource]}
+								</span>
+								<button
+									type="button"
+									class="btn-mini"
+									onclick={clearTracklistPin}
+									disabled={clearingPin}
+								>
+									{clearingPin ? 'Clearing…' : 'Use auto-pick'}
+								</button>
+							{:else}
+								<span class="auto-pill">Auto-pick (longest wins)</span>
+							{/if}
+						</div>
+
+						{#if pinErrorMsg}
+							<p class="pin-error">{pinErrorMsg}</p>
+						{/if}
+
+						{#if tracklistLoading}
+							<p class="muted lookup-sug-loading">Looking up tracklists…</p>
+						{:else if tracklistCandidates.length === 0}
+							<p class="muted lookup-sug-loading">No tracklist sources returned matches.</p>
+						{:else}
+							<ul class="tracklist-candidates">
+								{#each tracklistCandidates as candidate (candidate.source)}
+									{@const isExpanded = expandedSource === candidate.source}
+									{@const isPinned = pinnedSource === candidate.source}
+									{@const isPinning = pinningSource === candidate.source}
+									<li class="tracklist-candidate" class:is-pinned={isPinned}>
+										<button
+											type="button"
+											class="tracklist-row"
+											onclick={() => toggleExpand(candidate.source)}
+											aria-expanded={isExpanded}
+										>
+											<span class="caret">{isExpanded ? '▾' : '▸'}</span>
+											<span class="tracklist-source">
+												{candidate.source ? TRACKLIST_SOURCE_LABEL[candidate.source] : '—'}
+											</span>
+											<span class="tracklist-meta">
+												{candidate.tracks.length} track{candidate.tracks.length === 1 ? '' : 's'}
+												{#if candidate.totalDuration}
+													· {formatTotalDuration(candidate.totalDuration)}
+												{/if}
+											</span>
+										</button>
+										<div class="tracklist-actions">
+											{#if isPinned}
+												<span class="pinned-marker">✓ Pinned</span>
+											{:else}
+												<button
+													type="button"
+													class="btn-mini btn-accept"
+													onclick={() => pinTracklist(candidate)}
+													disabled={isPinning || !candidate.source}
+												>
+													{isPinning ? 'Pinning…' : 'Accept'}
+												</button>
+											{/if}
+										</div>
+										{#if isExpanded}
+											<ol class="tracklist-tracks">
+												{#each candidate.tracks as track (track.position)}
+													<li class="tracklist-track">
+														<span class="tt-pos">{track.position}</span>
+														<span class="tt-name">{track.name}</span>
+														<span class="tt-dur">
+															{track.duration ? formatDuration(track.duration) : '—'}
+														</span>
+													</li>
+												{/each}
+											</ol>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</div>
 				</div>
 			{/if}
 
@@ -603,6 +779,150 @@
 		opacity: 0.65;
 		margin-top: 0.2rem;
 	}
+
+	/* ── Tracklist chooser ─────────────────────────────────────────── */
+	.tracklist-chooser {
+		margin-top: 1rem;
+		padding-top: 0.9rem;
+		border-top: 1px solid var(--border);
+	}
+	.tracklist-chooser-header {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.6rem;
+	}
+	.tracklist-chooser-header .lookup-suggestions-title {
+		margin: 0;
+	}
+	.pinned-pill {
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		background: color-mix(in oklch, var(--accent, oklch(70% 0.15 220)) 22%, transparent);
+		color: var(--text);
+		letter-spacing: 0.03em;
+	}
+	.auto-pill {
+		font-size: 0.72rem;
+		color: var(--text-muted);
+		font-style: italic;
+	}
+	.pin-error {
+		font-size: 0.8rem;
+		color: oklch(55% 0.2 25);
+		margin: 0 0 0.5rem;
+	}
+	.tracklist-candidates {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding: 0;
+		margin: 0;
+	}
+	.tracklist-candidate {
+		display: grid;
+		grid-template-columns: 1fr auto;
+		gap: 0.5rem;
+		align-items: center;
+		padding: 0.55rem 0.7rem;
+		background: var(--bg-elevated, color-mix(in oklch, var(--surface, #fff) 96%, var(--text) 4%));
+		border: 1px solid var(--border);
+		border-radius: 6px;
+	}
+	.tracklist-candidate.is-pinned {
+		border-color: color-mix(in oklch, var(--accent, oklch(70% 0.15 220)) 50%, var(--border));
+		background: color-mix(in oklch, var(--accent, oklch(70% 0.15 220)) 8%, var(--bg-elevated));
+	}
+	.tracklist-row {
+		display: flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		background: transparent;
+		border: none;
+		padding: 0;
+		text-align: left;
+		cursor: pointer;
+		color: var(--text);
+		font-family: inherit;
+		font-size: inherit;
+		min-width: 0;
+	}
+	.tracklist-row:hover .tracklist-source {
+		color: var(--accent, var(--text));
+	}
+	.caret {
+		font-size: 0.8rem;
+		color: var(--text-muted);
+		width: 0.9rem;
+		display: inline-block;
+	}
+	.tracklist-source {
+		font-weight: 600;
+		font-size: 0.88rem;
+		letter-spacing: 0.02em;
+		transition: color 0.1s;
+	}
+	.tracklist-meta {
+		font-size: 0.78rem;
+		color: var(--text-muted);
+	}
+	.tracklist-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.pinned-marker {
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: oklch(55% 0.17 145);
+	}
+	.tracklist-tracks {
+		grid-column: 1 / -1;
+		list-style: none;
+		padding: 0.55rem 0 0.25rem;
+		margin: 0.5rem 0 0;
+		border-top: 1px solid var(--border);
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+	.tracklist-track {
+		display: grid;
+		grid-template-columns: 1.8rem 1fr auto;
+		gap: 0.6rem;
+		align-items: baseline;
+		font-size: 0.85rem;
+		padding: 0.15rem 0;
+	}
+	.tt-pos {
+		font-variant-numeric: tabular-nums;
+		color: var(--text-muted);
+		font-size: 0.78rem;
+		text-align: right;
+	}
+	.tt-name { color: var(--text); }
+	.tt-dur {
+		font-variant-numeric: tabular-nums;
+		color: var(--text-muted);
+		font-size: 0.78rem;
+	}
+	.btn-mini {
+		font-size: 0.78rem;
+		padding: 0.25rem 0.65rem;
+		border: 1px solid var(--border);
+		background: transparent;
+		color: var(--text);
+		border-radius: 4px;
+		cursor: pointer;
+		font-family: inherit;
+	}
+	.btn-mini:hover { background: color-mix(in oklch, var(--text) 8%, transparent); }
+	.btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
+	.btn-accept { border-color: oklch(55% 0.17 145); color: oklch(55% 0.17 145); }
 
 	.field-grid {
 		display: grid;

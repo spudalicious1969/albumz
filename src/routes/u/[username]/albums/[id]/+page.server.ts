@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { resolveExternalLinks } from '$lib/external-links.server';
 import { fetchTracklist } from '$lib/tracklist.server';
+import { snapshotToResult } from '$lib/tracklist';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
@@ -18,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 	const { data: album, error: dbError } = await locals.supabase
 		.from('albums')
 		.select(
-			'id, artist, title, year, format, label, rating, ownership, notes, tags, hidden, cover_url, accent_color, user_id'
+			'id, artist, title, year, format, label, rating, ownership, notes, tags, hidden, cover_url, accent_color, tracklist, user_id'
 		)
 		.eq('id', params.id)
 		.eq('user_id', profile.id)
@@ -29,9 +30,12 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 	if (dbError) error(500, dbError.message);
 	if (!album) error(404, 'Album not found');
 
+	// Prefer the owner's snapshotted tracklist if they've curated one;
+	// otherwise fall back to the live pick-longest fetch.
+	const stored = snapshotToResult(album.tracklist);
 	const [externalLinks, tracklist] = await Promise.all([
 		resolveExternalLinks(album.artist, album.title),
-		fetchTracklist(album.artist, album.title)
+		stored ? Promise.resolve(stored) : fetchTracklist(album.artist, album.title)
 	]);
 
 	// Light HTTP caching — album pages aren't user-state-dependent

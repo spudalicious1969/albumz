@@ -1,6 +1,7 @@
 import { redirect, fail, error } from '@sveltejs/kit';
 import { resolveExternalLinks } from '$lib/external-links.server';
 import { fetchTracklist } from '$lib/tracklist.server';
+import { snapshotToResult } from '$lib/tracklist';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -25,9 +26,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!albumRes.data) error(404, 'Album not found');
 
 	const album = albumRes.data;
+	// Prefer the user's snapshotted tracklist if they've curated one via the
+	// lookup-panel chooser; otherwise fall back to the live pick-longest fetch.
+	const stored = snapshotToResult(album.tracklist);
 	const [externalLinks, tracklist] = await Promise.all([
 		resolveExternalLinks(album.artist, album.title),
-		fetchTracklist(album.artist, album.title)
+		stored ? Promise.resolve(stored) : fetchTracklist(album.artist, album.title)
 	]);
 
 	return {

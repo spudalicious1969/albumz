@@ -27,3 +27,24 @@ export function formatTotalDuration(seconds: number): string {
 	if (h > 0) return `${h}h ${m}m`;
 	return `${m}m`;
 }
+
+/**
+ * Promote a stored tracklist snapshot (jsonb on the album row) into the
+ * TracklistResult shape the UI expects. Computes totalDuration on the fly
+ * so we never have to migrate stored snapshots if the format gains fields.
+ * Returns null if the value isn't a valid snapshot.
+ */
+export function snapshotToResult(raw: unknown): TracklistResult | null {
+	if (!raw || typeof raw !== 'object') return null;
+	const v = raw as { tracks?: unknown; source?: unknown };
+	if (!Array.isArray(v.tracks) || v.tracks.length === 0) return null;
+	if (typeof v.source !== 'string') return null;
+
+	const tracks = v.tracks as Track[];
+	const totalDuration = tracks.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
+	return {
+		tracks,
+		source: v.source as TracklistSource,
+		totalDuration: totalDuration > 0 ? totalDuration : null
+	};
+}
