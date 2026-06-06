@@ -12,6 +12,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { runDiscovery } from './album-search.server';
+import { topConfidentCover } from './cover-search';
 import { getArtistTopTagsBatch } from './lastfm.server';
 import { fetchDiscogsTagsForAlbum } from './discogs-tags.server';
 import { suggestMetadata, type AlbumSuggestion } from './qwen-suggest.server';
@@ -104,7 +105,10 @@ export async function backfillMissingMetadata(
 			if (wantsCover) attempted.covers++;
 			try {
 				const results = await runDiscovery(a.artist, a.title);
-				const top = results[0];
+				// Only trust the top hit if it clears the confidence floor — all
+				// three fields (year/label/cover) come from the same result row,
+				// so a wrong-artist match would poison every one of them.
+				const top = topConfidentCover(results, a.artist, a.title);
 				if (top) {
 					if (wantsYear && typeof top.year === 'number') {
 						updates.year = top.year;

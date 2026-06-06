@@ -1,5 +1,5 @@
 import { error, json } from '@sveltejs/kit';
-import { searchCovers } from '$lib/cover-search';
+import { searchCovers, topConfidentCover } from '$lib/cover-search';
 import type { RequestHandler } from './$types';
 
 // Cap per-request to keep latency bounded and avoid hammering the proxies
@@ -32,7 +32,11 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			if (album.cover_url) return { id: album.id, status: 'skipped' as const };
 
 			const covers = await searchCovers(album.artist, album.title);
-			const top = covers[0];
+			// Only auto-write if the top hit clears the confidence floor — guards
+			// against wrong-artist matches that the old substring scorer would
+			// confidently rank #1. Below the floor surfaces as "not_found" so the
+			// album stays in the missing-covers list for manual lookup.
+			const top = topConfidentCover(covers, album.artist, album.title);
 
 			if (!top) return { id: album.id, status: 'not_found' as const };
 

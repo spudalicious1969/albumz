@@ -88,6 +88,7 @@ create table if not exists public.albums (
   cover_url    text,
   accent_color text,    -- precomputed dominant color, oklch string e.g. 'oklch(65% 0.18 22)'
   discogs_id   text,
+  tracklist    jsonb,   -- pinned snapshot {tracks, source} picked via the lookup-panel chooser; null = use live pick-longest
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );

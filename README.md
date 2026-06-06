@@ -42,6 +42,8 @@ On any album detail page, click **Edit details**. Inside the editor is a **🔎 
 
 Underneath the cover picker, the same panel also pulls in **suggestions for empty fields** — tags from Discogs (or Last.fm as a fallback), and a label / tag suggestion from a local AI as a final fallback. Each one is marked with its source and has **Accept / Edit / Skip** controls, so nothing writes to the album without your say-so.
 
+The same panel also offers a **Tracklist** chooser — one row per source that returned tracks (Spotify, Deezer, iTunes, Last.fm), with track count and total runtime. Click a row to expand the full list, click **Accept** to pin that source's tracklist to the album. The page renders the pinned snapshot on every load. **Use auto-pick** clears the pin and goes back to "longest wins."
+
 You can also edit notes, rating, tags, format, label, year, and ownership.
 
 ### Removing
@@ -68,7 +70,7 @@ Each wantlist album has a row of buy-links — Record Exchange first (Boise's lo
 
 ### Auto-search
 
-When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores the results by how well the artist and title match, and uses the top hit. The reranking matters — without it, search for "Wilco — Sky Blue Sky" used to come back with the wrong cover often enough to be a nuisance.
+When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores the results by how well the artist and title match, and uses the top hit *if the match is strong enough*. Artist names that match only as a loose substring (the classic "Helium / Helium Sound" trap, made worse when imports carry Discogs's disambiguator suffix) no longer auto-attach — those albums stay in the missing-covers list so you can browse the candidates yourself. The reranking and confidence floor both matter: without them, "Wilco — Sky Blue Sky" used to come back with the wrong cover often enough to be a nuisance.
 
 ### Manual cover picker
 
@@ -106,7 +108,7 @@ Whatever you pick sticks — Albumz remembers your sort *and* direction preferen
 
 ### Importing
 
-Settings → **Import / Export** → drop in a CSV, XLS, or XLSX file. Discogs exports work out of the box; so do most spreadsheets where the column headers are roughly named "Artist", "Album", "Year", "Format", and so on.
+Settings → **Import / Export** → drop in a CSV, XLS, or XLSX file. Discogs exports work out of the box; so do most spreadsheets where the column headers are roughly named "Artist", "Album", "Year", "Format", and so on. Discogs's `(N)` artist disambiguator suffix (e.g. "Helium (3)") gets stripped on import so downstream catalog lookups don't whiff.
 
 You'll see a preview before anything commits. Rows missing required fields are flagged with a skip reason; valid rows are imported, covers searched in the background.
 

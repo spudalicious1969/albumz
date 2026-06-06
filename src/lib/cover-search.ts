@@ -26,17 +26,53 @@ const SOURCE_PRIORITY: Record<CoverResult['source'], number> = {
 	lastfm: 0
 };
 
+// Confidence floor for auto-writing a cover without user review. Any pick
+// below this score is suspect enough that we'd rather leave the album
+// cover-less than risk attaching the wrong art (catastrophic when bulk).
+// Math: artist equality (+100) + title substring (+15) + min source = 115.
+// Substring-only artist matches (the old false-positive vector for short
+// or common names) score 30 + 50 + source = 84 max → falls below the floor.
+const CONFIDENT_SCORE = 115;
+
+function normalize(s: string): string {
+	return s
+		.toLowerCase()
+		.normalize('NFKD')
+		.replace(/[^\p{Letter}\p{Number}]+/gu, '')
+		.trim();
+}
+
 function scoreResult(r: CoverResult, artist: string, title: string): number {
-	const a = artist.toLowerCase();
-	const t = title.toLowerCase();
-	const ra = r.artist.toLowerCase();
-	const rt = r.title.toLowerCase();
+	const a = normalize(artist);
+	const t = normalize(title);
+	const ra = normalize(r.artist);
+	const rt = normalize(r.title);
 	let score = SOURCE_PRIORITY[r.source];
-	// Artist match is the strongest signal — bulk-backfill on imports failed
-	// most often when iTunes returned a same-titled album by a different artist.
-	if (ra && a && (ra.includes(a) || a.includes(ra))) score += 100;
-	if (rt && t && (rt.includes(t) || t.includes(rt))) score += 50;
+	// Artist equality is the heaviest signal — wrong-artist hits via loose
+	// substring matching were the main failure mode for bulk auto-writes.
+	if (ra && a && ra === a) score += 100;
+	else if (ra && a && (ra.includes(a) || a.includes(ra))) score += 30;
+
+	if (rt && t && rt === t) score += 50;
+	else if (rt && t && (rt.includes(t) || t.includes(rt))) score += 15;
+
 	return score;
+}
+
+/**
+ * Pick the top result only if it clears the confidence floor — used by the
+ * auto-write paths (Find covers button + bulk backfill). Below the floor,
+ * we return null so the caller leaves cover_url unwritten; the user can
+ * still browse the full ranked list via the lookup panel.
+ */
+export function topConfidentCover(
+	results: CoverResult[],
+	artist: string,
+	title: string
+): CoverResult | null {
+	const top = results[0];
+	if (!top) return null;
+	return scoreResult(top, artist, title) >= CONFIDENT_SCORE ? top : null;
 }
 
 export async function searchCovers(artist: string, title: string): Promise<CoverResult[]> {
