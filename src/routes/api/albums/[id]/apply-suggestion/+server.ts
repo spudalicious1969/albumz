@@ -13,21 +13,22 @@ import type { RequestHandler } from './$types';
 type TracklistSnapshot = {
 	tracks: Track[];
 	source: TracklistSource;
+	sourceId?: string;
 };
 
 type Body = { field?: string; value?: unknown };
 
-const VALID_SOURCES: TracklistSource[] = ['spotify', 'deezer', 'itunes', 'lastfm'];
+const VALID_SOURCES: TracklistSource[] = ['spotify', 'deezer', 'itunes', 'musicbrainz', 'lastfm'];
 
 function parseTracklistSnapshot(value: unknown): TracklistSnapshot {
 	if (!value || typeof value !== 'object') error(400, 'tracklist must be an object');
-	const v = value as { tracks?: unknown; source?: unknown };
+	const v = value as { tracks?: unknown; source?: unknown; sourceId?: unknown };
 
 	if (!Array.isArray(v.tracks) || v.tracks.length === 0) {
 		error(400, 'tracklist.tracks must be a non-empty array');
 	}
 	if (typeof v.source !== 'string' || !VALID_SOURCES.includes(v.source as TracklistSource)) {
-		error(400, 'tracklist.source must be one of spotify|deezer|itunes|lastfm');
+		error(400, 'tracklist.source must be one of spotify|deezer|itunes|musicbrainz|lastfm');
 	}
 
 	const tracks: Track[] = v.tracks.map((t, i) => {
@@ -45,7 +46,11 @@ function parseTracklistSnapshot(value: unknown): TracklistSnapshot {
 		return { position, name, duration };
 	});
 
-	return { tracks, source: v.source as TracklistSource };
+	const snap: TracklistSnapshot = { tracks, source: v.source as TracklistSource };
+	if (typeof v.sourceId === 'string' && v.sourceId.trim()) {
+		snap.sourceId = v.sourceId.trim();
+	}
+	return snap;
 }
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {

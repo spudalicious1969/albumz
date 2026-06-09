@@ -7,12 +7,27 @@ export type Track = {
 	duration: number | null;
 };
 
-export type TracklistSource = 'spotify' | 'lastfm' | 'deezer' | 'itunes';
+export type TracklistSource = 'spotify' | 'lastfm' | 'deezer' | 'itunes' | 'musicbrainz';
+
+// One of the alternate MusicBrainz releases for the same artist+album search.
+// Only populated when source='musicbrainz'. Lets the user switch between
+// e.g. "CD" and "EP+Demo" pressings of the same record without round-tripping
+// through musicbrainz.org to find an MBID.
+export type MBAlternate = {
+	mbid: string;
+	label: string;
+	trackCount: number;
+};
 
 export type TracklistResult = {
 	tracks: Track[];
 	source: TracklistSource | null;
 	totalDuration: number | null;
+	// sourceId identifies which underlying record at the source the tracks came
+	// from. Currently only meaningful for MusicBrainz (the release MBID); other
+	// sources collapse variants into one entry so the field stays unset.
+	sourceId?: string | null;
+	alternates?: MBAlternate[];
 };
 
 export function formatDuration(seconds: number): string {
@@ -36,7 +51,7 @@ export function formatTotalDuration(seconds: number): string {
  */
 export function snapshotToResult(raw: unknown): TracklistResult | null {
 	if (!raw || typeof raw !== 'object') return null;
-	const v = raw as { tracks?: unknown; source?: unknown };
+	const v = raw as { tracks?: unknown; source?: unknown; sourceId?: unknown };
 	if (!Array.isArray(v.tracks) || v.tracks.length === 0) return null;
 	if (typeof v.source !== 'string') return null;
 
@@ -45,6 +60,7 @@ export function snapshotToResult(raw: unknown): TracklistResult | null {
 	return {
 		tracks,
 		source: v.source as TracklistSource,
-		totalDuration: totalDuration > 0 ? totalDuration : null
+		totalDuration: totalDuration > 0 ? totalDuration : null,
+		sourceId: typeof v.sourceId === 'string' ? v.sourceId : null
 	};
 }

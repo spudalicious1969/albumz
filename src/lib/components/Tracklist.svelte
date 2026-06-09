@@ -12,7 +12,8 @@
 		spotify: 'Spotify',
 		lastfm: 'Last.fm',
 		deezer: 'Deezer',
-		itunes: 'iTunes'
+		itunes: 'iTunes',
+		musicbrainz: 'MusicBrainz'
 	};
 </script>
 

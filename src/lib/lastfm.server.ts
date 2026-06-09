@@ -5,6 +5,8 @@
 
 import { env } from '$env/dynamic/private';
 import crypto from 'node:crypto';
+// Shared with mergeTags() so Discogs/qwen pass through the same junk filter.
+import { filterStoplist } from './tag-merge';
 
 const ENDPOINT = 'https://ws.audioscrobbler.com/2.0/';
 
@@ -261,35 +263,6 @@ export async function fetchRecentTracks(
 	return out.slice(0, SAFETY_CAP);
 }
 
-// Tags so generic they don't anchor a hook: genre umbrellas, era buckets,
-// preference markers, locale labels, vocalist-role tags. The second tier of
-// Last.fm tags (post-punk, shoegaze, krautrock, dream pop, etc.) is where
-// the column gets its flavor; this stoplist clears the way for them to
-// surface. Applied at both fetch-time (new cache rows store clean) and
-// read-time (existing noisy rows get filtered on the way through), so no
-// cache wipe is needed.
-const TAG_STOPLIST = new Set([
-	// Genre umbrellas
-	'rock', 'pop', 'indie', 'alternative', 'alternative rock', 'indie rock', 'indie pop',
-	// Era / decade buckets
-	'50s', '60s', '70s', '80s', '90s', '00s', '10s', '20s',
-	'2000s', '2010s', '2020s', 'classic rock', 'oldies',
-	// Preference / meta noise
-	'seen live', 'favourite', 'favourites', 'favorite', 'favorites',
-	'my favourites', 'my favorites', 'awesome', 'amazing', 'love', 'great', 'best', 'cool', 'good',
-	'love it', 'loved',
-	// Locale labels
-	'american', 'british', 'english', 'uk', 'usa', 'american rock', 'british rock',
-	'american indie', 'british indie',
-	// Vocalist role
-	'male vocalists', 'female vocalists', 'male vocalist', 'female vocalist',
-	// Other catch-all
-	'all', 'music'
-]);
-
-function filterStoplist(tags: string[]): string[] {
-	return tags.filter((t) => !TAG_STOPLIST.has(t));
-}
 
 /** Top tags for an artist from Last.fm `artist.getTopTags`. Lowercased,
  * deduped, stoplist-filtered, capped to the top `limit` by Last.fm's count
@@ -305,6 +278,56 @@ export async function fetchArtistTopTags(
 	const url = new URL(ENDPOINT);
 	url.searchParams.set('method', 'artist.getTopTags');
 	url.searchParams.set('artist', artist);
+	url.searchParams.set('api_key', key);
+	url.searchParams.set('format', 'json');
+	url.searchParams.set('autocorrect', '1');
+
+	try {
+		const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+		if (!res.ok) return [];
+		const data = (await res.json()) as {
+			toptags?: { tag?: { name?: string; count?: number }[] | { name?: string; count?: number } };
+			error?: number;
+		};
+		if (data.error) return [];
+		const raw = data.toptags?.tag;
+		const arr = Array.isArray(raw) ? raw : raw ? [raw] : [];
+		const tags = arr
+			.filter((t) => t.name && (t.count ?? 0) > 0)
+			.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
+			.map((t) => (t.name as string).toLowerCase().trim())
+			.filter((t) => t.length > 0);
+		const seen = new Set<string>();
+		const unique: string[] = [];
+		for (const t of filterStoplist(tags)) {
+			if (seen.has(t)) continue;
+			seen.add(t);
+			unique.push(t);
+			if (unique.length >= limit) break;
+		}
+		return unique;
+	} catch {
+		return [];
+	}
+}
+
+/** Top tags for a specific album from Last.fm `album.getTopTags`. Same shape
+ * as fetchArtistTopTags but album-scoped — picks up per-record tags like
+ * "post-punk", "dance-punk", "art rock" that the artist-level pull misses.
+ * Used by the album-edit suggestion path where richness matters more than
+ * the narrative discipline that gates the digest. */
+export async function fetchAlbumTopTags(
+	artist: string,
+	album: string,
+	limit = 10
+): Promise<string[]> {
+	const key = env.LAST_FM_API_KEY;
+	if (!key || !artist || !album) return [];
+
+	const url = new URL(ENDPOINT);
+	url.searchParams.set('method', 'album.getTopTags');
+	url.searchParams.set('artist', artist);
+	url.searchParams.set('album', album);
 	url.searchParams.set('api_key', key);
 	url.searchParams.set('format', 'json');
 	url.searchParams.set('autocorrect', '1');
@@ -364,7 +387,14 @@ export async function getArtistTopTagsBatch(
 	for (const row of cached ?? []) {
 		// Re-apply the stoplist on read so cache rows written before the
 		// stoplist existed still surface only the specific tags.
-		result.set(row.artist, filterStoplist((row.tags as string[]) ?? []));
+		const cleaned = filterStoplist((row.tags as string[]) ?? []);
+		// Empty cached rows are treated as misses: they're usually relics of
+		// transient Last.fm failures (or stoplist changes that filtered out
+		// everything the cache had), and we don't want one bad fetch to
+		// poison an artist forever. Re-fetching lets Last.fm have another
+		// shot at returning real data.
+		if (cleaned.length === 0) continue;
+		result.set(row.artist, cleaned);
 		cachedKeys.add(row.artist);
 	}
 
@@ -375,7 +405,10 @@ export async function getArtistTopTagsBatch(
 	for (const key of misses) {
 		const tags = await fetchArtistTopTags(key);
 		result.set(key, tags);
-		toUpsert.push({ artist: key, tags });
+		// Don't write empties — same reasoning as above. If Last.fm genuinely
+		// has nothing for this artist, the small repeat-fetch cost is worth
+		// avoiding the permanent-poison risk.
+		if (tags.length > 0) toUpsert.push({ artist: key, tags });
 	}
 
 	if (toUpsert.length > 0) {

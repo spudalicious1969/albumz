@@ -5,19 +5,26 @@
 //
 // Sources reused from per-album lookup:
 //   - year/label/cover: runDiscovery → Spotify/iTunes/Deezer/MB/LFM (scored)
-//   - tags: Discogs release-level styles+genres first (curated, album-specific),
-//          Last.fm artist-tag cache as fallback when Discogs has no match.
+//   - tags: merged from Discogs release-level styles+genres (curated,
+//          album-specific) AND Last.fm artist-tag cache, deduped case-
+//          insensitively. Discogs ordering wins so curated styles surface
+//          first. Both are catalog sources — safe to auto-write.
 //   - tags + label final fallback: qwen3.5 (Ollama). Suggestions only — never
 //          auto-written. Surfaced in the recap with Accept/Edit/Skip review.
 
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { runDiscovery } from './album-search.server';
 import { topConfidentCover } from './cover-search';
-import { getArtistTopTagsBatch } from './lastfm.server';
+import { fetchAlbumTopTags, getArtistTopTagsBatch } from './lastfm.server';
 import { fetchDiscogsTagsForAlbum } from './discogs-tags.server';
 import { suggestMetadata, type AlbumSuggestion } from './qwen-suggest.server';
+import { mergeTags } from './tag-merge';
 
 const TAGS_PER_ALBUM_CAP = 8;
+// Albums at or below this tag count are considered "thin" and get enriched
+// from catalog sources (existing tags preserved via mergeTags). Anything
+// above this is treated as deliberately curated and left alone.
+const THIN_TAGS_THRESHOLD = 2;
 
 type AlbumRow = {
 	id: string;
@@ -52,7 +59,7 @@ function needsAnything(a: AlbumRow): boolean {
 	return (
 		a.year === null ||
 		!a.label ||
-		(a.tags?.length ?? 0) === 0 ||
+		(a.tags?.length ?? 0) <= THIN_TAGS_THRESHOLD ||
 		!a.cover_url
 	);
 }
@@ -76,7 +83,7 @@ export async function backfillMissingMetadata(
 	const artistKey = (s: string) => s.toLowerCase().trim();
 	const artistsNeedingTags = new Set<string>();
 	for (const a of candidates) {
-		if ((a.tags?.length ?? 0) === 0) artistsNeedingTags.add(artistKey(a.artist));
+		if ((a.tags?.length ?? 0) <= THIN_TAGS_THRESHOLD) artistsNeedingTags.add(artistKey(a.artist));
 	}
 	const tagMap =
 		artistsNeedingTags.size > 0
@@ -94,7 +101,9 @@ export async function backfillMissingMetadata(
 		const wantsYear = a.year === null;
 		const wantsLabel = !a.label;
 		const wantsCover = !a.cover_url;
-		const wantsTags = (a.tags?.length ?? 0) === 0;
+		const existingTagCount = a.tags?.length ?? 0;
+		const wantsTags = existingTagCount <= THIN_TAGS_THRESHOLD;
+		const tagsEmpty = existingTagCount === 0;
 
 		// Discogs-style lookup only fires when a non-tag field is missing — saves
 		// API roundtrips for albums whose only gap is tags.
@@ -133,14 +142,29 @@ export async function backfillMissingMetadata(
 
 		if (wantsTags) {
 			attempted.tagSets++;
-			// Discogs first — release-level style+genre, curated. Falls back to
-			// Last.fm's artist-level tags from the pre-batched cache.
-			let tags = await fetchDiscogsTagsForAlbum(a.artist, a.title);
-			if (tags.length === 0) {
-				tags = tagMap.get(artistKey(a.artist)) ?? [];
-			}
-			if (tags.length > 0) {
-				updates.tags = tags.slice(0, TAGS_PER_ALBUM_CAP);
+			// Merge existing tags + Discogs release-level styles + Last.fm's
+			// album-level tags + Last.fm's artist-level tags from the
+			// pre-batched cache. Existing tags lead the merge so the user's
+			// curated picks (e.g. "New Wave") set the canonical casing and
+			// aren't lost. Album-level Last.fm tags are the richest source
+			// for record-specific genres (post-punk, dance-punk, art rock)
+			// that artist-level tags miss. Previously a strict fallback that
+			// only fired when tags were completely empty; now also enriches
+			// "thin" albums (1-2 tags) so single-tag results like the B-52s
+			// get fleshed out without losing the original.
+			const [discogsTags, lfmAlbumTags] = await Promise.all([
+				fetchDiscogsTagsForAlbum(a.artist, a.title),
+				fetchAlbumTopTags(a.artist, a.title)
+			]);
+			const lfmArtistTags = tagMap.get(artistKey(a.artist)) ?? [];
+			const merged = mergeTags(
+				a.tags ?? [],
+				discogsTags,
+				lfmAlbumTags,
+				lfmArtistTags
+			).slice(0, TAGS_PER_ALBUM_CAP);
+			if (merged.length > existingTagCount) {
+				updates.tags = merged;
 				filled.tagSets++;
 			}
 		}
@@ -155,11 +179,14 @@ export async function backfillMissingMetadata(
 		}
 
 		// Anything still empty after the pass — surface so the owner can pick
-		// it up by hand (or via qwen's suggestion for tags/label).
+		// it up by hand (or via qwen's suggestion for tags/label). For tags,
+		// only fall back to qwen when truly empty — thin-tag enrichment is a
+		// catalog-only operation and we don't want to bug the user with AI
+		// suggestions for albums that already have *some* tags.
 		const remaining: MissingField[] = [];
 		if (wantsYear && updates.year === undefined) remaining.push('year');
 		if (wantsLabel && updates.label === undefined) remaining.push('label');
-		if (wantsTags && updates.tags === undefined) remaining.push('tags');
+		if (tagsEmpty && updates.tags === undefined) remaining.push('tags');
 		if (wantsCover && updates.cover_url === undefined) remaining.push('cover');
 
 		let suggestion: AlbumSuggestion | null = null;

@@ -1,14 +1,14 @@
-// Server-side tracklist resolver. Fans out to Spotify, Deezer, iTunes, and
-// Last.fm in parallel and picks the source returning the most tracks. The
-// previous waterfall stopped at the first non-empty result, which silently
-// truncated tracklists when Last.fm had the album in its DB with only one
-// scrobble-registered track (common for very new releases). Ties go to
+// Server-side tracklist resolver. Fans out to Spotify, Deezer, iTunes,
+// MusicBrainz, and Last.fm in parallel and picks the source returning the most
+// tracks. The previous waterfall stopped at the first non-empty result, which
+// silently truncated tracklists when Last.fm had the album in its DB with only
+// one scrobble-registered track (common for very new releases). Ties go to
 // whichever fetcher we listed first — ordering by track-quality reputation:
-// Spotify > Deezer > iTunes > Last.fm.
+// Spotify > Deezer > iTunes > MusicBrainz > Last.fm.
 
 import { env } from '$env/dynamic/private';
 import { getSpotifyToken } from './spotify-auth.server';
-import type { Track, TracklistResult, TracklistSource } from './tracklist';
+import type { MBAlternate, Track, TracklistResult, TracklistSource } from './tracklist';
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const PER_SOURCE_TIMEOUT_MS = 8000;
@@ -19,6 +19,8 @@ const cache = new Map<string, { value: TracklistResult; expires: number }>();
 const SPOTIFY_API = 'https://api.spotify.com/v1';
 const DEEZER_API = 'https://api.deezer.com';
 const ITUNES_API = 'https://itunes.apple.com';
+const MB_API = 'https://musicbrainz.org/ws/2';
+const MB_HEADERS = { 'User-Agent': 'Albumz/1.0 (brent.l.watkins@gmail.com)' };
 
 const EMPTY: TracklistResult = { tracks: [], source: null, totalDuration: null };
 
@@ -42,6 +44,7 @@ export async function fetchTracklistCandidates(
 		() => fetchFromSpotify(artist, title),
 		() => fetchFromDeezer(artist, title),
 		() => fetchFromItunes(artist, title),
+		() => fetchFromMusicBrainz(artist, title),
 		() => fetchFromLastfm(artist, title)
 	];
 
@@ -285,4 +288,114 @@ async function fetchFromItunes(artist: string, title: string): Promise<Tracklist
 	}));
 
 	return finalize(tracks, 'itunes');
+}
+
+// ---------- MusicBrainz ----------
+
+type MBReleaseSummary = {
+	id?: string;
+	title?: string;
+	disambiguation?: string;
+	'artist-credit'?: Array<{ artist?: { name?: string } }>;
+	date?: string;
+	country?: string;
+	'track-count'?: number;
+	media?: Array<{ format?: string; 'track-count'?: number }>;
+};
+
+type MBReleaseDetail = {
+	media?: Array<{
+		tracks?: Array<{ position?: number; title?: string; length?: number | null }>;
+	}>;
+};
+
+// Build a short, scannable label for an MB release. Priority: human-set
+// disambiguation > pressed format(s) > year. We want "EP+Demo · 2018" or
+// "CD · 2020" — enough to pick from a list of variants.
+function mbReleaseLabel(r: MBReleaseSummary): string {
+	const parts: string[] = [];
+	if (r.disambiguation) parts.push(r.disambiguation);
+	const formats = (r.media ?? [])
+		.map((m) => m.format)
+		.filter((f): f is string => Boolean(f));
+	if (formats.length > 0 && parts.length === 0) {
+		parts.push(formats.join(' + '));
+	}
+	const year = r.date?.slice(0, 4);
+	if (year) parts.push(year);
+	if (r.country && parts.length < 2) parts.push(r.country);
+	return parts.length > 0 ? parts.join(' · ') : 'Release';
+}
+
+function mbTrackCount(r: MBReleaseSummary): number {
+	if (typeof r['track-count'] === 'number') return r['track-count'];
+	return (r.media ?? []).reduce((sum, m) => sum + (m['track-count'] ?? 0), 0);
+}
+
+async function fetchMBReleaseTracks(mbid: string): Promise<Track[] | null> {
+	const releaseUrl = `${MB_API}/release/${mbid}?inc=recordings&fmt=json`;
+	const res = await fetch(releaseUrl, { headers: MB_HEADERS });
+	if (!res.ok) return null;
+	const data = (await res.json()) as MBReleaseDetail;
+	const tracks: Track[] = [];
+	for (const medium of data.media ?? []) {
+		for (const t of medium.tracks ?? []) {
+			tracks.push({
+				position: tracks.length + 1,
+				name: t.title ?? '',
+				duration: t.length && t.length > 0 ? Math.round(t.length / 1000) : null
+			});
+		}
+	}
+	return tracks;
+}
+
+async function fetchFromMusicBrainz(artist: string, title: string): Promise<TracklistResult> {
+	const query = `release:"${title}" AND artist:"${artist}"`;
+	const searchUrl = `${MB_API}/release?query=${encodeURIComponent(query)}&fmt=json&limit=5`;
+	const searchRes = await fetch(searchUrl, { headers: MB_HEADERS });
+	if (!searchRes.ok) return finalize([], 'musicbrainz');
+
+	const searchData = (await searchRes.json()) as { releases?: MBReleaseSummary[] };
+	const releases = (searchData.releases ?? []).filter((r): r is MBReleaseSummary & { id: string } =>
+		typeof r.id === 'string'
+	);
+	if (releases.length === 0) return finalize([], 'musicbrainz');
+
+	const wantArtist = normalize(artist);
+	const wantTitle = normalize(title);
+	const best =
+		releases.find(
+			(r) =>
+				normalize(r['artist-credit']?.[0]?.artist?.name ?? '') === wantArtist &&
+				normalize(r.title ?? '') === wantTitle
+		) ?? releases[0];
+
+	const tracks = await fetchMBReleaseTracks(best.id);
+	if (!tracks) return finalize([], 'musicbrainz');
+
+	const alternates: MBAlternate[] = releases.map((r) => ({
+		mbid: r.id,
+		label: mbReleaseLabel(r),
+		trackCount: mbTrackCount(r)
+	}));
+
+	const result = finalize(tracks, 'musicbrainz');
+	result.sourceId = best.id;
+	result.alternates = alternates;
+	return result;
+}
+
+/**
+ * Fetch a specific MusicBrainz release by MBID. Used by the lookup-panel
+ * "switch release" picker when the user wants a variant other than the
+ * search default (e.g. EP+Demo instead of CD). Does not include alternates;
+ * the caller already has them from the original search.
+ */
+export async function fetchMusicBrainzRelease(mbid: string): Promise<TracklistResult> {
+	const tracks = await fetchMBReleaseTracks(mbid);
+	if (!tracks || tracks.length === 0) return finalize([], 'musicbrainz');
+	const result = finalize(tracks, 'musicbrainz');
+	result.sourceId = mbid;
+	return result;
 }

@@ -13,6 +13,7 @@
 		type TracklistResult,
 		type TracklistSource
 	} from '$lib/tracklist';
+	import { mergeTags } from '$lib/tag-merge';
 	import type { CoverResult } from '$lib/cover-types';
 	import {
 		groupResults,
@@ -25,7 +26,6 @@
 
 	type LookupSuggestions = {
 		tags: string[];
-		tagSource: 'discogs' | 'lastfm' | 'ai' | null;
 		label: string | null;
 	};
 
@@ -33,6 +33,7 @@
 		spotify: 'Spotify',
 		deezer: 'Deezer',
 		itunes: 'iTunes',
+		musicbrainz: 'MusicBrainz',
 		lastfm: 'Last.fm'
 	};
 
@@ -98,6 +99,11 @@
 	let pinningSource = $state<TracklistSource | null>(null);
 	let pinErrorMsg = $state<string | null>(null);
 	let clearingPin = $state(false);
+	// MusicBrainz-only: which release variants dropdown is open, and which
+	// alternate is currently being fetched. Other sources fold variants into
+	// one entry so they don't need this affordance.
+	let mbAlternatesOpen = $state(false);
+	let loadingAlternateMbid = $state<string | null>(null);
 	// Currently-pinned source from the loaded album row (null if auto-pick).
 	const pinnedSource = $derived<TracklistSource | null>(
 		(album.tracklist as { source?: TracklistSource } | null | undefined)?.source ?? null
@@ -114,18 +120,26 @@
 		editTags = album.tags?.join(', ') ?? '';
 	});
 
-	// Visibility of the two suggestion rows — reactive to current form state so
-	// they auto-hide when the user types a value in (or accepts a suggestion).
+	// Visibility of suggestion rows — reactive to current form state so they
+	// auto-hide when the user types a value in (or accepts a suggestion).
+	// Tags: surface when the merged (existing + catalog + AI) set would add
+	// at least one new tag beyond what's already on the album. Pre-filling
+	// with the merged value means Accept preserves the user's current tags
+	// instead of overwriting them — safe to surface even on already-tagged
+	// albums.
+	const currentTagArray = $derived(
+		editTags.split(',').map((s: string) => s.trim()).filter(Boolean)
+	);
+	const mergedTagSuggestion = $derived(
+		lookupSuggestions?.tags && lookupSuggestions.tags.length > 0
+			? mergeTags(currentTagArray, lookupSuggestions.tags)
+			: []
+	);
 	const showTagSuggestion = $derived(
-		!editTags.trim() && (lookupSuggestions?.tags?.length ?? 0) > 0
+		mergedTagSuggestion.length > currentTagArray.length
 	);
 	const showLabelSuggestion = $derived(
 		!editLabel.trim() && !!lookupSuggestions?.label
-	);
-	const tagSourceLabel = $derived(
-		lookupSuggestions?.tagSource === 'discogs' ? 'Discogs'
-		: lookupSuggestions?.tagSource === 'lastfm' ? 'Last.fm'
-		: 'AI'
 	);
 
 	function runLookup() {
@@ -169,6 +183,7 @@
 			.then((r) => r.json())
 			.then((p: { candidates?: TracklistResult[] }) => {
 				tracklistCandidates = p.candidates ?? [];
+				mbAlternatesOpen = false;
 			})
 			.catch(() => {})
 			.finally(() => {
@@ -181,13 +196,15 @@
 		pinningSource = candidate.source;
 		pinErrorMsg = null;
 		try {
+			const snapshot: { tracks: typeof candidate.tracks; source: TracklistSource; sourceId?: string } = {
+				tracks: candidate.tracks,
+				source: candidate.source
+			};
+			if (candidate.sourceId) snapshot.sourceId = candidate.sourceId;
 			const res = await fetch(`/api/albums/${album.id}/apply-suggestion`, {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({
-					field: 'tracklist',
-					value: { tracks: candidate.tracks, source: candidate.source }
-				})
+				body: JSON.stringify({ field: 'tracklist', value: snapshot })
 			});
 			if (!res.ok) {
 				const data = (await res.json().catch(() => null)) as { message?: string } | null;
@@ -198,6 +215,39 @@
 			pinErrorMsg = err instanceof Error ? err.message : 'Pin failed.';
 		} finally {
 			pinningSource = null;
+		}
+	}
+
+	async function switchMBAlternate(mbid: string) {
+		loadingAlternateMbid = mbid;
+		pinErrorMsg = null;
+		try {
+			const res = await fetch(`/api/albums/tracklist-musicbrainz?mbid=${encodeURIComponent(mbid)}`);
+			if (!res.ok) {
+				const data = (await res.json().catch(() => null)) as { message?: string } | null;
+				throw new Error(data?.message || `Fetch failed (${res.status})`);
+			}
+			const fresh = (await res.json()) as TracklistResult;
+			if (!fresh.tracks || fresh.tracks.length === 0) {
+				throw new Error('That release has no tracks.');
+			}
+			// Preserve alternates list from the previous MB candidate so the user
+			// can keep switching. Replace tracks/duration/sourceId in place.
+			const idx = tracklistCandidates.findIndex((c) => c.source === 'musicbrainz');
+			if (idx >= 0) {
+				const prev = tracklistCandidates[idx];
+				tracklistCandidates[idx] = {
+					...fresh,
+					source: 'musicbrainz',
+					alternates: prev.alternates
+				};
+			}
+			mbAlternatesOpen = false;
+			expandedSource = 'musicbrainz';
+		} catch (err) {
+			pinErrorMsg = err instanceof Error ? err.message : 'Switch failed.';
+		} finally {
+			loadingAlternateMbid = null;
 		}
 	}
 
@@ -457,8 +507,7 @@
 							{#if showTagSuggestion}
 								<BackfillSuggestion
 									field="tags"
-									suggested={lookupSuggestions.tags}
-									sourceLabel={tagSourceLabel}
+									suggested={mergedTagSuggestion}
 									onSave={(value) => {
 										editTags = Array.isArray(value) ? value.join(', ') : value;
 									}}
@@ -511,6 +560,10 @@
 									{@const isExpanded = expandedSource === candidate.source}
 									{@const isPinned = pinnedSource === candidate.source}
 									{@const isPinning = pinningSource === candidate.source}
+									{@const otherAlts =
+										candidate.source === 'musicbrainz' && candidate.alternates
+											? candidate.alternates.filter((a) => a.mbid !== candidate.sourceId)
+											: []}
 									<li class="tracklist-candidate" class:is-pinned={isPinned}>
 										<button
 											type="button"
@@ -530,6 +583,16 @@
 											</span>
 										</button>
 										<div class="tracklist-actions">
+											{#if otherAlts.length > 0}
+												<button
+													type="button"
+													class="btn-mini btn-alt-toggle"
+													onclick={() => (mbAlternatesOpen = !mbAlternatesOpen)}
+													aria-expanded={mbAlternatesOpen}
+												>
+													{mbAlternatesOpen ? '▴' : '▾'} {otherAlts.length} alternate{otherAlts.length === 1 ? '' : 's'}
+												</button>
+											{/if}
 											{#if isPinned}
 												<span class="pinned-marker">✓ Pinned</span>
 											{:else}
@@ -543,6 +606,29 @@
 												</button>
 											{/if}
 										</div>
+										{#if candidate.source === 'musicbrainz' && mbAlternatesOpen && otherAlts.length > 0}
+											<ul class="mb-alternates">
+												<li class="mb-alt-hint muted">Switch to a different release:</li>
+												{#each otherAlts as alt (alt.mbid)}
+													<li>
+														<button
+															type="button"
+															class="mb-alt-row"
+															onclick={() => switchMBAlternate(alt.mbid)}
+															disabled={loadingAlternateMbid !== null}
+														>
+															<span class="mb-alt-label">{alt.label}</span>
+															<span class="mb-alt-meta">
+																{alt.trackCount} track{alt.trackCount === 1 ? '' : 's'}
+															</span>
+															{#if loadingAlternateMbid === alt.mbid}
+																<span class="mb-alt-loading">Loading…</span>
+															{/if}
+														</button>
+													</li>
+												{/each}
+											</ul>
+										{/if}
 										{#if isExpanded}
 											<ol class="tracklist-tracks">
 												{#each candidate.tracks as track (track.position)}
@@ -1046,6 +1132,53 @@
 	.btn-mini:hover { background: color-mix(in oklch, var(--text) 8%, transparent); }
 	.btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
 	.btn-accept { border-color: oklch(55% 0.17 145); color: oklch(55% 0.17 145); }
+	.btn-alt-toggle { color: var(--text-muted); }
+
+	.mb-alternates {
+		grid-column: 1 / -1;
+		list-style: none;
+		padding: 0.4rem 0 0.2rem;
+		margin: 0.5rem 0 0;
+		border-top: 1px dashed var(--border);
+		display: flex;
+		flex-direction: column;
+		gap: 0.1rem;
+	}
+	.mb-alt-hint {
+		font-size: 0.75rem;
+		padding: 0.15rem 0.35rem 0.3rem;
+	}
+	.mb-alt-row {
+		display: flex;
+		align-items: baseline;
+		gap: 0.6rem;
+		width: 100%;
+		padding: 0.35rem 0.45rem;
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 4px;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 0.82rem;
+		color: var(--text);
+		text-align: left;
+	}
+	.mb-alt-row:hover {
+		background: color-mix(in oklch, var(--text) 6%, transparent);
+		border-color: var(--border);
+	}
+	.mb-alt-row:disabled { opacity: 0.5; cursor: not-allowed; }
+	.mb-alt-label { flex: 1; }
+	.mb-alt-meta {
+		color: var(--text-muted);
+		font-size: 0.78rem;
+		font-variant-numeric: tabular-nums;
+	}
+	.mb-alt-loading {
+		color: var(--text-muted);
+		font-size: 0.75rem;
+		font-style: italic;
+	}
 
 	.field-grid {
 		display: grid;

@@ -11,9 +11,11 @@
 		suggested: string[] | string;
 		albumId?: string;
 		onSave?: (value: string[] | string) => Promise<void> | void;
+		// Omit for merged/multi-source suggestions where no single badge is
+		// honest. The Accept/Edit/Skip flow still gates the write.
 		sourceLabel?: string;
 	};
-	let { field, suggested, albumId, onSave, sourceLabel = 'AI' }: Props = $props();
+	let { field, suggested, albumId, onSave, sourceLabel }: Props = $props();
 
 	type State = 'idle' | 'editing' | 'saving' | 'saved' | 'skipped' | 'error';
 	let uiState = $state<State>('idle');
@@ -92,7 +94,9 @@
 			/>
 		{:else}
 			<span class="suggestion-value">{suggestedDisplay()}</span>
-			<span class="ai-badge" title="Source: {sourceLabel} — review before accepting">{sourceLabel}</span>
+			{#if sourceLabel}
+				<span class="ai-badge" title="Source: {sourceLabel} — review before accepting">{sourceLabel}</span>
+			{/if}
 		{/if}
 	</div>
 
