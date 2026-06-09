@@ -1,0 +1,20 @@
+[Unit]
+Description=Albumz Shazam sidecar (FastAPI + shazamio)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=zedzee
+Group=zedzee
+WorkingDirectory=/home/zedzee/mine/apps/albumz-shazam
+Environment=PORT=3210
+ExecStart=/home/zedzee/mine/apps/albumz-shazam/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 3210
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=albumz-shazam
+
+[Install]
+WantedBy=multi-user.target

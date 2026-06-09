@@ -26,3 +26,8 @@ Brent_Notes.md
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Shazam sidecar (Python) — track source, not venv/caches
+/albumz-shazam/.venv/
+/albumz-shazam/__pycache__/
+/albumz-shazam/**/__pycache__/
