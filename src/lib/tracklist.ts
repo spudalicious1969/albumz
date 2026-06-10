@@ -55,7 +55,19 @@ export function snapshotToResult(raw: unknown): TracklistResult | null {
 	if (!Array.isArray(v.tracks) || v.tracks.length === 0) return null;
 	if (typeof v.source !== 'string') return null;
 
-	const tracks = v.tracks as Track[];
+	const rawTracks = v.tracks as Track[];
+	// Snapshots saved before the multi-disc dedup landed may have positions
+	// that restart per disc; renumber sequentially on read so consumers can
+	// safely use position as a key.
+	const seen = new Set<number>();
+	let hasDupes = false;
+	for (const t of rawTracks) {
+		if (seen.has(t.position)) { hasDupes = true; break; }
+		seen.add(t.position);
+	}
+	const tracks = hasDupes
+		? rawTracks.map((t, i) => ({ ...t, position: i + 1 }))
+		: rawTracks;
 	const totalDuration = tracks.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
 	return {
 		tracks,

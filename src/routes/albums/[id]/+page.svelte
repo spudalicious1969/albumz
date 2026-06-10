@@ -631,7 +631,7 @@
 										{/if}
 										{#if isExpanded}
 											<ol class="tracklist-tracks">
-												{#each candidate.tracks as track (track.position)}
+												{#each candidate.tracks as track}
 													<li class="tracklist-track">
 														<span class="tt-pos">{track.position}</span>
 														<span class="tt-name">{track.name}</span>

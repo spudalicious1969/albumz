@@ -32,7 +32,7 @@
 		<p class="empty">No tracklist available.</p>
 	{:else}
 		<ol class="list">
-			{#each tracks as track (track.position)}
+			{#each tracks as track}
 				<li class="row">
 					<span class="pos">{track.position}</span>
 					<span class="name">{track.name}</span>

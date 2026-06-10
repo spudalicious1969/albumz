@@ -74,10 +74,23 @@ export async function fetchTracklist(artist: string, title: string): Promise<Tra
 }
 
 function finalize(tracks: Track[], source: TracklistSource): TracklistResult {
-	const totalDuration = tracks.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
+	// Multi-disc reissues come back from Spotify/Deezer/iTunes with track_number
+	// restarting at 1 per disc. Renumber sequentially when positions aren't
+	// unique so the UI shows 1..N instead of 1..11, 1..11 (and so Svelte 5's
+	// keyed each — wherever a caller still uses one — doesn't choke on dupes).
+	const seen = new Set<number>();
+	let hasDupes = false;
+	for (const t of tracks) {
+		if (seen.has(t.position)) { hasDupes = true; break; }
+		seen.add(t.position);
+	}
+	const normalized = hasDupes
+		? tracks.map((t, i) => ({ ...t, position: i + 1 }))
+		: tracks;
+	const totalDuration = normalized.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
 	return {
-		tracks,
-		source: tracks.length > 0 ? source : null,
+		tracks: normalized,
+		source: normalized.length > 0 ? source : null,
 		totalDuration: totalDuration > 0 ? totalDuration : null
 	};
 }
