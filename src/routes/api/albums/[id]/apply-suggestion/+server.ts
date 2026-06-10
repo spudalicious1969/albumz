@@ -86,7 +86,8 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	} else {
 		// `value: null` clears a previously-pinned snapshot, falling page-load
 		// rendering back to the live pick-longest fetch.
-		update = body.value === null ? { tracklist: null } : { tracklist: parseTracklistSnapshot(body.value) };
+		update =
+			body.value === null ? { tracklist: null } : { tracklist: parseTracklistSnapshot(body.value) };
 	}
 
 	const { error: dbErr } = await locals.supabase

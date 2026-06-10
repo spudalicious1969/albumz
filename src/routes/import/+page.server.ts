@@ -16,7 +16,7 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const file = form.get('file') as File | null;
-		const pastedCsv = (form.get('pasted_csv') as string ?? '').trim();
+		const pastedCsv = ((form.get('pasted_csv') as string) ?? '').trim();
 
 		let buffer: Buffer;
 		let kind: ReturnType<typeof detectKind>;
@@ -92,15 +92,15 @@ export const actions: Actions = {
 		const insertable = rows
 			.filter((r) => r.artist?.trim() && r.title?.trim())
 			.map((r) => ({
-				user_id:   user.id,
-				artist:    r.artist.trim(),
-				title:     r.title.trim(),
-				year:      r.year,
-				format:    r.format,
-				label:     r.label,
-				rating:    r.rating,
-				notes:     r.notes,
-				tags:      r.tags ?? [],
+				user_id: user.id,
+				artist: r.artist.trim(),
+				title: r.title.trim(),
+				year: r.year,
+				format: r.format,
+				label: r.label,
+				rating: r.rating,
+				notes: r.notes,
+				tags: r.tags ?? [],
 				ownership: r.ownership ?? 'OWN'
 			}));
 

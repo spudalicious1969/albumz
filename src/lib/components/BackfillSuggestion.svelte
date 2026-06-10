@@ -61,7 +61,10 @@
 
 	function acceptEdited() {
 		if (field === 'tags') {
-			const tags = editValue.split(',').map((s: string) => s.trim()).filter(Boolean);
+			const tags = editValue
+				.split(',')
+				.map((s: string) => s.trim())
+				.filter(Boolean);
 			save(tags);
 		} else {
 			save(editValue.trim());
@@ -95,7 +98,9 @@
 		{:else}
 			<span class="suggestion-value">{suggestedDisplay()}</span>
 			{#if sourceLabel}
-				<span class="ai-badge" title="Source: {sourceLabel} — review before accepting">{sourceLabel}</span>
+				<span class="ai-badge" title="Source: {sourceLabel} — review before accepting"
+					>{sourceLabel}</span
+				>
 			{/if}
 		{/if}
 	</div>
@@ -130,11 +135,27 @@
 		border-radius: 6px;
 		margin-top: 0.4rem;
 	}
-	.suggestion.saved { opacity: 0.7; }
-	.suggestion.skipped { opacity: 0.5; }
-	.suggestion-header { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-	.field-label { color: var(--text-muted); font-size: 0.78rem; text-transform: capitalize; }
-	.suggestion-value { color: var(--text); font-size: 0.88rem; }
+	.suggestion.saved {
+		opacity: 0.7;
+	}
+	.suggestion.skipped {
+		opacity: 0.5;
+	}
+	.suggestion-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	.field-label {
+		color: var(--text-muted);
+		font-size: 0.78rem;
+		text-transform: capitalize;
+	}
+	.suggestion-value {
+		color: var(--text);
+		font-size: 0.88rem;
+	}
 	.ai-badge {
 		font-size: 0.62rem;
 		padding: 0.08rem 0.4rem;
@@ -154,7 +175,12 @@
 		color: var(--text);
 		border-radius: 4px;
 	}
-	.suggestion-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+	.suggestion-actions {
+		display: flex;
+		gap: 0.4rem;
+		align-items: center;
+		flex-wrap: wrap;
+	}
 	.btn-mini {
 		font-size: 0.78rem;
 		padding: 0.25rem 0.65rem;
@@ -165,11 +191,28 @@
 		cursor: pointer;
 		font-family: inherit;
 	}
-	.btn-mini:hover { background: color-mix(in oklch, var(--text) 8%, transparent); }
-	.btn-accept { border-color: oklch(55% 0.17 145); color: oklch(55% 0.17 145); }
-	.btn-skip { color: var(--text-muted); }
-	.status { font-size: 0.8rem; color: var(--text-muted); }
-	.status-ok { color: oklch(55% 0.17 145); }
-	.status-err { color: oklch(55% 0.2 25); }
-	.status-muted { color: var(--text-muted); font-style: italic; }
+	.btn-mini:hover {
+		background: color-mix(in oklch, var(--text) 8%, transparent);
+	}
+	.btn-accept {
+		border-color: oklch(55% 0.17 145);
+		color: oklch(55% 0.17 145);
+	}
+	.btn-skip {
+		color: var(--text-muted);
+	}
+	.status {
+		font-size: 0.8rem;
+		color: var(--text-muted);
+	}
+	.status-ok {
+		color: oklch(55% 0.17 145);
+	}
+	.status-err {
+		color: oklch(55% 0.2 25);
+	}
+	.status-muted {
+		color: var(--text-muted);
+		font-style: italic;
+	}
 </style>

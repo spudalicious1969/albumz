@@ -1,13 +1,13 @@
 // Column-name → field aliases. Case-insensitive, whitespace-normalized.
 const COLUMN_ALIASES: Record<string, string[]> = {
-	artist:    ['artist', 'artist name', 'band', 'performer'],
-	title:     ['title', 'album', 'album name', 'album title', 'release', 'release title'],
-	year:      ['year', 'release year', 'released', 'date', 'release date'],
-	format:    ['format', 'media', 'media type', 'media format'],
-	label:     ['label', 'record label', 'publisher'],
-	rating:    ['rating', 'my rating', 'score', 'stars'],
-	notes:     ['notes', 'comment', 'comments', 'description', 'collection notes'],
-	tags:      ['tags', 'genre', 'genres', 'style', 'styles', 'category', 'categories'],
+	artist: ['artist', 'artist name', 'band', 'performer'],
+	title: ['title', 'album', 'album name', 'album title', 'release', 'release title'],
+	year: ['year', 'release year', 'released', 'date', 'release date'],
+	format: ['format', 'media', 'media type', 'media format'],
+	label: ['label', 'record label', 'publisher'],
+	rating: ['rating', 'my rating', 'score', 'stars'],
+	notes: ['notes', 'comment', 'comments', 'description', 'collection notes'],
+	tags: ['tags', 'genre', 'genres', 'style', 'styles', 'category', 'categories'],
 	ownership: ['ownership', 'status', 'collection status', 'type', 'collectionfolder']
 };
 
@@ -112,5 +112,8 @@ export function normalizeTags(raw: unknown): string[] {
 	if (raw === null || raw === undefined || raw === '') return [];
 	const s = String(raw).trim();
 	if (!s) return [];
-	return s.split(/[,;|]/).map((t) => t.trim()).filter(Boolean);
+	return s
+		.split(/[,;|]/)
+		.map((t) => t.trim())
+		.filter(Boolean);
 }

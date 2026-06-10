@@ -50,12 +50,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	]);
 
 	const lfmArtistTags = lfmArtistMap.get(artist.toLowerCase()) ?? [];
-	const tags = mergeTags(
-		discogsTags,
-		lfmAlbumTags,
-		lfmArtistTags,
-		qwenSug.tags ?? []
-	).slice(0, TAG_CAP);
+	const tags = mergeTags(discogsTags, lfmAlbumTags, lfmArtistTags, qwenSug.tags ?? []).slice(
+		0,
+		TAG_CAP
+	);
 
 	return json({ tags, label: qwenSug.label } satisfies LookupSuggestions);
 };

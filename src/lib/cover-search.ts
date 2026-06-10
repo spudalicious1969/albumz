@@ -145,38 +145,40 @@ async function searchSpotify(artist: string, title: string): Promise<CoverResult
 
 async function searchiTunes(artist: string, title: string): Promise<CoverResult[]> {
 	const q = encodeURIComponent(`${artist} ${title}`);
-	const res = await fetch(
-		`${ITUNES_PROXY}/search?term=${q}&media=music&entity=album&limit=6`,
-		{ signal: AbortSignal.timeout(5000) }
-	);
+	const res = await fetch(`${ITUNES_PROXY}/search?term=${q}&media=music&entity=album&limit=6`, {
+		signal: AbortSignal.timeout(5000)
+	});
 	if (!res.ok) return [];
 
 	const data = await res.json();
-	return (data.results ?? []).map((r: Record<string, unknown>) => ({
-		url: (r.artworkUrl100 as string)?.replace('100x100', '600x600') ?? '',
-		artist: r.artistName as string,
-		title: r.collectionName as string,
-		year: r.releaseDate ? new Date(r.releaseDate as string).getFullYear() : undefined,
-		source: 'itunes' as const
-	})).filter((r: CoverResult) => r.url);
+	return (data.results ?? [])
+		.map((r: Record<string, unknown>) => ({
+			url: (r.artworkUrl100 as string)?.replace('100x100', '600x600') ?? '',
+			artist: r.artistName as string,
+			title: r.collectionName as string,
+			year: r.releaseDate ? new Date(r.releaseDate as string).getFullYear() : undefined,
+			source: 'itunes' as const
+		}))
+		.filter((r: CoverResult) => r.url);
 }
 
 async function searchDeezer(artist: string, title: string): Promise<CoverResult[]> {
 	// Loose query — strict `artist:"x" album:"y"` was missing many releases
 	const q = encodeURIComponent(`${artist} ${title}`);
-	const res = await fetch(
-		`${DEEZER_PROXY}/search/album?q=${q}&limit=4`,
-		{ signal: AbortSignal.timeout(5000) }
-	);
+	const res = await fetch(`${DEEZER_PROXY}/search/album?q=${q}&limit=4`, {
+		signal: AbortSignal.timeout(5000)
+	});
 	if (!res.ok) return [];
 
 	const data = await res.json();
-	return (data.data ?? []).map((r: Record<string, unknown>) => ({
-		url: (r.cover_xl as string) || (r.cover_big as string) || '',
-		artist: ((r.artist as Record<string, unknown>)?.name as string) ?? '',
-		title: r.title as string,
-		source: 'deezer' as const
-	})).filter((r: CoverResult) => r.url);
+	return (data.data ?? [])
+		.map((r: Record<string, unknown>) => ({
+			url: (r.cover_xl as string) || (r.cover_big as string) || '',
+			artist: ((r.artist as Record<string, unknown>)?.name as string) ?? '',
+			title: r.title as string,
+			source: 'deezer' as const
+		}))
+		.filter((r: CoverResult) => r.url);
 }
 
 /** Last.fm album.getInfo — direct call, no CORS issues, great indie coverage */
@@ -195,17 +197,20 @@ async function searchLastFm(artist: string, title: string): Promise<CoverResult[
 	if (!data.album) return [];
 
 	const images = (data.album.image ?? []) as Array<{ size: string; '#text': string }>;
-	const best = images.find((i) => i.size === 'mega')?.['#text']
-		?? images.find((i) => i.size === 'extralarge')?.['#text']
-		?? images.find((i) => i.size === 'large')?.['#text'];
+	const best =
+		images.find((i) => i.size === 'mega')?.['#text'] ??
+		images.find((i) => i.size === 'extralarge')?.['#text'] ??
+		images.find((i) => i.size === 'large')?.['#text'];
 	if (!best) return [];
 
-	return [{
-		url: best,
-		artist: data.album.artist as string,
-		title: data.album.name as string,
-		source: 'lastfm'
-	}];
+	return [
+		{
+			url: best,
+			artist: data.album.artist as string,
+			title: data.album.name as string,
+			source: 'lastfm'
+		}
+	];
 }
 
 // MusicBrainz rate limiter — their policy is 1 req/sec.
@@ -221,8 +226,8 @@ function throttleMB<T>(fn: () => Promise<T>): Promise<T> {
 	const wait = slot - now;
 	return wait > 0
 		? new Promise<T>((resolve, reject) => {
-			setTimeout(() => fn().then(resolve, reject), wait);
-		  })
+				setTimeout(() => fn().then(resolve, reject), wait);
+			})
 		: fn();
 }
 
@@ -231,10 +236,12 @@ async function searchMusicBrainz(artist: string, title: string): Promise<CoverRe
 	const q = `artist:"${artist}" AND release:"${title}"`;
 	const url = `https://musicbrainz.org/ws/2/release?query=${encodeURIComponent(q)}&fmt=json&limit=4`;
 
-	const res = await throttleMB(() => fetch(url, {
-		headers: { 'User-Agent': 'Albumz/0.1 ( brent.l.watkins@gmail.com )' },
-		signal: AbortSignal.timeout(8000)
-	}));
+	const res = await throttleMB(() =>
+		fetch(url, {
+			headers: { 'User-Agent': 'Albumz/0.1 ( brent.l.watkins@gmail.com )' },
+			signal: AbortSignal.timeout(8000)
+		})
+	);
 	if (!res.ok) return [];
 
 	const data = await res.json();
@@ -245,11 +252,17 @@ async function searchMusicBrainz(artist: string, title: string): Promise<CoverRe
 		releases.slice(0, 4).map(async (rel): Promise<CoverResult | null> => {
 			const caaUrl = `https://coverartarchive.org/release/${rel.id}/front-500`;
 			try {
-				const head = await fetch(caaUrl, { method: 'HEAD', signal: AbortSignal.timeout(3000), redirect: 'follow' });
+				const head = await fetch(caaUrl, {
+					method: 'HEAD',
+					signal: AbortSignal.timeout(3000),
+					redirect: 'follow'
+				});
 				if (!head.ok) return null;
 				const result: CoverResult = {
 					url: caaUrl,
-					artist: ((rel['artist-credit'] as Array<Record<string, unknown>>)?.[0]?.name as string) ?? artist,
+					artist:
+						((rel['artist-credit'] as Array<Record<string, unknown>>)?.[0]?.name as string) ??
+						artist,
 					title: rel.title as string,
 					source: 'musicbrainz'
 				};

@@ -37,7 +37,6 @@
 		lastfm: 'Last.fm'
 	};
 
-
 	const formatOptions = [
 		{ value: '', label: '—' },
 		{ value: 'LP', label: 'LP' },
@@ -63,7 +62,6 @@
 	let editing = $state(false);
 	let confirmingDelete = $state(false);
 	let coverPickerOpen = $state(false);
-
 
 	let coverSearching = $state(false);
 	let coverResults = $state<CoverResult[]>([]);
@@ -131,19 +129,18 @@
 	// instead of overwriting them — safe to surface even on already-tagged
 	// albums.
 	const currentTagArray = $derived(
-		editTags.split(',').map((s: string) => s.trim()).filter(Boolean)
+		editTags
+			.split(',')
+			.map((s: string) => s.trim())
+			.filter(Boolean)
 	);
 	const mergedTagSuggestion = $derived(
 		lookupSuggestions?.tags && lookupSuggestions.tags.length > 0
 			? mergeTags(currentTagArray, lookupSuggestions.tags)
 			: []
 	);
-	const showTagSuggestion = $derived(
-		mergedTagSuggestion.length > currentTagArray.length
-	);
-	const showLabelSuggestion = $derived(
-		!editLabel.trim() && !!lookupSuggestions?.label
-	);
+	const showTagSuggestion = $derived(mergedTagSuggestion.length > currentTagArray.length);
+	const showLabelSuggestion = $derived(!editLabel.trim() && !!lookupSuggestions?.label);
 
 	function runLookup() {
 		lookupSearching = true;
@@ -199,7 +196,11 @@
 		pinningSource = candidate.source;
 		pinErrorMsg = null;
 		try {
-			const snapshot: { tracks: typeof candidate.tracks; source: TracklistSource; sourceId?: string } = {
+			const snapshot: {
+				tracks: typeof candidate.tracks;
+				source: TracklistSource;
+				sourceId?: string;
+			} = {
 				tracks: candidate.tracks,
 				source: candidate.source
 			};
@@ -293,7 +294,9 @@
 			stagedCoverUrl = result.url;
 			const img = new Image();
 			img.crossOrigin = 'anonymous';
-			img.onload = () => { stagedAccent = extractAccentColorFromImg(img); };
+			img.onload = () => {
+				stagedAccent = extractAccentColorFromImg(img);
+			};
 			img.src = result.url;
 		}
 		// Only auto-close if there's nothing left to review. Otherwise keep
@@ -333,7 +336,9 @@
 		pickedCoverUrl = cover.url;
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
-		img.onload = () => { pickedAccent = extractAccentColorFromImg(img); };
+		img.onload = () => {
+			pickedAccent = extractAccentColorFromImg(img);
+		};
 		img.src = cover.url;
 	}
 </script>
@@ -412,8 +417,12 @@
 					<input type="hidden" name="cover_url" value={pickedCoverUrl} />
 					<input type="hidden" name="accent_color" value={pickedAccent} />
 					<div class="picker-actions">
-						<button type="button" class="btn-ghost" onclick={() => (coverPickerOpen = false)}>Cancel</button>
-						<button type="submit" class="btn-primary" disabled={!pickedCoverUrl}>Use this cover</button>
+						<button type="button" class="btn-ghost" onclick={() => (coverPickerOpen = false)}
+							>Cancel</button
+						>
+						<button type="submit" class="btn-primary" disabled={!pickedCoverUrl}
+							>Use this cover</button
+						>
 					</div>
 				</form>
 			{/if}
@@ -434,7 +443,14 @@
 
 			<!-- Look up details — fills artist/title/year from a search result -->
 			<div class="lookup">
-				<button type="button" class="btn-secondary" onclick={() => { lookupOpen = !lookupOpen; if (lookupOpen && lookupResults.length === 0) runLookup(); }}>
+				<button
+					type="button"
+					class="btn-secondary"
+					onclick={() => {
+						lookupOpen = !lookupOpen;
+						if (lookupOpen && lookupResults.length === 0) runLookup();
+					}}
+				>
 					{lookupOpen ? 'Close lookup' : 'Look up details'}
 				</button>
 				{#if stagedCoverUrl}
@@ -444,9 +460,17 @@
 
 			{#if lookupOpen}
 				<div class="lookup-panel">
-					<p class="muted lookup-hint">Searches Spotify, iTunes, Last.fm, MusicBrainz, and Deezer using the current artist/title. Pick a result to fill in correct details.</p>
+					<p class="muted lookup-hint">
+						Searches Spotify, iTunes, Last.fm, MusicBrainz, and Deezer using the current
+						artist/title. Pick a result to fill in correct details.
+					</p>
 					<div class="lookup-search-row">
-						<button type="button" class="btn-secondary" onclick={runLookup} disabled={lookupSearching}>
+						<button
+							type="button"
+							class="btn-secondary"
+							onclick={runLookup}
+							disabled={lookupSearching}
+						>
 							{lookupSearching ? 'Searching…' : 'Search again'}
 						</button>
 					</div>
@@ -455,7 +479,10 @@
 					{:else if groupedResults.length === 0}
 						<p class="muted">No matches found.</p>
 					{:else}
-						<p class="muted lookup-hint">Click a source thumbnail to apply that source's details. Where sources disagree on year or label, the alternates are called out below the title.</p>
+						<p class="muted lookup-hint">
+							Click a source thumbnail to apply that source's details. Where sources disagree on
+							year or label, the alternates are called out below the title.
+						</p>
 						<ul class="lookup-results">
 							{#each groupedResults as group (group.artist + '::' + group.title)}
 								{@const years = uniqueYears(group)}
@@ -493,14 +520,17 @@
 												type="button"
 												class="source-cover"
 												onclick={() => applyLookup(src)}
-												title="Apply details from {LOOKUP_SOURCE_LABEL[src.source] ?? src.source}{src.year ? ` (${src.year})` : ''}"
+												title="Apply details from {LOOKUP_SOURCE_LABEL[src.source] ??
+													src.source}{src.year ? ` (${src.year})` : ''}"
 											>
 												{#if src.url}
 													<img src={src.url} alt="" loading="lazy" />
 												{:else}
 													<div class="src-no-thumb"></div>
 												{/if}
-												<span class="source-name">{LOOKUP_SOURCE_LABEL[src.source] ?? src.source}</span>
+												<span class="source-name"
+													>{LOOKUP_SOURCE_LABEL[src.source] ?? src.source}</span
+												>
 											</button>
 										{/each}
 									</div>
@@ -600,7 +630,8 @@
 													onclick={() => (mbAlternatesOpen = !mbAlternatesOpen)}
 													aria-expanded={mbAlternatesOpen}
 												>
-													{mbAlternatesOpen ? '▴' : '▾'} {otherAlts.length} alternate{otherAlts.length === 1 ? '' : 's'}
+													{mbAlternatesOpen ? '▴' : '▾'}
+													{otherAlts.length} alternate{otherAlts.length === 1 ? '' : 's'}
 												</button>
 											{/if}
 											{#if isPinned}
@@ -712,8 +743,22 @@
 					<fieldset class="field">
 						<legend class="label">Ownership</legend>
 						<div class="radio-group">
-							<label><input type="radio" name="ownership" value="OWN" checked={album.ownership === 'OWN'} /> Own</label>
-							<label><input type="radio" name="ownership" value="WANT" checked={album.ownership === 'WANT'} /> Want</label>
+							<label
+								><input
+									type="radio"
+									name="ownership"
+									value="OWN"
+									checked={album.ownership === 'OWN'}
+								/> Own</label
+							>
+							<label
+								><input
+									type="radio"
+									name="ownership"
+									value="WANT"
+									checked={album.ownership === 'WANT'}
+								/> Want</label
+							>
 						</div>
 					</fieldset>
 					<label class="field">
@@ -733,7 +778,8 @@
 							name="notes"
 							rows="3"
 							placeholder="What this record means to you. Links: [text](https://…)"
-						>{album.notes ?? ''}</textarea>
+							>{album.notes ?? ''}</textarea
+						>
 					</label>
 				</div>
 
@@ -760,7 +806,9 @@
 			<form method="POST" action="?/delete" use:enhance>
 				<p>Delete <strong>{album.title}</strong> from your collection?</p>
 				<div class="form-actions">
-					<button type="button" class="btn-ghost" onclick={() => (confirmingDelete = false)}>Cancel</button>
+					<button type="button" class="btn-ghost" onclick={() => (confirmingDelete = false)}
+						>Cancel</button
+					>
 					<button type="submit" class="btn-danger">Yes, delete</button>
 				</div>
 			</form>
@@ -780,7 +828,9 @@
 		transition: --accent 1.5s ease-out;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.page { transition: none; }
+		.page {
+			transition: none;
+		}
 	}
 
 	.topbar {
@@ -788,7 +838,10 @@
 		margin: 0 auto;
 		padding: 1.5rem 1.5rem 0;
 	}
-	.back { font-size: 0.85rem; color: var(--text-muted); }
+	.back {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
 
 	.actions-row {
 		max-width: 980px;
@@ -808,7 +861,10 @@
 		font-size: 0.85rem;
 		cursor: pointer;
 		font-family: inherit;
-		transition: background 0.2s, border-color 0.2s, color 0.2s;
+		transition:
+			background 0.2s,
+			border-color 0.2s,
+			color 0.2s;
 	}
 	.btn-secondary:hover {
 		background: color-mix(in oklch, var(--accent) 8%, transparent);
@@ -826,7 +882,10 @@
 		font-size: 0.85rem;
 		font-family: inherit;
 	}
-	.btn-pill:hover { color: var(--text); border-color: var(--accent); }
+	.btn-pill:hover {
+		color: var(--text);
+		border-color: var(--accent);
+	}
 	.btn-pill.is-featured {
 		color: var(--accent);
 		border-color: var(--accent);
@@ -842,7 +901,8 @@
 		margin-bottom: 1rem;
 	}
 
-	.edit, .danger {
+	.edit,
+	.danger {
 		max-width: 980px;
 		margin: 0 auto 2rem;
 		padding: 0 1.5rem;
@@ -922,7 +982,9 @@
 		gap: 0.6rem;
 		padding: 0.5rem 0.25rem;
 	}
-	.group-header { min-width: 0; }
+	.group-header {
+		min-width: 0;
+	}
 	.result-artist {
 		font-size: 0.72rem;
 		font-weight: 700;
@@ -1051,7 +1113,9 @@
 		align-items: center;
 		padding: 0.5rem 0.35rem;
 		border-radius: 6px;
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 	.tracklist-candidate:hover {
 		background: color-mix(in oklch, var(--accent) 6%, transparent);
@@ -1128,7 +1192,9 @@
 		font-size: 0.78rem;
 		text-align: right;
 	}
-	.tt-name { color: var(--text); }
+	.tt-name {
+		color: var(--text);
+	}
 	.tt-dur {
 		font-variant-numeric: tabular-nums;
 		color: var(--text-muted);
@@ -1144,10 +1210,20 @@
 		cursor: pointer;
 		font-family: inherit;
 	}
-	.btn-mini:hover { background: color-mix(in oklch, var(--text) 8%, transparent); }
-	.btn-mini:disabled { opacity: 0.5; cursor: not-allowed; }
-	.btn-accept { border-color: oklch(55% 0.17 145); color: oklch(55% 0.17 145); }
-	.btn-alt-toggle { color: var(--text-muted); }
+	.btn-mini:hover {
+		background: color-mix(in oklch, var(--text) 8%, transparent);
+	}
+	.btn-mini:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+	.btn-accept {
+		border-color: oklch(55% 0.17 145);
+		color: oklch(55% 0.17 145);
+	}
+	.btn-alt-toggle {
+		color: var(--text-muted);
+	}
 
 	.mb-alternates {
 		grid-column: 1 / -1;
@@ -1182,8 +1258,13 @@
 		background: color-mix(in oklch, var(--text) 6%, transparent);
 		border-color: var(--border);
 	}
-	.mb-alt-row:disabled { opacity: 0.5; cursor: not-allowed; }
-	.mb-alt-label { flex: 1; }
+	.mb-alt-row:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+	.mb-alt-label {
+		flex: 1;
+	}
 	.mb-alt-meta {
 		color: var(--text-muted);
 		font-size: 0.78rem;
@@ -1200,11 +1281,31 @@
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
 	}
-	.field { display: flex; flex-direction: column; gap: 0.35rem; border: none; padding: 0; margin: 0; }
-	.field.full { grid-column: 1 / -1; }
-	.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
-	.label small { font-weight: 400; text-transform: none; letter-spacing: 0; }
-	.field input, .field textarea {
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		border: none;
+		padding: 0;
+		margin: 0;
+	}
+	.field.full {
+		grid-column: 1 / -1;
+	}
+	.label {
+		font-size: 0.72rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.label small {
+		font-weight: 400;
+		text-transform: none;
+		letter-spacing: 0;
+	}
+	.field input,
+	.field textarea {
 		padding: 0.55rem 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
@@ -1212,10 +1313,12 @@
 		color: var(--text);
 		font-family: inherit;
 	}
-	.field textarea { resize: vertical; }
+	.field textarea {
+		resize: vertical;
+	}
 	/* Notes is content, not metadata — style the textarea to feel like writing
 	   in the read-view note panel: accent left border, soft fill, italic. */
-	.field textarea[name="notes"] {
+	.field textarea[name='notes'] {
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-left: 3px solid var(--accent);
@@ -1224,9 +1327,16 @@
 		line-height: 1.5;
 		min-height: 4.5rem;
 	}
-	.field textarea[name="notes"]::placeholder { font-style: italic; }
-	.field :global(.sort-group) { display: flex; }
-	.field :global(.dropdown) { flex: 1; display: block; }
+	.field textarea[name='notes']::placeholder {
+		font-style: italic;
+	}
+	.field :global(.sort-group) {
+		display: flex;
+	}
+	.field :global(.dropdown) {
+		flex: 1;
+		display: block;
+	}
 	.field :global(.trigger) {
 		width: 100%;
 		justify-content: space-between;
@@ -1235,14 +1345,29 @@
 		font-size: 1rem;
 		font-weight: 400;
 	}
-	.field :global(.menu) { left: 0; right: auto; min-width: 100%; }
-	.radio-group { display: flex; gap: 1.25rem; align-items: center; padding-top: 0.3rem; }
-	.radio-group label, .checkbox {
-		display: flex; align-items: center; gap: 0.4rem;
-		font-size: 0.9rem; cursor: pointer;
+	.field :global(.menu) {
+		left: 0;
+		right: auto;
+		min-width: 100%;
+	}
+	.radio-group {
+		display: flex;
+		gap: 1.25rem;
+		align-items: center;
+		padding-top: 0.3rem;
+	}
+	.radio-group label,
+	.checkbox {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.9rem;
+		cursor: pointer;
 	}
 	@media (max-width: 600px) {
-		.field-grid { grid-template-columns: 1fr; }
+		.field-grid {
+			grid-template-columns: 1fr;
+		}
 	}
 
 	.form-actions {
@@ -1280,7 +1405,10 @@
 		font-size: 0.85rem;
 		cursor: pointer;
 		font-family: inherit;
-		transition: color 0.2s, border-color 0.2s, background 0.2s;
+		transition:
+			color 0.2s,
+			border-color 0.2s,
+			background 0.2s;
 	}
 	.btn-danger:hover {
 		color: oklch(60% 0.22 25);
@@ -1288,11 +1416,27 @@
 		background: oklch(60% 0.22 25 / 0.08);
 	}
 
-	.danger { margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); max-width: 980px; }
-	.danger p { color: var(--text-muted); margin-bottom: 1rem; }
+	.danger {
+		margin-top: 1rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--border);
+		max-width: 980px;
+	}
+	.danger p {
+		color: var(--text-muted);
+		margin-bottom: 1rem;
+	}
 
-	.error { color: oklch(55% 0.22 25); font-size: 0.85rem; margin-top: 0.5rem; }
-	.success { color: oklch(55% 0.15 150); font-size: 0.85rem; margin-top: 0.5rem; }
+	.error {
+		color: oklch(55% 0.22 25);
+		font-size: 0.85rem;
+		margin-top: 0.5rem;
+	}
+	.success {
+		color: oklch(55% 0.15 150);
+		font-size: 0.85rem;
+		margin-top: 0.5rem;
+	}
 
 	.picker {
 		max-width: 980px;
@@ -1303,7 +1447,9 @@
 		border-radius: var(--radius-lg);
 	}
 	.picker-header {
-		display: flex; justify-content: space-between; align-items: center;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		margin-bottom: 0.85rem;
 	}
 	.eyebrow {
@@ -1314,10 +1460,15 @@
 		color: var(--text-muted);
 	}
 	.close {
-		background: none; border: none; color: var(--text-muted);
-		font-size: 1.1rem; cursor: pointer;
+		background: none;
+		border: none;
+		color: var(--text-muted);
+		font-size: 1.1rem;
+		cursor: pointer;
 	}
-	.muted { color: var(--text-muted); }
+	.muted {
+		color: var(--text-muted);
+	}
 	.cover-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
@@ -1332,7 +1483,11 @@
 		padding: 0;
 		overflow: hidden;
 	}
-	.cover-option img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+	.cover-option img {
+		width: 100%;
+		aspect-ratio: 1;
+		object-fit: cover;
+	}
 	.cover-label {
 		display: block;
 		font-size: 0.62rem;

@@ -242,8 +242,7 @@ export function probeDigest(output: string, inputs: DigestInputs): ProbeReport {
 	if (!discoveryPresent) criticalReasons.push('discovery pick not named');
 	if (fabricatedDays.length > 0)
 		criticalReasons.push(`fabricated days: ${fabricatedDays.join(', ')}`);
-	if (formatTropes.length > 0)
-		criticalReasons.push(`format tropes: ${formatTropes.join(', ')}`);
+	if (formatTropes.length > 0) criticalReasons.push(`format tropes: ${formatTropes.join(', ')}`);
 
 	return {
 		rediscoveryPresent,

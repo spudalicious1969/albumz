@@ -50,9 +50,7 @@
 			coverIdx = 0;
 		}
 	});
-	const activeCoverUrl = $derived(
-		current.coverCandidates?.[coverIdx] ?? null
-	);
+	const activeCoverUrl = $derived(current.coverCandidates?.[coverIdx] ?? null);
 
 	// If we navigate /headliner/userA → /headliner/userB, reset to that user's initial
 	$effect(() => {
@@ -67,13 +65,20 @@
 	// the accent after the cover has already advanced past it.
 	$effect(() => {
 		const url = activeCoverUrl;
-		if (!url) { accent = 'var(--accent)'; return; }
+		if (!url) {
+			accent = 'var(--accent)';
+			return;
+		}
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
 		let cancelled = false;
-		img.onload = () => { if (!cancelled) accent = extractAccentColorFromImg(img); };
+		img.onload = () => {
+			if (!cancelled) accent = extractAccentColorFromImg(img);
+		};
 		img.src = url;
-		return () => { cancelled = true; };
+		return () => {
+			cancelled = true;
+		};
 	});
 
 	async function refresh() {
@@ -92,8 +97,7 @@
 
 			if (next.state === 'playing') lastPlayingAt = Date.now();
 
-			const sameTrack =
-				next.track === current.track && next.artist === current.artist;
+			const sameTrack = next.track === current.track && next.artist === current.artist;
 
 			if (sameTrack) {
 				// Same song still playing — keep the existing cover candidates so the
@@ -175,15 +179,17 @@
 	// Eyebrow split so the leading symbol can carry the same single-character-glow
 	// language as the wordmark's `z` — a tiny jewel that signals "this is Albumz".
 	const eyebrowSymbol = $derived(
-		effectiveState === 'playing' ? '♪'
-			: effectiveState === 'recent' ? '⏵'
-				: ''
+		effectiveState === 'playing' ? '♪' : effectiveState === 'recent' ? '⏵' : ''
 	);
 	const eyebrowLabel = $derived(
 		effectiveState === 'playing'
-			? (current.source === 'streamed' ? 'Currently Streaming' : 'Currently Spinning')
+			? current.source === 'streamed'
+				? 'Currently Streaming'
+				: 'Currently Spinning'
 			: effectiveState === 'recent'
-				? (current.source === 'streamed' ? 'Last Streamed' : 'Last Spun')
+				? current.source === 'streamed'
+					? 'Last Streamed'
+					: 'Last Spun'
 				: 'Headliner'
 	);
 	// `nowMs` only updates inside refresh(), so isStale re-evaluates per poll,
@@ -192,9 +198,9 @@
 	// appears IDLE_CONFIRM_POLLS * POLL_INTERVAL_MS later. Predictable lag, not a bug.
 	const isStale = $derived(
 		current.state === 'recent' &&
-		current.playedAt !== null &&
-		// playedAt is Last.fm's `date.uts` — Unix *seconds*, not ms.
-		nowMs - current.playedAt * 1000 > IDLE_STALENESS_MS
+			current.playedAt !== null &&
+			// playedAt is Last.fm's `date.uts` — Unix *seconds*, not ms.
+			nowMs - current.playedAt * 1000 > IDLE_STALENESS_MS
 	);
 	const isIdle = $derived(current.state === 'none' || isStale);
 	const idleWithMosaic = $derived(
@@ -239,8 +245,8 @@
 		href="/u/{data.profile.username}"
 		target="_blank"
 		rel="noopener"
-		title="Open {displayName}'s public page"
-	>← @{data.profile.username}</a>
+		title="Open {displayName}'s public page">← @{data.profile.username}</a
+	>
 
 	{#if idleWithMosaic}
 		<div class="idle-overlay">
@@ -271,7 +277,8 @@
 				<p class="eyebrow">
 					<span class="dot" class:live={effectiveState === 'playing'}></span>
 					<span class="eyebrow-text">
-						{#if eyebrowSymbol}<span class="eyebrow-symbol">{eyebrowSymbol}</span> {/if}{eyebrowLabel}
+						{#if eyebrowSymbol}<span class="eyebrow-symbol">{eyebrowSymbol}</span>
+						{/if}{eyebrowLabel}
 					</span>
 				</p>
 				{#if current.track}
@@ -341,7 +348,9 @@
 		text-shadow: 0 0 12px color-mix(in oklch, var(--hl-accent) 35%, transparent);
 		padding: 0.3rem 0.65rem;
 		border-radius: 999px;
-		transition: color 0.2s, background 0.2s;
+		transition:
+			color 0.2s,
+			background 0.2s;
 	}
 	.back-link:hover {
 		color: var(--hl-accent);
@@ -350,12 +359,20 @@
 	}
 
 	@keyframes bg-fade-in {
-		from { opacity: 0; }
-		to   { opacity: 0.55; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 0.55;
+		}
 	}
 	@keyframes bg-fade-in-quiet {
-		from { opacity: 0; }
-		to   { opacity: 0.25; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 0.25;
+		}
 	}
 
 	.stage {
@@ -387,12 +404,15 @@
 		object-fit: cover;
 		border-radius: 12px;
 		box-shadow:
-			0 30px 80px rgba(0,0,0,0.6),
+			0 30px 80px rgba(0, 0, 0, 0.6),
 			0 0 120px color-mix(in oklch, var(--hl-accent) 45%, transparent);
 		animation: cover-in 1.1s ease-out forwards;
 	}
 	@media (max-width: 900px) {
-		.cover { justify-self: center; max-width: 70vw; }
+		.cover {
+			justify-self: center;
+			max-width: 70vw;
+		}
 	}
 	.cover.placeholder {
 		background: color-mix(in oklch, var(--hl-accent) 18%, #100e14);
@@ -405,8 +425,14 @@
 	}
 
 	@keyframes cover-in {
-		from { opacity: 0; transform: scale(0.96); }
-		to   { opacity: 1; transform: scale(1); }
+		from {
+			opacity: 0;
+			transform: scale(0.96);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
 	}
 
 	.meta {
@@ -439,7 +465,8 @@
 			0 0 8px var(--hl-accent);
 	}
 	.dot {
-		width: 0.55em; height: 0.55em;
+		width: 0.55em;
+		height: 0.55em;
 		border-radius: 50%;
 		background: currentColor;
 		opacity: 0.7;
@@ -450,8 +477,15 @@
 		animation: pulse 1.4s ease-in-out infinite;
 	}
 	@keyframes pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50%      { opacity: 0.45; transform: scale(1.4); }
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.45;
+			transform: scale(1.4);
+		}
 	}
 
 	.track {
@@ -459,7 +493,9 @@
 		font-weight: 800;
 		letter-spacing: -0.02em;
 		line-height: 1;
-		text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75), 0 0 14px rgba(0, 0, 0, 0.55);
+		text-shadow:
+			0 2px 30px rgba(0, 0, 0, 0.75),
+			0 0 14px rgba(0, 0, 0, 0.55);
 		animation: text-in 1s ease-out 0.15s both;
 	}
 	.artist {
@@ -478,8 +514,14 @@
 	}
 
 	@keyframes text-in {
-		from { opacity: 0; transform: translateY(8px); }
-		to   { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.wordmark {
@@ -487,7 +529,9 @@
 		letter-spacing: 0.09em;
 	}
 	.wordmark span {
-		text-shadow: 0 0 24px var(--hl-accent), 0 0 8px var(--hl-accent);
+		text-shadow:
+			0 0 24px var(--hl-accent),
+			0 0 8px var(--hl-accent);
 	}
 
 	.quiet-overlay {
@@ -510,8 +554,12 @@
 		text-shadow: 0 1px 16px rgba(0, 0, 0, 0.85);
 	}
 	@keyframes quiet-in {
-		from { opacity: 0; }
-		to   { opacity: 1; }
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 
 	.idle-overlay {

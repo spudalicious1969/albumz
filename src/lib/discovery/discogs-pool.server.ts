@@ -102,7 +102,7 @@ async function fetchOneStyle(
 				artist,
 				title,
 				year: r.year ? Number(r.year) || null : null,
-				label: Array.isArray(r.label) ? r.label[0] ?? null : r.label ?? null,
+				label: Array.isArray(r.label) ? (r.label[0] ?? null) : (r.label ?? null),
 				country: r.country ?? null,
 				cover_image: r.cover_image ?? null,
 				style

@@ -11,21 +11,62 @@
 // "Alternative Rock" and any qwen umbrella-isms).
 const TAG_STOPLIST = new Set([
 	// Genre umbrellas
-	'rock', 'pop', 'indie', 'alternative', 'alternative rock', 'indie rock', 'indie pop',
+	'rock',
+	'pop',
+	'indie',
+	'alternative',
+	'alternative rock',
+	'indie rock',
+	'indie pop',
 	// Era / decade buckets
-	'50s', '60s', '70s', '80s', '90s', '00s', '10s', '20s',
-	'2000s', '2010s', '2020s', 'classic rock', 'oldies',
+	'50s',
+	'60s',
+	'70s',
+	'80s',
+	'90s',
+	'00s',
+	'10s',
+	'20s',
+	'2000s',
+	'2010s',
+	'2020s',
+	'classic rock',
+	'oldies',
 	// Preference / meta noise
-	'seen live', 'favourite', 'favourites', 'favorite', 'favorites',
-	'my favourites', 'my favorites', 'awesome', 'amazing', 'love', 'great', 'best', 'cool', 'good',
-	'love it', 'loved',
+	'seen live',
+	'favourite',
+	'favourites',
+	'favorite',
+	'favorites',
+	'my favourites',
+	'my favorites',
+	'awesome',
+	'amazing',
+	'love',
+	'great',
+	'best',
+	'cool',
+	'good',
+	'love it',
+	'loved',
 	// Locale labels
-	'american', 'british', 'english', 'uk', 'usa', 'american rock', 'british rock',
-	'american indie', 'british indie',
+	'american',
+	'british',
+	'english',
+	'uk',
+	'usa',
+	'american rock',
+	'british rock',
+	'american indie',
+	'british indie',
 	// Vocalist role
-	'male vocalists', 'female vocalists', 'male vocalist', 'female vocalist',
+	'male vocalists',
+	'female vocalists',
+	'male vocalist',
+	'female vocalist',
 	// Other catch-all
-	'all', 'music'
+	'all',
+	'music'
 ]);
 
 // Pattern-based junk filters for things that can't be enumerated exhaustively:

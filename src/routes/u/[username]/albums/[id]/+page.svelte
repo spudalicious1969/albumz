@@ -42,5 +42,8 @@
 		margin: 0 auto;
 		padding: 1.5rem 1.5rem 0;
 	}
-	.back { font-size: 0.85rem; color: var(--text-muted); }
+	.back {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
 </style>

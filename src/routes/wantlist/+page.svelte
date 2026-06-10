@@ -43,7 +43,9 @@
 				case 'title':
 					return compareByKey(a.title, b.title);
 				case 'format':
-					return (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist);
+					return (
+						(a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist)
+					);
 				case 'recent':
 				default:
 					return (b.created_at ?? '').localeCompare(a.created_at ?? '');
@@ -57,9 +59,7 @@
 
 	// ── Ambient background + page-accent synesthesia, mirrored from /+page ──
 	let hoveredId = $state<string | null>(null);
-	const ambientAlbum = $derived(
-		sorted.find((a) => a.id === hoveredId) ?? sorted[0] ?? null
-	);
+	const ambientAlbum = $derived(sorted.find((a) => a.id === hoveredId) ?? sorted[0] ?? null);
 	const ambientCoverUrl = $derived(ambientAlbum?.cover_url ?? null);
 	const ambientAccent = $derived(ambientAlbum?.accent_color ?? null);
 
@@ -67,10 +67,10 @@
 		const q = encodeURIComponent(`${album.artist} ${album.title}`);
 		return [
 			{ label: 'Record Exchange', href: `https://shop.therecordexchange.com/Search?terms=${q}` },
-			{ label: 'Bandcamp',        href: `https://bandcamp.com/search?q=${q}` },
-			{ label: 'Discogs',         href: `https://www.discogs.com/search/?q=${q}&type=release` },
-			{ label: 'Amazon',          href: `https://www.amazon.com/s?k=${q}&i=popular` },
-			{ label: 'eBay',            href: `https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=11233` }
+			{ label: 'Bandcamp', href: `https://bandcamp.com/search?q=${q}` },
+			{ label: 'Discogs', href: `https://www.discogs.com/search/?q=${q}&type=release` },
+			{ label: 'Amazon', href: `https://www.amazon.com/s?k=${q}&i=popular` },
+			{ label: 'eBay', href: `https://www.ebay.com/sch/i.html?_nkw=${q}&_sacat=11233` }
 		];
 	}
 </script>
@@ -182,7 +182,9 @@
 		transition: --accent 1.5s ease-out;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.page { transition: none; }
+		.page {
+			transition: none;
+		}
 	}
 
 	/* Ambient: same recipe as /+page but at a lower opacity. The wantlist's
@@ -215,7 +217,9 @@
 		font-size: 0.85rem;
 		text-decoration: none;
 	}
-	.back:hover { color: var(--text); }
+	.back:hover {
+		color: var(--text);
+	}
 	h1 {
 		font-size: 1.5rem;
 		font-weight: 800;
@@ -248,7 +252,10 @@
 		text-decoration: none;
 		white-space: nowrap;
 	}
-	.btn-add:hover { opacity: 0.9; text-decoration: none; }
+	.btn-add:hover {
+		opacity: 0.9;
+		text-decoration: none;
+	}
 
 	.list {
 		display: flex;
@@ -268,9 +275,13 @@
 		border-radius: var(--radius);
 		transition: background 0.15s;
 	}
-	.row:hover { background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text))); }
+	.row:hover {
+		background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text)));
+	}
 
-	.thumb-link { display: block; }
+	.thumb-link {
+		display: block;
+	}
 	.thumb {
 		width: 64px;
 		height: 64px;
@@ -281,7 +292,11 @@
 		align-items: center;
 		justify-content: center;
 	}
-	.thumb img { width: 100%; height: 100%; object-fit: cover; }
+	.thumb img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
 	.thumb-initial {
 		font-size: 1.4rem;
 		font-weight: 800;
@@ -296,7 +311,9 @@
 		color: inherit;
 		gap: 0.15rem;
 	}
-	.meta:hover { text-decoration: none; }
+	.meta:hover {
+		text-decoration: none;
+	}
 	.artist {
 		font-size: 0.7rem;
 		font-weight: 700;
@@ -309,7 +326,10 @@
 		color: var(--text);
 		font-weight: 600;
 	}
-	.dim { color: var(--text-muted); font-weight: 400; }
+	.dim {
+		color: var(--text-muted);
+		font-weight: 400;
+	}
 	.notes {
 		font-size: 0.8rem;
 		color: var(--text-muted);
@@ -323,7 +343,9 @@
 		text-decoration: underline;
 		text-decoration-color: color-mix(in oklch, var(--row-accent) 45%, transparent);
 	}
-	.notes :global(a:hover) { text-decoration-color: var(--row-accent); }
+	.notes :global(a:hover) {
+		text-decoration-color: var(--row-accent);
+	}
 	.tags {
 		display: flex;
 		gap: 0.3rem;
@@ -393,7 +415,10 @@
 	.got-it:hover:not(:disabled) {
 		background: color-mix(in oklch, var(--row-accent) 40%, transparent);
 	}
-	.got-it:disabled { opacity: 0.6; cursor: wait; }
+	.got-it:disabled {
+		opacity: 0.6;
+		cursor: wait;
+	}
 
 	.empty {
 		display: flex;
@@ -408,7 +433,9 @@
 		font-weight: 700;
 		color: var(--text);
 	}
-	.empty-sub { margin-bottom: 1rem; }
+	.empty-sub {
+		margin-bottom: 1rem;
+	}
 
 	@media (max-width: 640px) {
 		.row {
@@ -420,6 +447,9 @@
 			justify-content: flex-end;
 			flex-wrap: wrap;
 		}
-		.thumb { width: 56px; height: 56px; }
+		.thumb {
+			width: 56px;
+			height: 56px;
+		}
 	}
 </style>

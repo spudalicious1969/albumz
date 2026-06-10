@@ -24,8 +24,8 @@
 
 	const filtered = $derived.by(() => {
 		if (!q) return albums.slice(0, 25);
-		return albums.filter((a) =>
-			a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
+		return albums.filter(
+			(a) => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
 		);
 	});
 
@@ -35,7 +35,7 @@
 		try {
 			const res = await fetch('/api/albums/lookup');
 			if (!res.ok) throw new Error(`HTTP ${res.status}`);
-			const data = await res.json() as { albums: LookupAlbum[] };
+			const data = (await res.json()) as { albums: LookupAlbum[] };
 			albums = data.albums;
 		} catch (err) {
 			loadError = err instanceof Error ? err.message : 'Failed to load';
@@ -116,11 +116,7 @@
 <svelte:window onkeydown={handleGlobalKey} />
 
 {#if lookup.isOpen}
-	<div
-		class="backdrop"
-		role="presentation"
-		onclick={() => lookup.close()}
-	>
+	<div class="backdrop" role="presentation" onclick={() => lookup.close()}>
 		<div
 			class="palette"
 			role="dialog"
@@ -239,7 +235,10 @@
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--border);
 	}
-	.search-icon { color: var(--text-muted); flex-shrink: 0; }
+	.search-icon {
+		color: var(--text-muted);
+		flex-shrink: 0;
+	}
 	.search-row input {
 		flex: 1;
 		background: none;
@@ -259,7 +258,10 @@
 		padding: 0.25rem 0.5rem;
 		border-radius: var(--radius);
 	}
-	.close:hover { color: var(--text); background: var(--surface); }
+	.close:hover {
+		color: var(--text);
+		background: var(--surface);
+	}
 
 	.results {
 		flex: 1;
@@ -288,7 +290,9 @@
 		color: var(--text);
 		font-family: inherit;
 	}
-	.row.selected { background: var(--surface); }
+	.row.selected {
+		background: var(--surface);
+	}
 
 	.thumb {
 		width: 40px;
@@ -301,7 +305,11 @@
 		align-items: center;
 		justify-content: center;
 	}
-	.thumb img { width: 100%; height: 100%; object-fit: cover; }
+	.thumb img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
 	.thumb-initial {
 		font-size: 1.1rem;
 		font-weight: 800;
@@ -331,7 +339,10 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.year { color: var(--text-muted); font-weight: 400; }
+	.year {
+		color: var(--text-muted);
+		font-weight: 400;
+	}
 
 	.badge {
 		font-size: 0.65rem;
@@ -349,13 +360,16 @@
 		color: var(--text-muted);
 	}
 
-	.status, .empty {
+	.status,
+	.empty {
 		padding: 1.5rem 1rem;
 		text-align: center;
 		color: var(--text-muted);
 		font-size: 0.9rem;
 	}
-	.status.error { color: oklch(60% 0.18 25); }
+	.status.error {
+		color: oklch(60% 0.18 25);
+	}
 
 	.empty-headline {
 		font-size: 1rem;
@@ -363,7 +377,9 @@
 		color: var(--text);
 		margin-bottom: 0.3rem;
 	}
-	.empty-sub { margin-bottom: 1rem; }
+	.empty-sub {
+		margin-bottom: 1rem;
+	}
 	.btn-add {
 		padding: 0.5rem 1rem;
 		background: var(--accent);
@@ -374,7 +390,9 @@
 		font-size: 0.85rem;
 		cursor: pointer;
 	}
-	.btn-add:hover { opacity: 0.9; }
+	.btn-add:hover {
+		opacity: 0.9;
+	}
 
 	.footer {
 		display: flex;
@@ -411,10 +429,35 @@
 			border: none;
 			animation: slide-up 0.18s ease-out;
 		}
-		.footer { display: none; }
+		.footer {
+			display: none;
+		}
 	}
 
-	@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-	@keyframes slide-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
-	@keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+	@keyframes slide-in {
+		from {
+			opacity: 0;
+			transform: translateY(-8px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
+	}
+	@keyframes slide-up {
+		from {
+			transform: translateY(100%);
+		}
+		to {
+			transform: none;
+		}
+	}
 </style>

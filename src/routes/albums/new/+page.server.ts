@@ -45,8 +45,13 @@ export const actions: Actions = {
 
 		const year = form.get('year') ? Number(form.get('year')) : null;
 		const rating = form.get('rating') ? Number(form.get('rating')) : null;
-		const tagRaw = (form.get('tags') as string ?? '').trim();
-		const tags = tagRaw ? tagRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
+		const tagRaw = ((form.get('tags') as string) ?? '').trim();
+		const tags = tagRaw
+			? tagRaw
+					.split(',')
+					.map((t) => t.trim())
+					.filter(Boolean)
+			: [];
 
 		const ownership = form.get('ownership') === 'WANT' ? 'WANT' : 'OWN';
 

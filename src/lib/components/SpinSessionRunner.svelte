@@ -114,7 +114,11 @@
 			chunkTimer = null;
 		}
 		if (recorder && recorder.state === 'recording') {
-			try { recorder.stop(); } catch { /* ignore */ }
+			try {
+				recorder.stop();
+			} catch {
+				/* ignore */
+			}
 		}
 		recorder = null;
 		if (stream) {

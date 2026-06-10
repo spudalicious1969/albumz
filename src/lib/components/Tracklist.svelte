@@ -103,7 +103,9 @@
 		font-size: 0.92rem;
 		transition: background 0.15s;
 	}
-	.row:last-child { border-bottom: none; }
+	.row:last-child {
+		border-bottom: none;
+	}
 	/* Hover breathes in the album's accent, same family as every other hover
 	   on the page after the synesthesia work. */
 	.row:hover {
@@ -117,7 +119,9 @@
 		font-size: 0.85rem;
 		text-align: right;
 	}
-	.name { color: var(--text); }
+	.name {
+		color: var(--text);
+	}
 	.dur {
 		font-variant-numeric: tabular-nums;
 		color: var(--text-muted);

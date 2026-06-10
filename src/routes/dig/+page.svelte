@@ -35,7 +35,9 @@
 			{:else if data.emptyReason === 'exhausted'}
 				<p class="eyebrow">The crate</p>
 				<h1>That's the bottom of the pile</h1>
-				<p class="lede">You've pulled everything in this session. Start fresh, or come back later.</p>
+				<p class="lede">
+					You've pulled everything in this session. Start fresh, or come back later.
+				</p>
 				<a href="/dig" class="btn-primary">Start fresh</a>
 			{:else if data.emptyReason === 'error'}
 				<p class="eyebrow">The crate</p>
@@ -45,7 +47,10 @@
 			{:else}
 				<p class="eyebrow">The crate</p>
 				<h1>Everything's been pulled recently</h1>
-				<p class="lede">No album in your collection has gone untouched for thirty days. Come back when something's settled.</p>
+				<p class="lede">
+					No album in your collection has gone untouched for thirty days. Come back when something's
+					settled.
+				</p>
 				<a href="/" class="btn-secondary">Back to collection</a>
 			{/if}
 		</div>
@@ -96,19 +101,28 @@
 		background: var(--accent);
 		color: #fff;
 	}
-	.btn-primary:hover { opacity: 0.92; text-decoration: none; }
+	.btn-primary:hover {
+		opacity: 0.92;
+		text-decoration: none;
+	}
 	.btn-secondary {
 		background: var(--surface);
 		color: var(--text);
 		border: 1px solid var(--border);
 	}
-	.btn-secondary:hover { background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text))); text-decoration: none; }
+	.btn-secondary:hover {
+		background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text)));
+		text-decoration: none;
+	}
 	.btn-quiet {
 		background: transparent;
 		color: var(--text-muted);
 		border: 1px solid transparent;
 	}
-	.btn-quiet:hover { color: var(--text); text-decoration: none; }
+	.btn-quiet:hover {
+		color: var(--text);
+		text-decoration: none;
+	}
 
 	.empty-shell {
 		min-height: 70vh;

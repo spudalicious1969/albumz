@@ -70,10 +70,7 @@ function plus(s: string): string {
 	return encodeURIComponent(s).replace(/%20/g, '+');
 }
 
-export async function resolveExternalLinks(
-	artist: string,
-	title: string
-): Promise<ExternalLink[]> {
+export async function resolveExternalLinks(artist: string, title: string): Promise<ExternalLink[]> {
 	const cacheKey = `${artist.toLowerCase()}::${title.toLowerCase()}`;
 	const hit = cache.get(cacheKey);
 	if (hit && hit.expires > Date.now()) return hit.value;

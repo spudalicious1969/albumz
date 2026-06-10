@@ -67,7 +67,9 @@
 
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
-		img.onload = () => { accentColor = extractAccentColorFromImg(img); };
+		img.onload = () => {
+			accentColor = extractAccentColorFromImg(img);
+		};
 		img.src = cover.url;
 	}
 
@@ -96,7 +98,10 @@
 			action="?/search"
 			use:enhance={() => {
 				searching = true;
-				return async ({ update }) => { await update(); searching = false; };
+				return async ({ update }) => {
+					await update();
+					searching = false;
+				};
 			}}
 		>
 			<input type="hidden" name="ownership" value={prefill?.ownership ?? 'OWN'} />
@@ -125,7 +130,10 @@
 	{#if covers?.length}
 		<section class="covers-section">
 			<p class="eyebrow">Pick an album</p>
-			<p class="hint">Click a source thumbnail to apply that source's details. Where sources disagree on year or label, the alternates are called out below the title.</p>
+			<p class="hint">
+				Click a source thumbnail to apply that source's details. Where sources disagree on year or
+				label, the alternates are called out below the title.
+			</p>
 			<ul class="result-groups">
 				{#each groupedCovers as group (group.artist + '::' + group.title)}
 					{@const years = uniqueYears(group)}
@@ -160,7 +168,9 @@
 									class="source-cover"
 									class:selected={selectedCover === src.url}
 									onclick={() => onCoverSelect(src)}
-									title="Apply details from {LOOKUP_SOURCE_LABEL[src.source]}{src.year ? ` (${src.year})` : ''}"
+									title="Apply details from {LOOKUP_SOURCE_LABEL[src.source]}{src.year
+										? ` (${src.year})`
+										: ''}"
 								>
 									{#if src.url}
 										<img src={src.url} alt="" loading="lazy" />
@@ -221,8 +231,12 @@
 				<label class="field ownership">
 					<span class="label">Ownership</span>
 					<div class="radio-group">
-						<label><input type="radio" name="ownership" value="OWN" bind:group={ownership} /> Own</label>
-						<label><input type="radio" name="ownership" value="WANT" bind:group={ownership} /> Want</label>
+						<label
+							><input type="radio" name="ownership" value="OWN" bind:group={ownership} /> Own</label
+						>
+						<label
+							><input type="radio" name="ownership" value="WANT" bind:group={ownership} /> Want</label
+						>
 					</div>
 				</label>
 				<label class="field full">
@@ -265,8 +279,14 @@
 		gap: 1.5rem;
 		margin-bottom: 2rem;
 	}
-	.back { font-size: 0.85rem; color: var(--text-muted); }
-	h1 { font-size: 1.5rem; font-weight: 700; }
+	.back {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+	h1 {
+		font-size: 1.5rem;
+		font-weight: 700;
+	}
 
 	.search-row {
 		display: flex;
@@ -291,15 +311,22 @@
 		font-weight: 600;
 		cursor: pointer;
 	}
-	.search-row button:disabled { opacity: 0.5; cursor: default; }
+	.search-row button:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
 	.search-hint {
 		margin-top: 0.5rem;
 		font-size: 0.78rem;
 		color: var(--text-muted);
 	}
 
-	.covers-section { margin: 2rem 0; }
-	.covers-section .eyebrow { margin-bottom: 0.4rem; }
+	.covers-section {
+		margin: 2rem 0;
+	}
+	.covers-section .eyebrow {
+		margin-bottom: 0.4rem;
+	}
 	.hint {
 		font-size: 0.78rem;
 		color: var(--text-muted);
@@ -325,7 +352,9 @@
 		padding: 0.4rem 0.25rem;
 		min-width: 0;
 	}
-	.group-header { min-width: 0; }
+	.group-header {
+		min-width: 0;
+	}
 	.result-artist {
 		font-size: 0.72rem;
 		font-weight: 700;
@@ -379,12 +408,18 @@
 		object-fit: cover;
 		border-radius: var(--radius);
 		box-shadow: var(--shadow);
-		transition: box-shadow 0.18s, outline-color 0.18s;
+		transition:
+			box-shadow 0.18s,
+			outline-color 0.18s;
 		outline: 2px solid transparent;
 		outline-offset: 2px;
 	}
-	.src-no-thumb { background: var(--surface); }
-	.source-cover:hover { transform: translateY(-2px); }
+	.src-no-thumb {
+		background: var(--surface);
+	}
+	.source-cover:hover {
+		transform: translateY(-2px);
+	}
 	.source-cover:hover img,
 	.source-cover:hover .src-no-thumb {
 		box-shadow:
@@ -405,7 +440,9 @@
 		transition: color 0.18s;
 	}
 	.source-cover:hover .source-name,
-	.source-cover.selected .source-name { color: var(--text); }
+	.source-cover.selected .source-name {
+		color: var(--text);
+	}
 
 	.no-cover-option {
 		margin-top: 1.25rem;
@@ -418,7 +455,10 @@
 		font-weight: 500;
 		cursor: pointer;
 		font-family: inherit;
-		transition: background 0.2s, border-color 0.2s, color 0.2s;
+		transition:
+			background 0.2s,
+			border-color 0.2s,
+			color 0.2s;
 	}
 	.no-cover-option:hover {
 		color: var(--text);
@@ -431,27 +471,48 @@
 		background: color-mix(in oklch, var(--accent) 12%, transparent);
 	}
 
-	.details-section { margin-top: 2rem; }
+	.details-section {
+		margin-top: 2rem;
+	}
 	.field-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
 	}
-	.field { display: flex; flex-direction: column; gap: 0.35rem; }
-	.field.full { grid-column: 1 / -1; }
-	.label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
-	.label small { font-weight: 400; text-transform: none; letter-spacing: 0; }
-	.field input, .field textarea {
+	.field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	.field.full {
+		grid-column: 1 / -1;
+	}
+	.label {
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+	.label small {
+		font-weight: 400;
+		text-transform: none;
+		letter-spacing: 0;
+	}
+	.field input,
+	.field textarea {
 		padding: 0.55rem 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		background: var(--surface);
 		color: var(--text);
 	}
-	.field textarea { resize: vertical; }
+	.field textarea {
+		resize: vertical;
+	}
 	/* Notes is content, not metadata — styled to feel like writing in the
 	   read-view note panel: accent left border, soft fill, italic. */
-	.field textarea[name="notes"] {
+	.field textarea[name='notes'] {
 		background: var(--surface);
 		border: 1px solid var(--border);
 		border-left: 3px solid var(--accent);
@@ -460,9 +521,16 @@
 		line-height: 1.5;
 		min-height: 4.5rem;
 	}
-	.field textarea[name="notes"]::placeholder { font-style: italic; }
-	.field :global(.sort-group) { display: flex; }
-	.field :global(.dropdown) { flex: 1; display: block; }
+	.field textarea[name='notes']::placeholder {
+		font-style: italic;
+	}
+	.field :global(.sort-group) {
+		display: flex;
+	}
+	.field :global(.dropdown) {
+		flex: 1;
+		display: block;
+	}
 	.field :global(.trigger) {
 		width: 100%;
 		justify-content: space-between;
@@ -470,9 +538,24 @@
 		font-size: 1rem;
 		font-weight: 400;
 	}
-	.field :global(.menu) { left: 0; right: auto; min-width: 100%; }
-	.radio-group { display: flex; gap: 1.25rem; align-items: center; padding-top: 0.3rem; }
-	.radio-group label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+	.field :global(.menu) {
+		left: 0;
+		right: auto;
+		min-width: 100%;
+	}
+	.radio-group {
+		display: flex;
+		gap: 1.25rem;
+		align-items: center;
+		padding-top: 0.3rem;
+	}
+	.radio-group label {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.9rem;
+		cursor: pointer;
+	}
 
 	.actions {
 		display: flex;
@@ -496,5 +579,9 @@
 		display: flex;
 		align-items: center;
 	}
-	.error { color: oklch(55% 0.2 25); font-size: 0.85rem; margin-top: 0.5rem; }
+	.error {
+		color: oklch(55% 0.2 25);
+		font-size: 0.85rem;
+		margin-top: 0.5rem;
+	}
 </style>

@@ -9,7 +9,9 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 	// Profile (public)
 	const { data: profile, error: profileError } = await locals.supabase
 		.from('profiles')
-		.select('id, username, display_name, last_fm_username, featured_album_id, avatar_url, email_hash')
+		.select(
+			'id, username, display_name, last_fm_username, featured_album_id, avatar_url, email_hash'
+		)
 		.eq('username', username)
 		.maybeSingle();
 
@@ -53,14 +55,23 @@ export const load: PageServerLoad = async ({ locals, params, setHeaders }) => {
 
 	// Now-playing — only if they've linked Last.fm
 	let nowPlaying: NowPlayingResult = {
-		state: 'none', track: null, artist: null, album: null,
-		coverUrl: null, coverCandidates: [], playedAt: null, source: null
+		state: 'none',
+		track: null,
+		artist: null,
+		album: null,
+		coverUrl: null,
+		coverCandidates: [],
+		playedAt: null,
+		source: null
 	};
 	if (profile.last_fm_username) {
 		nowPlaying = await fetchNowPlaying(profile.last_fm_username);
 		if (nowPlaying.state !== 'none' && nowPlaying.artist && nowPlaying.track) {
 			nowPlaying.source = await classifyNowPlayingSource(
-				locals.supabase, profile.id, nowPlaying.artist, nowPlaying.track
+				locals.supabase,
+				profile.id,
+				nowPlaying.artist,
+				nowPlaying.track
 			);
 		}
 	}

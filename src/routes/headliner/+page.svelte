@@ -32,9 +32,23 @@
 		padding: 0 1.5rem;
 		text-align: center;
 	}
-	h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
-	p { color: var(--text-muted); margin-bottom: 1.5rem; }
-	ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+	h1 {
+		font-size: 1.8rem;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.5rem;
+	}
+	p {
+		color: var(--text-muted);
+		margin-bottom: 1.5rem;
+	}
+	ul {
+		list-style: none;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
 	li a {
 		display: block;
 		padding: 0.75rem 1rem;
@@ -44,6 +58,10 @@
 		color: var(--text);
 		text-decoration: none;
 	}
-	li a:hover { background: var(--surface-hover); }
-	.back { margin-top: 2rem; }
+	li a:hover {
+		background: var(--surface-hover);
+	}
+	.back {
+		margin-top: 2rem;
+	}
 </style>

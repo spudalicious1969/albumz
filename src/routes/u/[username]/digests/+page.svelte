@@ -60,7 +60,10 @@
 		<div class="owner-bar">
 			<div class="owner-bar-text">
 				<p class="owner-lead">Drafts arrive automatically Sunday evening.</p>
-				<p class="owner-sub">Use this to preview the current week early or to regenerate after a discard. Takes ~15–45 seconds.</p>
+				<p class="owner-sub">
+					Use this to preview the current week early or to regenerate after a discard. Takes ~15–45
+					seconds.
+				</p>
 			</div>
 			<button type="button" class="btn-generate" onclick={generate} disabled={busy}>
 				{busy ? 'Generating…' : 'Generate this week'}
@@ -74,7 +77,9 @@
 	{#if data.digests.length === 0}
 		<div class="empty">
 			<p class="empty-headline">No published digests yet.</p>
-			<p class="empty-sub">Once {data.profile.displayName} publishes a weekly column, it'll show up here.</p>
+			<p class="empty-sub">
+				Once {data.profile.displayName} publishes a weekly column, it'll show up here.
+			</p>
 		</div>
 	{:else}
 		<ul class="archive">
@@ -97,7 +102,9 @@
 		padding: 5rem 1.5rem 4rem;
 	}
 
-	.head { margin-bottom: 2.5rem; }
+	.head {
+		margin-bottom: 2.5rem;
+	}
 	.eyebrow {
 		font-size: 0.72rem;
 		font-weight: 700;
@@ -114,9 +121,17 @@
 		margin: 0 0 0.6rem;
 		color: var(--text);
 	}
-	.byline { margin: 0; font-size: 0.95rem; }
-	.back { color: var(--text-muted); text-decoration: none; }
-	.back:hover { color: var(--text); }
+	.byline {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+	.back {
+		color: var(--text-muted);
+		text-decoration: none;
+	}
+	.back:hover {
+		color: var(--text);
+	}
 
 	.owner-bar {
 		display: flex;
@@ -129,7 +144,10 @@
 		border-left: 3px solid var(--accent);
 		border-radius: var(--radius);
 	}
-	.owner-bar-text { flex: 1; min-width: 0; }
+	.owner-bar-text {
+		flex: 1;
+		min-width: 0;
+	}
 	.owner-lead {
 		margin: 0;
 		font-size: 0.92rem;
@@ -154,8 +172,13 @@
 		cursor: pointer;
 		transition: opacity 0.15s;
 	}
-	.btn-generate:hover:not(:disabled) { opacity: 0.9; }
-	.btn-generate:disabled { opacity: 0.55; cursor: progress; }
+	.btn-generate:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+	.btn-generate:disabled {
+		opacity: 0.55;
+		cursor: progress;
+	}
 
 	.owner-err {
 		margin: -0.75rem 0 1.5rem;
@@ -164,8 +187,14 @@
 	}
 
 	@media (max-width: 560px) {
-		.owner-bar { flex-direction: column; align-items: stretch; gap: 0.85rem; }
-		.btn-generate { width: 100%; }
+		.owner-bar {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.85rem;
+		}
+		.btn-generate {
+			width: 100%;
+		}
 	}
 
 	.empty {
@@ -173,8 +202,16 @@
 		text-align: center;
 		color: var(--text-muted);
 	}
-	.empty-headline { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 0 0 0.5rem; }
-	.empty-sub { font-size: 0.95rem; margin: 0; }
+	.empty-headline {
+		font-size: 1.1rem;
+		font-weight: 600;
+		color: var(--text);
+		margin: 0 0 0.5rem;
+	}
+	.empty-sub {
+		font-size: 0.95rem;
+		margin: 0;
+	}
 
 	.archive {
 		list-style: none;
@@ -193,7 +230,9 @@
 		background: var(--surface);
 		text-decoration: none;
 		color: var(--text);
-		transition: background 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s;
 	}
 	.archive-row:hover {
 		background: var(--bg-elevated);

@@ -41,7 +41,9 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		digest: digest as DigestRow,
 		isOwner,
-		author: profile ? { username: profile.username, displayName: profile.display_name ?? profile.username } : null
+		author: profile
+			? { username: profile.username, displayName: profile.display_name ?? profile.username }
+			: null
 	};
 };
 

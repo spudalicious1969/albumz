@@ -128,7 +128,12 @@ export async function assembleDigest(
 	// If Last.fm wasn't reachable (or user isn't connected), fall back to also
 	// pulling streamed rows from the spins table — partial picture, but better
 	// than nothing.
-	let streamedFallback: { artist: string; track: string; album: string | null; identified_at: string }[] = [];
+	let streamedFallback: {
+		artist: string;
+		track: string;
+		album: string | null;
+		identified_at: string;
+	}[] = [];
 	if (scrobbles.length === 0) {
 		const { data } = await supabase
 			.from('spins')
@@ -256,7 +261,10 @@ export async function assembleDigest(
 				const albumPart = head.album ? ` (${head.album})` : '';
 				lines.push(`  ${head.artist} — ${head.track}${albumPart} ${mark}`);
 			} else {
-				const trackList = plays.slice(i, j).map((e) => e.track).join(', ');
+				const trackList = plays
+					.slice(i, j)
+					.map((e) => e.track)
+					.join(', ');
 				lines.push(`  ${head.artist} — ${head.album} ${mark} ×${runLen}: ${trackList}`);
 			}
 			i = j;
@@ -300,9 +308,7 @@ export async function assembleDigest(
 			.eq('user_id', userId)
 			.gte('identified_at', ninetyDaysAgo.toISOString());
 		const recentlySpunAlbumKeys = new Set(
-			(recentSpins ?? [])
-				.filter((s) => s.album)
-				.map((s) => keyOf(s.artist, s.album as string))
+			(recentSpins ?? []).filter((s) => s.album).map((s) => keyOf(s.artist, s.album as string))
 		);
 		dormantCandidates = ownedAlbums
 			.filter((a) => !recentlySpunAlbumKeys.has(keyOf(a.artist, a.title)))
@@ -323,10 +329,16 @@ export async function assembleDigest(
 		.map((a) => ({ artist: a.artist, title: a.title, year: a.year }));
 
 	if (dormantCandidates.length === 0) {
-		return { ok: false, error: 'No dormant album to surface — all owned albums have been spun recently.' };
+		return {
+			ok: false,
+			error: 'No dormant album to surface — all owned albums have been spun recently.'
+		};
 	}
 	if (discoveryCandidates.length === 0) {
-		return { ok: false, error: 'No discovery candidate found — not enough albums in other collections yet.' };
+		return {
+			ok: false,
+			error: 'No discovery candidate found — not enough albums in other collections yet.'
+		};
 	}
 
 	// Build a per-artist play profile from the full events array (not the

@@ -109,8 +109,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	// Fire-and-forget — Last.fm hiccups must never break spin identification.
 	const sessionKey = profile?.lastfm_session_key;
 	if (sessionKey) {
-		updateNowPlaying(sessionKey, identification.artist, identification.track, identification.album)
-			.catch(() => { /* swallowed inside helper, double-guarded here */ });
+		updateNowPlaying(
+			sessionKey,
+			identification.artist,
+			identification.track,
+			identification.album
+		).catch(() => {
+			/* swallowed inside helper, double-guarded here */
+		});
 	}
 
 	// Scrobble logic: physical plays only (streams are already in the user's

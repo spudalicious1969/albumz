@@ -40,7 +40,9 @@
 	<div class="card">
 		<div class="wordmark">album<span>z</span></div>
 		<h1>Pick your username</h1>
-		<p class="intro">This becomes your public address. You can always change it later in Settings.</p>
+		<p class="intro">
+			This becomes your public address. You can always change it later in Settings.
+		</p>
 
 		<form
 			method="POST"
@@ -73,9 +75,26 @@
 						{#if checkStatus === 'checking'}
 							<span class="spinner"></span>
 						{:else if checkStatus === 'available'}
-							<svg viewBox="0 0 16 16" width="16" height="16"><path d="M3 8l3.5 3.5 6.5-6.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+							<svg viewBox="0 0 16 16" width="16" height="16"
+								><path
+									d="M3 8l3.5 3.5 6.5-6.5"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								/></svg
+							>
 						{:else if checkStatus === 'taken'}
-							<svg viewBox="0 0 16 16" width="16" height="16"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+							<svg viewBox="0 0 16 16" width="16" height="16"
+								><path
+									d="M4 4l8 8M12 4l-8 8"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+								/></svg
+							>
 						{/if}
 					</span>
 				</div>
@@ -87,7 +106,9 @@
 					class:hint-err={checkStatus === 'taken' || checkStatus === 'invalid'}
 				>
 					{#if checkStatus === 'available'}
-						✓ Available — your page will be at <strong>albumz.spudalicio.us/u/{username.trim().toLowerCase()}</strong>
+						✓ Available — your page will be at <strong
+							>albumz.spudalicio.us/u/{username.trim().toLowerCase()}</strong
+						>
 					{:else if checkStatus === 'taken'}
 						That username is already taken.
 					{:else if checkStatus === 'invalid'}
@@ -137,7 +158,9 @@
 		color: var(--text);
 		margin-bottom: 1.25rem;
 	}
-	.wordmark span { color: var(--accent); }
+	.wordmark span {
+		color: var(--accent);
+	}
 
 	h1 {
 		font-size: 1.4rem;
@@ -184,7 +207,9 @@
 		outline: none;
 		transition: border-color 0.15s;
 	}
-	input:focus { border-color: var(--accent); }
+	input:focus {
+		border-color: var(--accent);
+	}
 
 	.status-icon {
 		position: absolute;
@@ -196,7 +221,9 @@
 		color: var(--text-muted);
 		pointer-events: none;
 	}
-	.status-icon svg { color: oklch(55% 0.17 145); }
+	.status-icon svg {
+		color: oklch(55% 0.17 145);
+	}
 
 	.spinner {
 		display: inline-block;
@@ -207,7 +234,11 @@
 		border-radius: 50%;
 		animation: spin 0.7s linear infinite;
 	}
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 
 	.hint {
 		font-size: 0.8rem;
@@ -215,8 +246,12 @@
 		line-height: 1.4;
 		min-height: 1.2em;
 	}
-	.hint-ok { color: oklch(55% 0.17 145); }
-	.hint-err { color: oklch(55% 0.2 25); }
+	.hint-ok {
+		color: oklch(55% 0.17 145);
+	}
+	.hint-err {
+		color: oklch(55% 0.2 25);
+	}
 
 	.error {
 		font-size: 0.85rem;
@@ -237,6 +272,11 @@
 		cursor: pointer;
 		transition: opacity 0.15s;
 	}
-	.btn-primary:hover:not(:disabled) { opacity: 0.9; }
-	.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+	.btn-primary:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+	.btn-primary:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
 </style>

@@ -13,10 +13,19 @@
 	let { data }: { data: PageData } = $props();
 
 	// ── Collection-mode state (only used when data.mode === 'collection') ─────
-	type Album = { id: string; artist: string; title: string; year: number | null;
-		format: string | null; rating: number | null; ownership: 'OWN' | 'WANT';
-		cover_url: string | null; accent_color: string | null; created_at: string; };
-	const albums = $derived(data.mode === 'collection' ? data.albums as Album[] : []);
+	type Album = {
+		id: string;
+		artist: string;
+		title: string;
+		year: number | null;
+		format: string | null;
+		rating: number | null;
+		ownership: 'OWN' | 'WANT';
+		cover_url: string | null;
+		accent_color: string | null;
+		created_at: string;
+	};
+	const albums = $derived(data.mode === 'collection' ? (data.albums as Album[]) : []);
 
 	const owned = $derived(albums.filter((a) => a.ownership === 'OWN'));
 	const missingCovers = $derived(albums.filter((a) => !a.cover_url));
@@ -52,12 +61,23 @@
 		owned.slice().sort((a, b) => {
 			let r: number;
 			switch (sort) {
-				case 'artist': r = compareByKey(a.artist, b.artist); break;
-				case 'album':  r = compareByKey(a.title, b.title); break;
-				case 'rating': r = (b.rating ?? 0) - (a.rating ?? 0); break;
-				case 'format': r = (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist); break;
+				case 'artist':
+					r = compareByKey(a.artist, b.artist);
+					break;
+				case 'album':
+					r = compareByKey(a.title, b.title);
+					break;
+				case 'rating':
+					r = (b.rating ?? 0) - (a.rating ?? 0);
+					break;
+				case 'format':
+					r =
+						(a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') ||
+						compareByKey(a.artist, b.artist);
+					break;
 				case 'recent':
-				default:       r = b.created_at.localeCompare(a.created_at);
+				default:
+					r = b.created_at.localeCompare(a.created_at);
 			}
 			return reversed ? -r : r;
 		})
@@ -83,8 +103,19 @@
 			const img = new Image();
 			img.crossOrigin = 'anonymous';
 			let settled = false;
-			const finish = (v: string | null) => { if (!settled) { settled = true; resolve(v); } };
-			img.onload = () => { try { finish(extractAccentColorFromImg(img)); } catch { finish(null); } };
+			const finish = (v: string | null) => {
+				if (!settled) {
+					settled = true;
+					resolve(v);
+				}
+			};
+			img.onload = () => {
+				try {
+					finish(extractAccentColorFromImg(img));
+				} catch {
+					finish(null);
+				}
+			};
 			img.onerror = () => finish(null);
 			setTimeout(() => finish(null), 8000);
 			img.src = coverUrl;
@@ -114,7 +145,11 @@
 					body: JSON.stringify({ albumIds: slice })
 				});
 				const { results } = (await res.json()) as {
-					results: Array<{ id: string; status: 'updated' | 'not_found' | 'skipped' | 'error'; cover_url?: string }>;
+					results: Array<{
+						id: string;
+						status: 'updated' | 'not_found' | 'skipped' | 'error';
+						cover_url?: string;
+					}>;
 				};
 				for (const r of results) {
 					if (r.status === 'updated') {
@@ -137,18 +172,22 @@
 
 		for (let i = 0; i < accentTargets.length; i += BATCH) {
 			const slice = accentTargets.slice(i, i + BATCH);
-			await Promise.all(slice.map(async ({ id, url }) => {
-				const accent = await extractAccent(url);
-				if (accent) {
-					try {
-						await fetch(`/api/albums/${id}/accent`, {
-							method: 'PATCH',
-							headers: { 'Content-Type': 'application/json' },
-							body: JSON.stringify({ accent_color: accent })
-						});
-					} catch { /* swallow — a missed accent isn't fatal */ }
-				}
-			}));
+			await Promise.all(
+				slice.map(async ({ id, url }) => {
+					const accent = await extractAccent(url);
+					if (accent) {
+						try {
+							await fetch(`/api/albums/${id}/accent`, {
+								method: 'PATCH',
+								headers: { 'Content-Type': 'application/json' },
+								body: JSON.stringify({ accent_color: accent })
+							});
+						} catch {
+							/* swallow — a missed accent isn't fatal */
+						}
+					}
+				})
+			);
 			phaseProgress.done += slice.length;
 		}
 
@@ -164,101 +203,115 @@
 {#if data.mode === 'mosaic'}
 	<MosaicView tiles={data.tiles} />
 {:else}
-{#if ambientCoverUrl}
-	<div class="ambient-layer" style="background-image: url({ambientCoverUrl})"></div>
-{/if}
-<div class="page" style={ambientAccent ? `--accent: ${ambientAccent}` : ''}>
-	<header class="topbar">
-		<span class="wordmark">album<span>z</span></span>
-		<span class="title-meta">Collection <span class="count">{owned.length}</span></span>
-		<div class="topbar-actions">
-			<SortDropdown
-				bind:value={sort}
-				bind:reversed
-				reversible
-				options={[
-					{ value: 'recent', label: 'Recent' },
-					{ value: 'artist', label: 'Artist' },
-					{ value: 'album', label: 'Album' },
-					{ value: 'rating', label: 'Rating' },
-					{ value: 'format', label: 'Format' }
-				]}
-			/>
-			<button
-				type="button"
-				class="btn-icon"
-				onclick={() => lookup.open()}
-				title="Do I have this? (⌘K)"
-				aria-label="Search collection"
-			>
-				<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-					<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" />
-					<path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-				</svg>
-			</button>
-			<a href="/wantlist" class="btn-secondary">Wantlist</a>
-			<a href="/albums/new" class="btn-add">+ Add</a>
-			{#if data.profile}
-				<UserMenu profile={data.profile} />
-			{/if}
-		</div>
-	</header>
-
-	{#if needsArtwork > 0 || phase !== 'idle'}
-		<aside class="missing-banner">
-			{#if phase === 'covers'}
-				<span>Finding covers… <strong>{phaseProgress.done}</strong> / {phaseProgress.total} · {phaseProgress.found} found{phaseProgress.notFound ? ` · ${phaseProgress.notFound} not found` : ''}</span>
-			{:else if phase === 'accents'}
-				<span>Refreshing accent colors… <strong>{phaseProgress.done}</strong> / {phaseProgress.total}</span>
-			{:else}
-				<span>
-					{#if missingCovers.length > 0}
-						<strong>{missingCovers.length}</strong> album{missingCovers.length === 1 ? '' : 's'} missing cover art{missingAccents.length > 0 ? `, ${missingAccents.length} missing accent` : ''}
-					{:else}
-						<strong>{missingAccents.length}</strong> album{missingAccents.length === 1 ? '' : 's'} need an accent-color refresh
-					{/if}
-				</span>
-				<button onclick={findCovers} class="btn-link">Refresh</button>
-			{/if}
-		</aside>
+	{#if ambientCoverUrl}
+		<div class="ambient-layer" style="background-image: url({ambientCoverUrl})"></div>
 	{/if}
-
-	{#if data.mode === 'collection' && data.error}
-		<p class="error">Error loading albums: {data.error}</p>
-	{:else if owned.length === 0}
-		<div class="empty">
-			<p>Your collection is empty.</p>
-			<a href="/albums/new" class="btn-add">Add your first album</a>
-		</div>
-	{:else}
-		<div class="album-grid">
-			{#each sortedOwned as album (album.id)}
-				<a
-					href="/albums/{album.id}"
-					class="album-card"
-					style="--card-accent: {album.accent_color ?? 'var(--accent)'}"
-					onmouseenter={() => (hoveredId = album.id)}
+	<div class="page" style={ambientAccent ? `--accent: ${ambientAccent}` : ''}>
+		<header class="topbar">
+			<span class="wordmark">album<span>z</span></span>
+			<span class="title-meta">Collection <span class="count">{owned.length}</span></span>
+			<div class="topbar-actions">
+				<SortDropdown
+					bind:value={sort}
+					bind:reversed
+					reversible
+					options={[
+						{ value: 'recent', label: 'Recent' },
+						{ value: 'artist', label: 'Artist' },
+						{ value: 'album', label: 'Album' },
+						{ value: 'rating', label: 'Rating' },
+						{ value: 'format', label: 'Format' }
+					]}
+				/>
+				<button
+					type="button"
+					class="btn-icon"
+					onclick={() => lookup.open()}
+					title="Do I have this? (⌘K)"
+					aria-label="Search collection"
 				>
-					{#if album.cover_url}
-						<img src={album.cover_url} alt="{album.artist} – {album.title}" loading="lazy" />
-					{:else}
-						<div class="no-cover">
-							<span>{album.artist.slice(0, 1)}</span>
-						</div>
-					{/if}
-					<div class="card-info">
-						<p class="card-artist">{album.artist}</p>
-						<p class="card-title">{album.title}</p>
-						{#if album.year}<p class="card-year">{album.year}</p>{/if}
-						{#if album.rating}
-							<p class="card-rating">{'★'.repeat(album.rating)}</p>
+					<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+						<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" />
+						<path
+							d="m16.5 16.5 4 4"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
+					</svg>
+				</button>
+				<a href="/wantlist" class="btn-secondary">Wantlist</a>
+				<a href="/albums/new" class="btn-add">+ Add</a>
+				{#if data.profile}
+					<UserMenu profile={data.profile} />
+				{/if}
+			</div>
+		</header>
+
+		{#if needsArtwork > 0 || phase !== 'idle'}
+			<aside class="missing-banner">
+				{#if phase === 'covers'}
+					<span
+						>Finding covers… <strong>{phaseProgress.done}</strong> / {phaseProgress.total} · {phaseProgress.found}
+						found{phaseProgress.notFound ? ` · ${phaseProgress.notFound} not found` : ''}</span
+					>
+				{:else if phase === 'accents'}
+					<span
+						>Refreshing accent colors… <strong>{phaseProgress.done}</strong> / {phaseProgress.total}</span
+					>
+				{:else}
+					<span>
+						{#if missingCovers.length > 0}
+							<strong>{missingCovers.length}</strong> album{missingCovers.length === 1 ? '' : 's'} missing
+							cover art{missingAccents.length > 0
+								? `, ${missingAccents.length} missing accent`
+								: ''}
+						{:else}
+							<strong>{missingAccents.length}</strong> album{missingAccents.length === 1 ? '' : 's'} need
+							an accent-color refresh
 						{/if}
-					</div>
-				</a>
-			{/each}
-		</div>
-	{/if}
-</div>
+					</span>
+					<button onclick={findCovers} class="btn-link">Refresh</button>
+				{/if}
+			</aside>
+		{/if}
+
+		{#if data.mode === 'collection' && data.error}
+			<p class="error">Error loading albums: {data.error}</p>
+		{:else if owned.length === 0}
+			<div class="empty">
+				<p>Your collection is empty.</p>
+				<a href="/albums/new" class="btn-add">Add your first album</a>
+			</div>
+		{:else}
+			<div class="album-grid">
+				{#each sortedOwned as album (album.id)}
+					<a
+						href="/albums/{album.id}"
+						class="album-card"
+						style="--card-accent: {album.accent_color ?? 'var(--accent)'}"
+						onmouseenter={() => (hoveredId = album.id)}
+					>
+						{#if album.cover_url}
+							<img src={album.cover_url} alt="{album.artist} – {album.title}" loading="lazy" />
+						{:else}
+							<div class="no-cover">
+								<span>{album.artist.slice(0, 1)}</span>
+							</div>
+						{/if}
+						<div class="card-info">
+							<p class="card-artist">{album.artist}</p>
+							<p class="card-title">{album.title}</p>
+							{#if album.year}<p class="card-year">{album.year}</p>{/if}
+							{#if album.rating}
+								<p class="card-rating">{'★'.repeat(album.rating)}</p>
+							{/if}
+						</div>
+					</a>
+				{/each}
+			</div>
+		{/if}
+	</div>
 {/if}
 
 <style>
@@ -274,7 +327,9 @@
 		transition: --accent 1.5s ease-out;
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.page { transition: none; }
+		.page {
+			transition: none;
+		}
 	}
 
 	/* Ambient: blurred cover of the currently-hovered card. Fixed so it stays
@@ -317,7 +372,11 @@
 		color: var(--text);
 	}
 
-	.topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+	.topbar-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
 	.btn-add {
 		padding: 0.45rem 1rem;
 		background: var(--accent);
@@ -327,7 +386,10 @@
 		font-size: 0.85rem;
 		white-space: nowrap;
 	}
-	.btn-add:hover { text-decoration: none; opacity: 0.9; }
+	.btn-add:hover {
+		text-decoration: none;
+		opacity: 0.9;
+	}
 	.btn-secondary {
 		padding: 0.45rem 0.9rem;
 		background: var(--surface);
@@ -337,7 +399,10 @@
 		font-size: 0.85rem;
 		border: 1px solid var(--border);
 	}
-	.btn-secondary:hover { text-decoration: none; background: var(--surface-hover); }
+	.btn-secondary:hover {
+		text-decoration: none;
+		background: var(--surface-hover);
+	}
 	.btn-icon {
 		display: inline-flex;
 		align-items: center;
@@ -349,9 +414,14 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		cursor: pointer;
-		transition: background 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			color 0.15s;
 	}
-	.btn-icon:hover { background: var(--surface-hover); color: var(--text); }
+	.btn-icon:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+	}
 	.empty {
 		display: flex;
 		flex-direction: column;
@@ -375,11 +445,15 @@
 		background: var(--surface);
 		box-shadow: var(--shadow);
 		text-decoration: none;
-		transition: transform 0.18s, box-shadow 0.18s;
+		transition:
+			transform 0.18s,
+			box-shadow 0.18s;
 	}
 	.album-card:hover {
 		transform: translateY(-3px);
-		box-shadow: var(--shadow-lift), 0 0 20px color-mix(in oklch, var(--card-accent) 30%, transparent);
+		box-shadow:
+			var(--shadow-lift),
+			0 0 20px color-mix(in oklch, var(--card-accent) 30%, transparent);
 		text-decoration: none;
 	}
 	.album-card img {
@@ -427,7 +501,10 @@
 		letter-spacing: 0.05em;
 	}
 
-	.error { color: oklch(55% 0.2 25); padding: 1rem 0; }
+	.error {
+		color: oklch(55% 0.2 25);
+		padding: 1rem 0;
+	}
 
 	.missing-banner {
 		display: flex;
@@ -442,7 +519,9 @@
 		color: var(--text-muted);
 		margin-bottom: 1.5rem;
 	}
-	.missing-banner strong { color: var(--text); }
+	.missing-banner strong {
+		color: var(--text);
+	}
 	.btn-link {
 		background: none;
 		border: none;
@@ -452,5 +531,7 @@
 		font-size: 0.85rem;
 		margin-left: auto;
 	}
-	.btn-link:hover { text-decoration: underline; }
+	.btn-link:hover {
+		text-decoration: underline;
+	}
 </style>

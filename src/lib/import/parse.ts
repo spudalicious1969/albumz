@@ -57,26 +57,31 @@ export function parseAndNormalize(buffer: Buffer, kind: FileKind): ParsedFile {
 		// Only artists get (N) on Discogs; release titles are disambiguated by
 		// other metadata, so leave titles alone (they legitimately contain
 		// parens like "(Deluxe Edition)").
-		const artist = String(get('artist') ?? '').trim().replace(/\s+\(\d+\)$/, '');
-		const title  = String(get('title')  ?? '').trim();
+		const artist = String(get('artist') ?? '')
+			.trim()
+			.replace(/\s+\(\d+\)$/, '');
+		const title = String(get('title') ?? '').trim();
 
 		const out: ImportRow = {
 			artist,
 			title,
-			year:      normalizeYear(get('year')),
-			format:    normalizeFormat(get('format')),
-			label:     String(get('label') ?? '').trim() || null,
-			rating:    normalizeRating(get('rating')),
-			notes:     String(get('notes') ?? '').trim() || null,
-			tags:      normalizeTags(get('tags')),
+			year: normalizeYear(get('year')),
+			format: normalizeFormat(get('format')),
+			label: String(get('label') ?? '').trim() || null,
+			rating: normalizeRating(get('rating')),
+			notes: String(get('notes') ?? '').trim() || null,
+			tags: normalizeTags(get('tags')),
 			ownership: normalizeOwnership(get('ownership')),
-			rowIndex:  i
+			rowIndex: i
 		};
 
 		if (!artist || !title) {
-			out.skipReason = !artist && !title
-				? 'Missing artist and title'
-				: !artist ? 'Missing artist' : 'Missing title';
+			out.skipReason =
+				!artist && !title
+					? 'Missing artist and title'
+					: !artist
+						? 'Missing artist'
+						: 'Missing title';
 		}
 
 		return out;

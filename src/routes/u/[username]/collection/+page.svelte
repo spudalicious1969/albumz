@@ -6,7 +6,7 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
-	type Album = typeof data.albums[number];
+	type Album = (typeof data.albums)[number];
 
 	const SORTS = ['artist', 'album', 'rating', 'format'] as const;
 	type Sort = (typeof SORTS)[number];
@@ -45,25 +45,36 @@
 	const filtered = $derived(
 		(query.trim()
 			? data.albums.filter((a: Album) => {
-				const q = query.toLowerCase();
-				return (
-					a.artist.toLowerCase().includes(q) ||
-					a.title.toLowerCase().includes(q) ||
-					(a.tags ?? []).some((t: string) => t.toLowerCase().includes(q))
-				);
-			})
+					const q = query.toLowerCase();
+					return (
+						a.artist.toLowerCase().includes(q) ||
+						a.title.toLowerCase().includes(q) ||
+						(a.tags ?? []).some((t: string) => t.toLowerCase().includes(q))
+					);
+				})
 			: data.albums
-		).slice().sort((a: Album, b: Album) => {
-			let r: number;
-			switch (sort) {
-				case 'album':  r = compareByKey(a.title, b.title); break;
-				case 'rating': r = (b.rating ?? 0) - (a.rating ?? 0); break;
-				case 'format': r = (a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist); break;
-				case 'artist':
-				default:       r = compareByKey(a.artist, b.artist);
-			}
-			return reversed ? -r : r;
-		})
+		)
+			.slice()
+			.sort((a: Album, b: Album) => {
+				let r: number;
+				switch (sort) {
+					case 'album':
+						r = compareByKey(a.title, b.title);
+						break;
+					case 'rating':
+						r = (b.rating ?? 0) - (a.rating ?? 0);
+						break;
+					case 'format':
+						r =
+							(a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') ||
+							compareByKey(a.artist, b.artist);
+						break;
+					case 'artist':
+					default:
+						r = compareByKey(a.artist, b.artist);
+				}
+				return reversed ? -r : r;
+			})
 	);
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
@@ -85,10 +96,14 @@
 						placeholder="Search artist, title, or tag…"
 						bind:value={query}
 						bind:this={searchInputEl}
-						onkeydown={(e) => { if (e.key === 'Escape') closeSearch(); }}
+						onkeydown={(e) => {
+							if (e.key === 'Escape') closeSearch();
+						}}
 						class="search"
 					/>
-					<button type="button" class="search-close" onclick={closeSearch} aria-label="Close search">✕</button>
+					<button type="button" class="search-close" onclick={closeSearch} aria-label="Close search"
+						>✕</button
+					>
 				</div>
 			{:else}
 				<button
@@ -100,7 +115,12 @@
 				>
 					<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
 						<circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2" />
-						<path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+						<path
+							d="m16.5 16.5 4 4"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+						/>
 					</svg>
 				</button>
 			{/if}
@@ -146,7 +166,11 @@
 </div>
 
 <style>
-	.page { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+	.page {
+		max-width: 1200px;
+		margin: 0 auto;
+		padding: 1.5rem 1.5rem 4rem;
+	}
 
 	.topbar {
 		display: flex;
@@ -157,8 +181,15 @@
 		margin-bottom: 1.25rem;
 		border-bottom: 1px solid var(--border);
 	}
-	.back { font-size: 0.85rem; color: var(--text-muted); }
-	h1 { font-size: 1.4rem; font-weight: 700; flex: 1; }
+	.back {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+	h1 {
+		font-size: 1.4rem;
+		font-weight: 700;
+		flex: 1;
+	}
 	.count {
 		font-size: 0.7rem;
 		background: var(--border);
@@ -186,9 +217,14 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		cursor: pointer;
-		transition: background 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			color 0.15s;
 	}
-	.btn-icon:hover { background: var(--surface-hover); color: var(--text); }
+	.btn-icon:hover {
+		background: var(--surface-hover);
+		color: var(--text);
+	}
 	.search-wrap {
 		flex: 1;
 		display: flex;
@@ -204,7 +240,10 @@
 		padding: 0.3rem 0.5rem;
 		border-radius: var(--radius);
 	}
-	.search-close:hover { background: var(--surface); color: var(--text); }
+	.search-close:hover {
+		background: var(--surface);
+		color: var(--text);
+	}
 	.search {
 		flex: 1;
 		padding: 0.55rem 0.85rem;
@@ -213,7 +252,11 @@
 		background: var(--surface);
 		color: var(--text);
 	}
-	.empty { padding: 4rem 0; text-align: center; color: var(--text-muted); }
+	.empty {
+		padding: 4rem 0;
+		text-align: center;
+		color: var(--text-muted);
+	}
 
 	.album-grid {
 		display: grid;
@@ -229,29 +272,58 @@
 		box-shadow: var(--shadow);
 		text-decoration: none;
 		color: inherit;
-		transition: transform 0.18s, box-shadow 0.18s;
+		transition:
+			transform 0.18s,
+			box-shadow 0.18s;
 	}
 	.album-card:hover {
 		transform: translateY(-2px);
-		box-shadow: var(--shadow-lift), 0 0 18px color-mix(in oklch, var(--card-accent) 25%, transparent);
+		box-shadow:
+			var(--shadow-lift),
+			0 0 18px color-mix(in oklch, var(--card-accent) 25%, transparent);
 		text-decoration: none;
 	}
-	.album-card img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+	.album-card img {
+		width: 100%;
+		aspect-ratio: 1;
+		object-fit: cover;
+	}
 	.no-cover {
-		width: 100%; aspect-ratio: 1;
-		display: flex; align-items: center; justify-content: center;
+		width: 100%;
+		aspect-ratio: 1;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		background: color-mix(in oklch, var(--card-accent) 12%, var(--bg-elevated));
-		font-weight: 800; font-size: 2rem;
+		font-weight: 800;
+		font-size: 2rem;
 		color: color-mix(in oklch, var(--card-accent) 60%, var(--text));
 	}
-	.card-info { padding: 0.5rem 0.7rem 0.65rem; }
+	.card-info {
+		padding: 0.5rem 0.7rem 0.65rem;
+	}
 	.card-artist {
-		font-size: 0.65rem; font-weight: 700;
-		letter-spacing: 0.06em; text-transform: uppercase;
+		font-size: 0.65rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
 		color: var(--text-muted);
 		margin-bottom: 0.1rem;
 	}
-	.card-title { font-size: 0.83rem; font-weight: 600; line-height: 1.3; }
-	.card-year { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem; }
-	.card-rating { font-size: 0.65rem; color: var(--card-accent); margin-top: 0.2rem; letter-spacing: 0.05em; }
+	.card-title {
+		font-size: 0.83rem;
+		font-weight: 600;
+		line-height: 1.3;
+	}
+	.card-year {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		margin-top: 0.15rem;
+	}
+	.card-rating {
+		font-size: 0.65rem;
+		color: var(--card-accent);
+		margin-top: 0.2rem;
+		letter-spacing: 0.05em;
+	}
 </style>

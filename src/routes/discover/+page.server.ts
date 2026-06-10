@@ -1,21 +1,9 @@
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import {
-	buildListeningBaseline,
-	type ListeningBaseline
-} from '$lib/discovery/baseline.server';
-import {
-	interpretNudge,
-	type DiscogsSearchParams
-} from '$lib/discovery/interpret-nudge.server';
-import {
-	fetchDiscogsPool,
-	type Candidate
-} from '$lib/discovery/discogs-pool.server';
-import {
-	curateCandidates,
-	type CuratedPick
-} from '$lib/discovery/curate.server';
+import { buildListeningBaseline, type ListeningBaseline } from '$lib/discovery/baseline.server';
+import { interpretNudge, type DiscogsSearchParams } from '$lib/discovery/interpret-nudge.server';
+import { fetchDiscogsPool, type Candidate } from '$lib/discovery/discogs-pool.server';
+import { curateCandidates, type CuratedPick } from '$lib/discovery/curate.server';
 import { spotifyAlbumUrl } from '$lib/external-links.server';
 
 export type DisplayPick = CuratedPick & { spotifyUrl: string | null };
@@ -80,11 +68,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		};
 	}
 
-	const poolResult = await fetchDiscogsPool(
-		locals.supabase,
-		user.id,
-		interpretResult.params
-	);
+	const poolResult = await fetchDiscogsPool(locals.supabase, user.id, interpretResult.params);
 	if (!poolResult.ok) {
 		return {
 			nudge,

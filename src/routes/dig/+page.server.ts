@@ -37,13 +37,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const { data: ownedAlbums, error: ownedErr } = await locals.supabase
 		.from('albums')
-		.select('id, artist, title, year, format, label, rating, notes, tags, cover_url, accent_color, ownership')
+		.select(
+			'id, artist, title, year, format, label, rating, notes, tags, cover_url, accent_color, ownership'
+		)
 		.eq('user_id', user.id)
 		.eq('ownership', 'OWN')
 		.limit(5000);
 
 	if (ownedErr) {
-		return { album: null, exclude: excludeIds, emptyReason: 'error' as const, errorMsg: ownedErr.message };
+		return {
+			album: null,
+			exclude: excludeIds,
+			emptyReason: 'error' as const,
+			errorMsg: ownedErr.message
+		};
 	}
 
 	if (!ownedAlbums || ownedAlbums.length === 0) {
@@ -58,9 +65,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.gte('identified_at', cutoff.toISOString());
 
 	const recentlySpunKeys = new Set(
-		(recentSpins ?? [])
-			.filter((s) => s.album)
-			.map((s) => keyOf(s.artist, s.album as string))
+		(recentSpins ?? []).filter((s) => s.album).map((s) => keyOf(s.artist, s.album as string))
 	);
 
 	const excludeSet = new Set(excludeIds);

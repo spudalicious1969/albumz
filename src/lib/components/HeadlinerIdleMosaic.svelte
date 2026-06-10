@@ -82,7 +82,12 @@
 		return new Promise((resolve) => {
 			const img = new Image();
 			let settled = false;
-			const done = () => { if (!settled) { settled = true; resolve(); } };
+			const done = () => {
+				if (!settled) {
+					settled = true;
+					resolve();
+				}
+			};
 			img.onload = done;
 			img.onerror = done;
 			setTimeout(done, 5000);
@@ -146,8 +151,14 @@
 	let resizeHandle: ReturnType<typeof setTimeout> | undefined;
 
 	function rebuild() {
-		if (tickHandle) { clearInterval(tickHandle); tickHandle = undefined; }
-		if (startHandle) { clearTimeout(startHandle); startHandle = undefined; }
+		if (tickHandle) {
+			clearInterval(tickHandle);
+			tickHandle = undefined;
+		}
+		if (startHandle) {
+			clearTimeout(startHandle);
+			startHandle = undefined;
+		}
 		generation++;
 		flipping = 0;
 		const { cols, rows } = computeLayout();
@@ -224,8 +235,16 @@
 		gap: var(--gap);
 		padding: var(--gap);
 	}
-	@media (min-width: 900px)  { .grid { --cell: 160px; } }
-	@media (min-width: 1400px) { .grid { --cell: 180px; } }
+	@media (min-width: 900px) {
+		.grid {
+			--cell: 160px;
+		}
+	}
+	@media (min-width: 1400px) {
+		.grid {
+			--cell: 180px;
+		}
+	}
 
 	.slot {
 		position: relative;
@@ -237,8 +256,14 @@
 	}
 
 	@keyframes fade-in {
-		from { opacity: 0; transform: scale(0.94); }
-		to   { opacity: 0.75; transform: scale(1); }
+		from {
+			opacity: 0;
+			transform: scale(0.94);
+		}
+		to {
+			opacity: 0.75;
+			transform: scale(1);
+		}
 	}
 
 	.flipper {
@@ -248,7 +273,9 @@
 		transform-style: preserve-3d;
 		transition: transform 1.5s cubic-bezier(0.65, 0, 0.35, 1);
 	}
-	.flipper.showing-back { transform: rotateY(180deg); }
+	.flipper.showing-back {
+		transform: rotateY(180deg);
+	}
 
 	.face {
 		position: absolute;
@@ -258,7 +285,9 @@
 		overflow: hidden;
 		background: #08070a;
 	}
-	.face-back { transform: rotateY(180deg); }
+	.face-back {
+		transform: rotateY(180deg);
+	}
 
 	.face img {
 		width: 100%;
@@ -292,7 +321,11 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.flipper { transition: none; }
-		.slot { animation: none; }
+		.flipper {
+			transition: none;
+		}
+		.slot {
+			animation: none;
+		}
 	}
 </style>

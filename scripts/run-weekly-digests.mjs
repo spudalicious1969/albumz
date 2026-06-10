@@ -36,7 +36,10 @@ if (existsSync(envPath)) {
 		if (eq === -1) continue;
 		const key = trimmed.slice(0, eq).trim();
 		let value = trimmed.slice(eq + 1).trim();
-		if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+		if (
+			(value.startsWith('"') && value.endsWith('"')) ||
+			(value.startsWith("'") && value.endsWith("'"))
+		) {
 			value = value.slice(1, -1);
 		}
 		if (!(key in process.env)) process.env[key] = value;
@@ -105,7 +108,7 @@ for (const profile of profiles) {
 		const res = await fetch(url, {
 			method: 'POST',
 			headers: {
-				'authorization': `Bearer ${SCHEDULER_SECRET}`,
+				authorization: `Bearer ${SCHEDULER_SECRET}`,
 				'content-type': 'application/json'
 			},
 			body: JSON.stringify({ user_id: profile.id, skip_if_quiet: true })
@@ -118,7 +121,9 @@ for (const profile of profiles) {
 		}
 		if (data?.status === 'skipped') {
 			skipped++;
-			console.log(`[digests] ${label}: skipped (${data.reason}${data.playCount != null ? `, ${data.playCount} plays` : ''})`);
+			console.log(
+				`[digests] ${label}: skipped (${data.reason}${data.playCount != null ? `, ${data.playCount} plays` : ''})`
+			);
 			continue;
 		}
 		generated++;

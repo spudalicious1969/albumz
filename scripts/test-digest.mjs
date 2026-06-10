@@ -340,7 +340,9 @@ for (let i = 1; i <= N; i++) {
 	console.log(`no raw cnt:   ${r.rawCountsOk ? 'PASS' : `FAIL — ${r.rawCountsFound.join(', ')}`}`);
 	console.log(`"this week":  ${r.thisWeekOk ? 'PASS' : `FAIL (${r.thisWeekCount}x)`}`);
 	console.log(`no emoji:     ${r.emojiOk ? 'PASS' : `FAIL — ${r.emojiFound.join(' ')}`}`);
-	console.log(`discovery in: ${r.discoveryOk ? 'PASS' : 'FAIL — Duster/Stratosphere not mentioned'}`);
+	console.log(
+		`discovery in: ${r.discoveryOk ? 'PASS' : 'FAIL — Duster/Stratosphere not mentioned'}`
+	);
 	console.log(`rediscov. in: ${r.rediscoveryOk ? 'PASS' : 'FAIL — White Birch not mentioned'}`);
 	console.log(`no echo:      ${r.echoOk ? 'PASS' : `FAIL — ${r.echoesFound.join(', ')}`}`);
 	console.log(`no meta-lang: ${r.metaOk ? 'PASS' : `FAIL — ${r.metaFound.join(', ')}`}`);
@@ -348,7 +350,9 @@ for (let i = 1; i <= N; i++) {
 	console.log(`no format:    ${r.formatOk ? 'PASS' : `FAIL — ${r.formatFound.join(', ')}`}`);
 	console.log(`no borrowed:  ${r.borrowedOk ? 'PASS' : `FAIL — ${r.borrowedFound.join(', ')}`}`);
 	console.log(`no category:  ${r.categoryOk ? 'PASS' : `FAIL — ${r.categoryFound.join(', ')}`}`);
-	console.log(`day fidelity: ${r.dayFidelityOk ? 'PASS' : `FAIL — invented ${r.mondayMentions} Monday mention(s) (data has Mon: no plays)`}`);
+	console.log(
+		`day fidelity: ${r.dayFidelityOk ? 'PASS' : `FAIL — invented ${r.mondayMentions} Monday mention(s) (data has Mon: no plays)`}`
+	);
 	console.log(`final:        "${r.lastSentence}"`);
 	console.log('');
 }

@@ -46,7 +46,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				.eq('id', album.id)
 				.eq('user_id', user.id);
 
-			if (updateError) return { id: album.id, status: 'error' as const, message: updateError.message };
+			if (updateError)
+				return { id: album.id, status: 'error' as const, message: updateError.message };
 			return { id: album.id, status: 'updated' as const, cover_url: top.url };
 		})
 	);

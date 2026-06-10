@@ -43,7 +43,13 @@
 				</label>
 				<label class="field">
 					<span class="lbl">Password</span>
-					<input type="password" name="password" required autocomplete="new-password" minlength="8" />
+					<input
+						type="password"
+						name="password"
+						required
+						autocomplete="new-password"
+						minlength="8"
+					/>
 					<span class="hint">At least 8 characters.</span>
 				</label>
 
@@ -95,9 +101,15 @@
 		stroke: var(--accent);
 		stroke-width: 0.4;
 	}
-	@keyframes spin { to { transform: rotate(360deg); } }
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
 	@media (prefers-reduced-motion: reduce) {
-		.rings svg { animation: none; }
+		.rings svg {
+			animation: none;
+		}
 	}
 
 	.card {
@@ -113,7 +125,9 @@
 		box-shadow: var(--shadow-lift);
 	}
 
-	.wordmark-wrap { margin-bottom: 0.4rem; }
+	.wordmark-wrap {
+		margin-bottom: 0.4rem;
+	}
 	.wordmark {
 		font-size: 1.8rem;
 		font-weight: 900;
@@ -148,7 +162,10 @@
 		color: var(--text);
 		font-size: 0.95rem;
 	}
-	.hint { font-size: 0.78rem; color: var(--text-muted); }
+	.hint {
+		font-size: 0.78rem;
+		color: var(--text-muted);
+	}
 
 	.submit {
 		width: 100%;
@@ -164,7 +181,9 @@
 		box-shadow: 0 0 24px color-mix(in oklch, var(--accent) 25%, transparent);
 		transition: filter 0.15s;
 	}
-	.submit:hover { filter: brightness(1.07); }
+	.submit:hover {
+		filter: brightness(1.07);
+	}
 
 	.foot {
 		margin-top: 1.5rem;
@@ -174,8 +193,12 @@
 		font-size: 0.82rem;
 		color: var(--text-muted);
 	}
-	.foot a { color: var(--accent); }
-	.foot a:hover { text-decoration: underline; }
+	.foot a {
+		color: var(--accent);
+	}
+	.foot a:hover {
+		text-decoration: underline;
+	}
 
 	.error {
 		font-size: 0.85rem;

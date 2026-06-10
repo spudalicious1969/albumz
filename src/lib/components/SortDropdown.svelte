@@ -67,7 +67,14 @@
 		>
 			<span class="label">{current.label}</span>
 			<svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-				<path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+				<path
+					d="M2 4l4 4 4-4"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</button>
 
@@ -100,15 +107,29 @@
 			aria-pressed={reversed}
 		>
 			<svg class="reverse-icon" viewBox="0 0 12 12" width="11" height="11" aria-hidden="true">
-				<path d="M6 2 v8 M3 7 l3 3 l3 -3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+				<path
+					d="M6 2 v8 M3 7 l3 3 l3 -3"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
 			</svg>
 		</button>
 	{/if}
 </div>
 
 <style>
-	.sort-group { display: inline-flex; gap: 0.35rem; align-items: center; }
-	.dropdown { position: relative; display: inline-flex; }
+	.sort-group {
+		display: inline-flex;
+		gap: 0.35rem;
+		align-items: center;
+	}
+	.dropdown {
+		position: relative;
+		display: inline-flex;
+	}
 
 	.reverse {
 		display: inline-flex;
@@ -122,7 +143,10 @@
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
 		cursor: pointer;
-		transition: background 0.15s, color 0.15s, border-color 0.15s;
+		transition:
+			background 0.15s,
+			color 0.15s,
+			border-color 0.15s;
 	}
 	.reverse:hover {
 		background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text)));
@@ -133,8 +157,12 @@
 		color: var(--accent);
 		border-color: color-mix(in oklch, var(--accent) 50%, var(--border));
 	}
-	.reverse-icon { transition: transform 0.15s; }
-	.reverse.on .reverse-icon { transform: rotate(180deg); }
+	.reverse-icon {
+		transition: transform 0.15s;
+	}
+	.reverse.on .reverse-icon {
+		transform: rotate(180deg);
+	}
 
 	.trigger {
 		display: inline-flex;
@@ -149,7 +177,10 @@
 		font-weight: 600;
 		font-family: inherit;
 		cursor: pointer;
-		transition: background 0.15s, border-color 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s,
+			color 0.15s;
 	}
 	.trigger:hover,
 	.trigger.active {
@@ -157,8 +188,13 @@
 		border-color: color-mix(in oklch, var(--border) 50%, var(--text));
 	}
 
-	.chev { transition: transform 0.15s; opacity: 0.7; }
-	.trigger.active .chev { transform: rotate(180deg); }
+	.chev {
+		transition: transform 0.15s;
+		opacity: 0.7;
+	}
+	.trigger.active .chev {
+		transform: rotate(180deg);
+	}
 
 	.menu {
 		position: absolute;
@@ -186,14 +222,22 @@
 		border: none;
 		cursor: pointer;
 	}
-	.item:hover { background: var(--surface); }
+	.item:hover {
+		background: var(--surface);
+	}
 	.item.selected {
 		color: var(--accent);
 		font-weight: 600;
 	}
 
 	@keyframes drop-in {
-		from { opacity: 0; transform: translateY(-4px); }
-		to   { opacity: 1; transform: none; }
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
 	}
 </style>

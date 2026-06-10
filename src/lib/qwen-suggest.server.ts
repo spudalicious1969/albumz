@@ -48,10 +48,7 @@ export type AlbumSuggestion = {
 
 const EMPTY: AlbumSuggestion = { tags: null, label: null };
 
-export async function suggestMetadata(
-	artist: string,
-	title: string
-): Promise<AlbumSuggestion> {
+export async function suggestMetadata(artist: string, title: string): Promise<AlbumSuggestion> {
 	const ollamaUrl = env.OLLAMA_URL || 'http://localhost:11434/api/chat';
 	const userPrompt = `Album: ${artist} — ${title}`;
 

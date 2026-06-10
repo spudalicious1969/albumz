@@ -49,7 +49,14 @@
 	>
 		<Avatar {profile} size={36} />
 		<svg class="chev" viewBox="0 0 12 12" width="10" height="10" aria-hidden="true">
-			<path d="M2 4l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+			<path
+				d="M2 4l4 4 4-4"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.6"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			/>
 		</svg>
 	</button>
 
@@ -66,7 +73,7 @@
 				<a role="menuitem" href="/headliner/{profile.username}" onclick={close}>Headliner</a>
 			{/if}
 			<a role="menuitem" href="/dig" onclick={close}>Dig</a>
-				<a role="menuitem" href="/discover" onclick={close}>Discover</a>
+			<a role="menuitem" href="/discover" onclick={close}>Discover</a>
 			<div class="divider" role="separator"></div>
 			<a role="menuitem" href="/settings" onclick={close}>Settings</a>
 			<a role="menuitem" href="/help" onclick={close}>Help</a>
@@ -78,7 +85,10 @@
 </div>
 
 <style>
-	.user-menu { position: relative; display: inline-flex; }
+	.user-menu {
+		position: relative;
+		display: inline-flex;
+	}
 
 	.trigger {
 		display: inline-flex;
@@ -90,15 +100,23 @@
 		border-radius: 999px;
 		cursor: pointer;
 		color: var(--text-muted);
-		transition: background 0.15s, border-color 0.15s, color 0.15s;
+		transition:
+			background 0.15s,
+			border-color 0.15s,
+			color 0.15s;
 	}
-	.trigger:hover, .trigger.active {
+	.trigger:hover,
+	.trigger.active {
 		background: var(--surface-hover, color-mix(in oklch, var(--surface) 80%, var(--text)));
 		color: var(--text);
 		border-color: color-mix(in oklch, var(--border) 50%, var(--text));
 	}
-	.chev { transition: transform 0.15s; }
-	.trigger.active .chev { transform: rotate(180deg); }
+	.chev {
+		transition: transform 0.15s;
+	}
+	.trigger.active .chev {
+		transform: rotate(180deg);
+	}
 
 	.dropdown {
 		position: absolute;
@@ -114,7 +132,9 @@
 		animation: drop-in 0.12s ease-out;
 	}
 
-	.header { padding: 0.5rem 1rem 0.6rem; }
+	.header {
+		padding: 0.5rem 1rem 0.6rem;
+	}
 	.signed-in {
 		font-size: 0.65rem;
 		font-weight: 700;
@@ -135,7 +155,8 @@
 		margin: 0.35rem 0;
 	}
 
-	.dropdown a, .dropdown .signout {
+	.dropdown a,
+	.dropdown .signout {
 		display: block;
 		width: 100%;
 		text-align: left;
@@ -148,19 +169,32 @@
 		font-family: inherit;
 		cursor: pointer;
 	}
-	.dropdown a:hover, .dropdown .signout:hover {
+	.dropdown a:hover,
+	.dropdown .signout:hover {
 		background: var(--surface);
 		text-decoration: none;
 	}
-	.signout { color: var(--text-muted); }
-	.signout:hover { color: var(--text); }
+	.signout {
+		color: var(--text-muted);
+	}
+	.signout:hover {
+		color: var(--text);
+	}
 
 	@keyframes drop-in {
-		from { opacity: 0; transform: translateY(-4px); }
-		to   { opacity: 1; transform: none; }
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: none;
+		}
 	}
 
 	@media (max-width: 480px) {
-		.dropdown { min-width: 240px; }
+		.dropdown {
+			min-width: 240px;
+		}
 	}
 </style>

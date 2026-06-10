@@ -22,7 +22,9 @@ export const load: PageServerLoad = async ({ locals, setHeaders }) => {
 	// Logged-in: collection
 	const { data: albums, error } = await locals.supabase
 		.from('albums')
-		.select('id, artist, title, year, format, rating, ownership, cover_url, accent_color, created_at')
+		.select(
+			'id, artist, title, year, format, rating, ownership, cover_url, accent_color, created_at'
+		)
 		.eq('user_id', user.id)
 		.order('created_at', { ascending: false });
 

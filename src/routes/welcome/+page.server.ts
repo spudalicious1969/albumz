@@ -22,10 +22,13 @@ export const actions: Actions = {
 		if (!user) redirect(303, '/login');
 
 		const form = await request.formData();
-		const username = (form.get('username') as string ?? '').trim().toLowerCase();
+		const username = ((form.get('username') as string) ?? '').trim().toLowerCase();
 
 		if (!username || !/^[a-z0-9][a-z0-9_.-]*$/.test(username) || username.length < 2) {
-			return fail(400, { error: 'Username must start with a letter or number and can contain letters, numbers, underscores, hyphens, and periods.' });
+			return fail(400, {
+				error:
+					'Username must start with a letter or number and can contain letters, numbers, underscores, hyphens, and periods.'
+			});
 		}
 
 		const { error } = await locals.supabase
@@ -34,7 +37,8 @@ export const actions: Actions = {
 			.eq('id', user.id);
 
 		if (error) {
-			if (error.code === '23505') return fail(400, { error: 'That username is already taken. Please choose another.' });
+			if (error.code === '23505')
+				return fail(400, { error: 'That username is already taken. Please choose another.' });
 			return fail(500, { error: error.message });
 		}
 

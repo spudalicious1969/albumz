@@ -71,7 +71,10 @@
 		text-decoration: none;
 		font-size: 0.82rem;
 		font-weight: 500;
-		transition: color 0.18s, background 0.18s, border-color 0.18s;
+		transition:
+			color 0.18s,
+			background 0.18s,
+			border-color 0.18s;
 	}
 	.chip:hover {
 		color: var(--text);
@@ -79,7 +82,9 @@
 		border-color: color-mix(in oklch, var(--accent) 30%, transparent);
 		text-decoration: none;
 	}
-	.chip:hover .dot { opacity: 1; }
+	.chip:hover .dot {
+		opacity: 1;
+	}
 
 	.dot {
 		display: inline-block;

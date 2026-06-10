@@ -14,7 +14,9 @@
 
 	let gravatarFailed = $state(false);
 
-	const initial = $derived(((profile.display_name ?? profile.username ?? '?').trim()[0] ?? '?').toUpperCase());
+	const initial = $derived(
+		((profile.display_name ?? profile.username ?? '?').trim()[0] ?? '?').toUpperCase()
+	);
 
 	const hue = $derived.by(() => {
 		const s = profile.username ?? '';
@@ -36,12 +38,7 @@
 	});
 </script>
 
-<span
-	class="avatar"
-	style:--avatar-size="{size}px"
-	style:--avatar-hue={hue}
-	{title}
->
+<span class="avatar" style:--avatar-size="{size}px" style:--avatar-hue={hue} {title}>
 	{#if profile.avatar_url}
 		<img src={profile.avatar_url} alt="" loading="lazy" />
 	{:else if gravatarSrc && !gravatarFailed}
@@ -49,7 +46,9 @@
 			src={gravatarSrc}
 			alt=""
 			loading="lazy"
-			onerror={() => { gravatarFailed = true; }}
+			onerror={() => {
+				gravatarFailed = true;
+			}}
 		/>
 	{:else}
 		<span class="initial">{initial}</span>
@@ -79,5 +78,7 @@
 		object-fit: cover;
 		display: block;
 	}
-	.initial { line-height: 1; }
+	.initial {
+		line-height: 1;
+	}
 </style>

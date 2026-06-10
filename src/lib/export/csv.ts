@@ -22,20 +22,20 @@ export interface ExportableAlbum {
 // after `ownership` are passed through for archival fidelity;
 // the import path ignores unknown headers.
 const COLUMNS: Array<{ header: string; pick: (a: ExportableAlbum) => string }> = [
-	{ header: 'artist',       pick: (a) => a.artist },
-	{ header: 'title',        pick: (a) => a.title },
-	{ header: 'year',         pick: (a) => a.year != null ? String(a.year) : '' },
-	{ header: 'format',       pick: (a) => a.format ?? '' },
-	{ header: 'label',        pick: (a) => a.label ?? '' },
-	{ header: 'rating',       pick: (a) => a.rating != null ? String(a.rating) : '' },
-	{ header: 'notes',        pick: (a) => a.notes ?? '' },
-	{ header: 'tags',         pick: (a) => (a.tags ?? []).join(', ') },
-	{ header: 'ownership',    pick: (a) => a.ownership },
-	{ header: 'hidden',       pick: (a) => a.hidden ? 'true' : 'false' },
-	{ header: 'cover_url',    pick: (a) => a.cover_url ?? '' },
+	{ header: 'artist', pick: (a) => a.artist },
+	{ header: 'title', pick: (a) => a.title },
+	{ header: 'year', pick: (a) => (a.year != null ? String(a.year) : '') },
+	{ header: 'format', pick: (a) => a.format ?? '' },
+	{ header: 'label', pick: (a) => a.label ?? '' },
+	{ header: 'rating', pick: (a) => (a.rating != null ? String(a.rating) : '') },
+	{ header: 'notes', pick: (a) => a.notes ?? '' },
+	{ header: 'tags', pick: (a) => (a.tags ?? []).join(', ') },
+	{ header: 'ownership', pick: (a) => a.ownership },
+	{ header: 'hidden', pick: (a) => (a.hidden ? 'true' : 'false') },
+	{ header: 'cover_url', pick: (a) => a.cover_url ?? '' },
 	{ header: 'accent_color', pick: (a) => a.accent_color ?? '' },
-	{ header: 'discogs_id',   pick: (a) => a.discogs_id ?? '' },
-	{ header: 'created_at',   pick: (a) => a.created_at }
+	{ header: 'discogs_id', pick: (a) => a.discogs_id ?? '' },
+	{ header: 'created_at', pick: (a) => a.created_at }
 ];
 
 export function buildCsv(albums: ExportableAlbum[]): string {

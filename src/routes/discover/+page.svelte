@@ -7,15 +7,14 @@
 	// True while SvelteKit is navigating into /discover with a fresh nudge —
 	// gives the Steer button something to say while qwen does ~15-25s of work.
 	const isSteering = $derived(
-		navigating?.to?.url.pathname === '/discover' &&
-			!!navigating?.to?.url.searchParams.get('nudge')
+		navigating?.to?.url.pathname === '/discover' && !!navigating?.to?.url.searchParams.get('nudge')
 	);
 
 	const baselineErrorCopy: Record<string, string> = {
 		'no-lastfm':
 			"You haven't connected Last.fm yet — Discovery uses your scrobbles to know where you've been. Connect it in Settings, then come back.",
 		'no-recent-plays':
-			"No plays in the last week to steer from. Listen to something, then come back.",
+			'No plays in the last week to steer from. Listen to something, then come back.',
 		'profile-missing': "Couldn't load your profile — try refreshing."
 	};
 
@@ -40,9 +39,8 @@
 			<p class="eyebrow">Discover</p>
 			<h1>Where do you want to go?</h1>
 			<p class="lede">
-				Your last week of listening is the starting point. Type a
-				direction &mdash; warmer, weirder, more electronic, in the spirit
-				of some band &mdash; and Discovery returns 3-5 albums
+				Your last week of listening is the starting point. Type a direction &mdash; warmer, weirder,
+				more electronic, in the spirit of some band &mdash; and Discovery returns 3-5 albums
 				<em>leaning</em> that way.
 			</p>
 
@@ -115,7 +113,12 @@
 						rel="noreferrer noopener"
 					>
 						{#if p.cover_image}
-							<img class="pick-cover" src={p.cover_image} alt="{p.artist} — {p.title}" loading="lazy" />
+							<img
+								class="pick-cover"
+								src={p.cover_image}
+								alt="{p.artist} — {p.title}"
+								loading="lazy"
+							/>
 						{:else}
 							<div class="pick-cover pick-cover-blank">
 								<span>{p.artist.slice(0, 1)}</span>
@@ -157,14 +160,16 @@
 		{#if data.result.candidates}
 			<details class="pool-debug">
 				<summary
-					>Pool used: {data.result.candidates.length} candidates ({data.result
-						.filteredOutFromCrate} from your shelf hidden)</summary
+					>Pool used: {data.result.candidates.length} candidates ({data.result.filteredOutFromCrate} from
+					your shelf hidden)</summary
 				>
 				{#if data.result.perStyleCounts}
 					<p class="debug-tags">
 						per style:
 						{#each Object.entries(data.result.perStyleCounts) as [style, count], i (style)}
-							{#if i > 0} · {/if}{style} ({count}){/each}
+							{#if i > 0}
+								·
+							{/if}{style} ({count}){/each}
 					</p>
 				{/if}
 				<ul class="candidate-list">
@@ -178,7 +183,9 @@
 							<div class="candidate-meta">
 								<div class="candidate-title">{c.artist} &mdash; {c.title}</div>
 								<div class="candidate-eyebrow">
-									{c.year ?? '?'}{#if c.label} · {c.label}{/if}{#if c.country} · {c.country}{/if}
+									{c.year ?? '?'}{#if c.label}
+										· {c.label}{/if}{#if c.country}
+										· {c.country}{/if}
 									· <em>{c.style}</em>
 								</div>
 							</div>
@@ -514,7 +521,9 @@
 		padding: 0.3rem 0.7rem;
 		border: 1px solid color-mix(in oklch, #1ed760 30%, var(--border));
 		border-radius: 100px;
-		transition: background 0.18s, color 0.18s;
+		transition:
+			background 0.18s,
+			color 0.18s;
 	}
 
 	.listen-link:hover {

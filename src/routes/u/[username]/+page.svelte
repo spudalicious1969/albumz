@@ -14,7 +14,9 @@
 			try {
 				const res = await fetch(`/api/now-playing/${data.profile.username}`);
 				if (res.ok) current = await res.json();
-			} catch { /* keep last good value */ }
+			} catch {
+				/* keep last good value */
+			}
 		};
 		const id = setInterval(tick, 15_000);
 		return () => clearInterval(id);
@@ -33,26 +35,24 @@
 			coverIdx = 0;
 		}
 	});
-	const liveCoverUrl = $derived(
-		isLive ? (current.coverCandidates?.[coverIdx] ?? null) : null
-	);
+	const liveCoverUrl = $derived(isLive ? (current.coverCandidates?.[coverIdx] ?? null) : null);
 
 	// Hero pivots between currently-playing and featured album
 	const hero = $derived(
 		isLive
 			? {
-				coverUrl: liveCoverUrl,
-				title: current.track ?? '',
-				subtitle: current.artist ?? '',
-				detail: current.album ?? null
-			}
+					coverUrl: liveCoverUrl,
+					title: current.track ?? '',
+					subtitle: current.artist ?? '',
+					detail: current.album ?? null
+				}
 			: data.featured
 				? {
-					coverUrl: data.featured.cover_url,
-					title: data.featured.title,
-					subtitle: data.featured.artist,
-					detail: data.featured.year ? String(data.featured.year) : null
-				}
+						coverUrl: data.featured.cover_url,
+						title: data.featured.title,
+						subtitle: data.featured.artist,
+						detail: data.featured.year ? String(data.featured.year) : null
+					}
 				: null
 	);
 
@@ -61,9 +61,12 @@
 	);
 	const eyebrow = $derived(
 		isLive
-			? (current.source === 'streamed' ? '♪ Currently Streaming' : '♪ Currently Spinning')
-			: data.featuredIsUserPicked ? '★ Featured Album'
-			: 'Most Recent'
+			? current.source === 'streamed'
+				? '♪ Currently Streaming'
+				: '♪ Currently Spinning'
+			: data.featuredIsUserPicked
+				? '★ Featured Album'
+				: 'Most Recent'
 	);
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
@@ -122,11 +125,13 @@
 				{#if hero.coverUrl}
 					{#key hero.coverUrl}
 						<img
-								class="featured-cover"
-								src={hero.coverUrl}
-								alt="{hero.subtitle} – {hero.title}"
-								onerror={() => { if (isLive) coverIdx++; }}
-							/>
+							class="featured-cover"
+							src={hero.coverUrl}
+							alt="{hero.subtitle} – {hero.title}"
+							onerror={() => {
+								if (isLive) coverIdx++;
+							}}
+						/>
 					{/key}
 				{:else}
 					<div class="featured-cover no-cover">{hero.subtitle.slice(0, 1)}</div>
@@ -210,7 +215,11 @@
 	.hero-accent {
 		position: fixed;
 		inset: 0;
-		background: radial-gradient(60% 40% at 50% 30%, color-mix(in oklch, var(--page-accent) 18%, transparent), transparent);
+		background: radial-gradient(
+			60% 40% at 50% 30%,
+			color-mix(in oklch, var(--page-accent) 18%, transparent),
+			transparent
+		);
 		z-index: -2;
 	}
 
@@ -228,7 +237,8 @@
 		align-items: center;
 		gap: 0.6rem;
 	}
-	.topbar-link, .headliner-link {
+	.topbar-link,
+	.headliner-link {
 		font-size: 0.75rem;
 		font-weight: 600;
 		letter-spacing: 0.1em;
@@ -238,7 +248,9 @@
 		padding: 0.4rem 0.85rem;
 		border: 1px solid var(--border);
 		border-radius: 100px;
-		transition: color 0.15s, border-color 0.15s;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
 	}
 	.topbar-link:hover {
 		color: var(--page-accent);
@@ -257,7 +269,9 @@
 		text-decoration: none;
 	}
 	.wordmark span {
-		text-shadow: 0 0 18px var(--page-accent), 0 0 6px var(--page-accent);
+		text-shadow:
+			0 0 18px var(--page-accent),
+			0 0 6px var(--page-accent);
 	}
 
 	.hero {
@@ -273,8 +287,18 @@
 		text-align: center;
 	}
 
-	.profile-line { display: flex; flex-direction: column; gap: 0.65rem; align-items: center; }
-	.profile-text { display: flex; flex-direction: column; gap: 0.35rem; align-items: center; }
+	.profile-line {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		align-items: center;
+	}
+	.profile-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		align-items: center;
+	}
 	.username {
 		font-size: 0.78rem;
 		font-weight: 600;
@@ -303,7 +327,11 @@
 		text-align: left;
 	}
 	@media (max-width: 700px) {
-		.featured { grid-template-columns: 1fr; text-align: center; justify-items: center; }
+		.featured {
+			grid-template-columns: 1fr;
+			text-align: center;
+			justify-items: center;
+		}
 	}
 
 	.featured-cover {
@@ -349,8 +377,15 @@
 		animation: pulse 1.4s ease-in-out infinite;
 	}
 	@keyframes pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50%      { opacity: 0.4; transform: scale(1.4); }
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.4;
+			transform: scale(1.4);
+		}
 	}
 	.featured-title {
 		font-size: 1.85rem;
@@ -364,7 +399,10 @@
 		color: var(--text-muted);
 	}
 
-	.empty { color: var(--text-muted); padding: 4rem 0; }
+	.empty {
+		color: var(--text-muted);
+		padding: 4rem 0;
+	}
 
 	/* Recent additions */
 	.recent {
@@ -394,24 +432,36 @@
 		box-shadow: var(--shadow);
 		text-decoration: none;
 		color: inherit;
-		transition: transform 0.18s, box-shadow 0.18s;
+		transition:
+			transform 0.18s,
+			box-shadow 0.18s;
 	}
 	.recent-card:hover {
 		transform: translateY(-2px);
-		box-shadow: var(--shadow-lift), 0 0 18px color-mix(in oklch, var(--card-accent) 25%, transparent);
+		box-shadow:
+			var(--shadow-lift),
+			0 0 18px color-mix(in oklch, var(--card-accent) 25%, transparent);
 		text-decoration: none;
 	}
-	.recent-card img { width: 100%; aspect-ratio: 1; object-fit: cover; }
+	.recent-card img {
+		width: 100%;
+		aspect-ratio: 1;
+		object-fit: cover;
+	}
 	.no-cover {
 		width: 100%;
 		aspect-ratio: 1;
-		display: flex; align-items: center; justify-content: center;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		background: color-mix(in oklch, var(--card-accent) 12%, var(--bg-elevated));
 		font-weight: 800;
 		font-size: 2rem;
 		color: color-mix(in oklch, var(--card-accent) 60%, var(--text));
 	}
-	.recent-meta { padding: 0.55rem 0.7rem 0.7rem; }
+	.recent-meta {
+		padding: 0.55rem 0.7rem 0.7rem;
+	}
 	.recent-artist {
 		font-size: 0.65rem;
 		font-weight: 700;
@@ -451,6 +501,10 @@
 		text-decoration: none;
 		background: color-mix(in oklch, var(--page-accent) 12%, transparent);
 	}
-	.arrow { transition: transform 0.2s; }
-	.cta:hover .arrow { transform: translateX(3px); }
+	.arrow {
+		transition: transform 0.2s;
+	}
+	.cta:hover .arrow {
+		transform: translateX(3px);
+	}
 </style>

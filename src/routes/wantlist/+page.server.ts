@@ -7,7 +7,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const { data: albums, error: dbError } = await locals.supabase
 		.from('albums')
-		.select('id, artist, title, year, format, label, rating, notes, tags, cover_url, accent_color, created_at')
+		.select(
+			'id, artist, title, year, format, label, rating, notes, tags, cover_url, accent_color, created_at'
+		)
 		.eq('user_id', user.id)
 		.eq('ownership', 'WANT')
 		.order('created_at', { ascending: false });

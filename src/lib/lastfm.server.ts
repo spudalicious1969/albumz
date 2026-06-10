@@ -17,10 +17,7 @@ export type LastfmSession = { name: string; key: string };
 export function lastfmAuthUrl(callbackUrl: string): string {
 	const key = env.LAST_FM_API_KEY;
 	if (!key) throw new Error('LAST_FM_API_KEY missing');
-	return (
-		`https://www.last.fm/api/auth/?api_key=${key}` +
-		`&cb=${encodeURIComponent(callbackUrl)}`
-	);
+	return `https://www.last.fm/api/auth/?api_key=${key}` + `&cb=${encodeURIComponent(callbackUrl)}`;
 }
 
 /** Exchange a one-shot `token` (from the callback) for a permanent session. */
@@ -263,15 +260,11 @@ export async function fetchRecentTracks(
 	return out.slice(0, SAFETY_CAP);
 }
 
-
 /** Top tags for an artist from Last.fm `artist.getTopTags`. Lowercased,
  * deduped, stoplist-filtered, capped to the top `limit` by Last.fm's count
  * weighting. Returns `[]` on any error so the caller treats it as "no tag
  * info" rather than surfacing a failure into the digest. */
-export async function fetchArtistTopTags(
-	artist: string,
-	limit = 5
-): Promise<string[]> {
+export async function fetchArtistTopTags(artist: string, limit = 5): Promise<string[]> {
 	const key = env.LAST_FM_API_KEY;
 	if (!key || !artist) return [];
 
@@ -428,7 +421,9 @@ function creds() {
 }
 
 function sign(params: Record<string, string>, secret: string): string {
-	const keys = Object.keys(params).filter((k) => k !== 'format' && k !== 'callback').sort();
+	const keys = Object.keys(params)
+		.filter((k) => k !== 'format' && k !== 'callback')
+		.sort();
 	const joined = keys.map((k) => `${k}${params[k]}`).join('') + secret;
 	return crypto.createHash('md5').update(joined, 'utf-8').digest('hex');
 }

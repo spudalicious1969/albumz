@@ -57,10 +57,7 @@ export type BackfillSummary = {
 
 function needsAnything(a: AlbumRow): boolean {
 	return (
-		a.year === null ||
-		!a.label ||
-		(a.tags?.length ?? 0) <= THIN_TAGS_THRESHOLD ||
-		!a.cover_url
+		a.year === null || !a.label || (a.tags?.length ?? 0) <= THIN_TAGS_THRESHOLD || !a.cover_url
 	);
 }
 
@@ -157,12 +154,10 @@ export async function backfillMissingMetadata(
 				fetchAlbumTopTags(a.artist, a.title)
 			]);
 			const lfmArtistTags = tagMap.get(artistKey(a.artist)) ?? [];
-			const merged = mergeTags(
-				a.tags ?? [],
-				discogsTags,
-				lfmAlbumTags,
-				lfmArtistTags
-			).slice(0, TAGS_PER_ALBUM_CAP);
+			const merged = mergeTags(a.tags ?? [], discogsTags, lfmAlbumTags, lfmArtistTags).slice(
+				0,
+				TAGS_PER_ALBUM_CAP
+			);
 			if (merged.length > existingTagCount) {
 				updates.tags = merged;
 				filled.tagSets++;

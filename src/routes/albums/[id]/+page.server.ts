@@ -15,11 +15,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			.eq('id', params.id)
 			.eq('user_id', user.id)
 			.maybeSingle(),
-		locals.supabase
-			.from('profiles')
-			.select('featured_album_id')
-			.eq('id', user.id)
-			.maybeSingle()
+		locals.supabase.from('profiles').select('featured_album_id').eq('id', user.id).maybeSingle()
 	]);
 
 	if (albumRes.error) error(500, albumRes.error.message);
@@ -56,7 +52,12 @@ export const actions: Actions = {
 		const year = form.get('year') ? Number(form.get('year')) : null;
 		const rating = form.get('rating') ? Number(form.get('rating')) : null;
 		const tagRaw = ((form.get('tags') as string) ?? '').trim();
-		const tags = tagRaw ? tagRaw.split(',').map((t) => t.trim()).filter(Boolean) : [];
+		const tags = tagRaw
+			? tagRaw
+					.split(',')
+					.map((t) => t.trim())
+					.filter(Boolean)
+			: [];
 
 		const updates: Record<string, unknown> = {
 			artist,
@@ -77,7 +78,8 @@ export const actions: Actions = {
 		if (typeof newCover === 'string' && newCover.trim()) {
 			updates.cover_url = newCover.trim();
 			const newAccent = form.get('accent_color');
-			updates.accent_color = typeof newAccent === 'string' && newAccent.trim() ? newAccent.trim() : null;
+			updates.accent_color =
+				typeof newAccent === 'string' && newAccent.trim() ? newAccent.trim() : null;
 		}
 
 		const { error: dbError } = await locals.supabase

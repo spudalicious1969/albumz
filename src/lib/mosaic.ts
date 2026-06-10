@@ -4,7 +4,7 @@ import { fetchNowPlaying } from './now-playing';
 /** A randomly-sampled album from a user's collection. Clicks deep-link into their public page. */
 export interface AlbumTile {
 	kind: 'album';
-	id: string;          // stable identity for the mosaic ("album:<albumId>")
+	id: string; // stable identity for the mosaic ("album:<albumId>")
 	albumId: string;
 	artist: string;
 	title: string;
@@ -17,7 +17,7 @@ export interface AlbumTile {
 /** A live "now-playing" track from a profile's Last.fm. Clicks open Spotify search. */
 export interface NowPlayingTile {
 	kind: 'nowPlaying';
-	id: string;          // "nowplaying:<username>"
+	id: string; // "nowplaying:<username>"
 	artist: string;
 	track: string;
 	album: string | null;

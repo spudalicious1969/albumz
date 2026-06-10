@@ -16,15 +16,24 @@ export const GET: RequestHandler = async ({ params, locals, setHeaders }) => {
 	if (!profile) error(404, 'User not found.');
 	if (!profile.last_fm_username) {
 		return json({
-			state: 'none', track: null, artist: null, album: null,
-			coverUrl: null, coverCandidates: [], playedAt: null, source: null
+			state: 'none',
+			track: null,
+			artist: null,
+			album: null,
+			coverUrl: null,
+			coverCandidates: [],
+			playedAt: null,
+			source: null
 		});
 	}
 
 	const result = await fetchNowPlaying(profile.last_fm_username);
 	if (result.state !== 'none' && result.artist && result.track) {
 		result.source = await classifyNowPlayingSource(
-			locals.supabase, profile.id, result.artist, result.track
+			locals.supabase,
+			profile.id,
+			result.artist,
+			result.track
 		);
 	}
 

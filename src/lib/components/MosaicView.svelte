@@ -5,18 +5,22 @@
 	let { tiles }: { tiles: MosaicTile[] } = $props();
 
 	// ── Tunables ─────────────────────────────────────────────────────────
-	const FLIP_INTERVAL_MS = 450;       // gap between scheduling decisions
+	const FLIP_INTERVAL_MS = 450; // gap between scheduling decisions
 	const MAX_CONCURRENT_FLIPS = 5;
-	const FLIP_DURATION_MS = 1100;      // keep in sync with CSS transition below
-	const FIRST_FLIP_DELAY_MS = 2200;   // wait for initial fade-in to settle
-	const FEATURED_EVERY_N_ALBUM = 9;   // ~1 in 9 album slots becomes a 2x2 feature
+	const FLIP_DURATION_MS = 1100; // keep in sync with CSS transition below
+	const FIRST_FLIP_DELAY_MS = 2200; // wait for initial fade-in to settle
+	const FEATURED_EVERY_N_ALBUM = 9; // ~1 in 9 album slots becomes a 2x2 feature
 	const RESIZE_DEBOUNCE_MS = 300;
-	const GRID_GAP_PX = 6;              // keep in sync with CSS --gap
-	const NOWPLAYING_POLL_MS = 15000;   // matches the /u/{username} hero poll cadence
+	const GRID_GAP_PX = 6; // keep in sync with CSS --gap
+	const NOWPLAYING_POLL_MS = 15000; // matches the /u/{username} hero poll cadence
 
 	// ── Split tiles by kind ──────────────────────────────────────────────
-	const nowPlayingTiles = tiles.filter((t): t is Extract<MosaicTile, { kind: 'nowPlaying' }> => t.kind === 'nowPlaying');
-	const albumTiles = tiles.filter((t): t is Extract<MosaicTile, { kind: 'album' }> => t.kind === 'album');
+	const nowPlayingTiles = tiles.filter(
+		(t): t is Extract<MosaicTile, { kind: 'nowPlaying' }> => t.kind === 'nowPlaying'
+	);
+	const albumTiles = tiles.filter(
+		(t): t is Extract<MosaicTile, { kind: 'album' }> => t.kind === 'album'
+	);
 
 	// ── Slot state ───────────────────────────────────────────────────────
 	type SlotShape = '1x1' | '2x2';
@@ -25,7 +29,7 @@
 		faces: [MosaicTile | null, MosaicTile | null];
 		showing: 0 | 1;
 		flipping: boolean;
-		locked: boolean;   // now-playing slots don't flip — they're the live signal
+		locked: boolean; // now-playing slots don't flip — they're the live signal
 	};
 
 	let slots = $state<Slot[]>([]);
@@ -150,7 +154,12 @@
 		return new Promise((resolve) => {
 			const img = new Image();
 			let settled = false;
-			const done = () => { if (!settled) { settled = true; resolve(); } };
+			const done = () => {
+				if (!settled) {
+					settled = true;
+					resolve();
+				}
+			};
 			img.onload = done;
 			img.onerror = done;
 			setTimeout(done, 5000);
@@ -172,7 +181,7 @@
 		if (countsTowardLimit) flipping++;
 
 		await preload(newTile.imageUrl);
-		if (gen !== generation) return;  // orphaned by a rebuild — bail
+		if (gen !== generation) return; // orphaned by a rebuild — bail
 		slot.showing = hidden;
 
 		setTimeout(() => {
@@ -226,10 +235,12 @@
 			const slot = slots[idx];
 			if (!slot || !slot.locked) return;
 			const current = slot.faces[slot.showing];
-			if (current?.kind === 'nowPlaying'
-				&& current.artist === data.artist
-				&& current.track === data.track) {
-				return;  // unchanged
+			if (
+				current?.kind === 'nowPlaying' &&
+				current.artist === data.artist &&
+				current.track === data.track
+			) {
+				return; // unchanged
 			}
 
 			const cover = data.coverCandidates?.[0] ?? data.coverUrl;
@@ -260,7 +271,10 @@
 			const tile = slot.faces[slot.showing];
 			if (tile?.kind !== 'nowPlaying') continue;
 			const { username, displayName } = tile;
-			const handle = setInterval(() => pollNowPlaying(i, username, displayName), NOWPLAYING_POLL_MS);
+			const handle = setInterval(
+				() => pollNowPlaying(i, username, displayName),
+				NOWPLAYING_POLL_MS
+			);
 			nowPlayingHandles.push(handle);
 		}
 	}
@@ -271,8 +285,14 @@
 	}
 
 	function rebuild() {
-		if (tickHandle) { clearInterval(tickHandle); tickHandle = undefined; }
-		if (startHandle) { clearTimeout(startHandle); startHandle = undefined; }
+		if (tickHandle) {
+			clearInterval(tickHandle);
+			tickHandle = undefined;
+		}
+		if (startHandle) {
+			clearTimeout(startHandle);
+			startHandle = undefined;
+		}
 		stopNowPlayingPolling();
 		generation++;
 		flipping = 0;
@@ -308,9 +328,7 @@
 	});
 
 	function tileHref(t: MosaicTile): string {
-		return t.kind === 'album'
-			? `/u/${t.username}/albums/${t.albumId}`
-			: t.spotifyUrl;
+		return t.kind === 'album' ? `/u/${t.username}/albums/${t.albumId}` : t.spotifyUrl;
 	}
 
 	function tileTitle(t: MosaicTile): string {
@@ -344,50 +362,61 @@
 		</div>
 	{:else}
 		<div class="bento-frame" bind:this={frameEl}>
-		<div class="bento-grid" aria-hidden="true" bind:this={gridEl}>
-			{#each slots as slot, i (i)}
-				<div
-					class="slot"
-					class:feature={slot.shape === '2x2'}
-					style="animation-delay: {Math.min(i * 35, 1400)}ms;"
-				>
+			<div class="bento-grid" aria-hidden="true" bind:this={gridEl}>
+				{#each slots as slot, i (i)}
 					<div
-						class="flipper"
-						class:showing-back={slot.showing === 1}
-						style="transition-duration: {FLIP_DURATION_MS}ms;"
+						class="slot"
+						class:feature={slot.shape === '2x2'}
+						style="animation-delay: {Math.min(i * 35, 1400)}ms;"
 					>
-						{#each [0, 1] as faceIdx (faceIdx)}
-							{@const tile = slot.faces[faceIdx]}
-							<div class="face" class:face-back={faceIdx === 1} style={tile?.kind === 'album' && tile.accentColor ? `--tile-accent: ${tile.accentColor};` : ''}>
-								{#if tile}
-									<a
-										class="tile-link"
-										class:now-playing={tile.kind === 'nowPlaying'}
-										href={tileHref(tile)}
-										target={tileExternal(tile) ? '_blank' : undefined}
-										rel={tileExternal(tile) ? 'noopener noreferrer' : undefined}
-										title={tileTitle(tile)}
-										tabindex={faceIdx === slot.showing ? 0 : -1}
-										aria-hidden={faceIdx === slot.showing ? undefined : 'true'}
-									>
-										<img src={tile.imageUrl} alt={tileAlt(tile)} loading="lazy" draggable="false" />
-										{#if tile.kind === 'nowPlaying'}
-											<span class="live-dot" aria-hidden="true"></span>
-											<span class="hover-label">Open in Spotify ▶</span>
-										{:else}
-											<span class="hover-label">View album →</span>
-										{/if}
-									</a>
-								{/if}
-							</div>
-						{/each}
+						<div
+							class="flipper"
+							class:showing-back={slot.showing === 1}
+							style="transition-duration: {FLIP_DURATION_MS}ms;"
+						>
+							{#each [0, 1] as faceIdx (faceIdx)}
+								{@const tile = slot.faces[faceIdx]}
+								<div
+									class="face"
+									class:face-back={faceIdx === 1}
+									style={tile?.kind === 'album' && tile.accentColor
+										? `--tile-accent: ${tile.accentColor};`
+										: ''}
+								>
+									{#if tile}
+										<a
+											class="tile-link"
+											class:now-playing={tile.kind === 'nowPlaying'}
+											href={tileHref(tile)}
+											target={tileExternal(tile) ? '_blank' : undefined}
+											rel={tileExternal(tile) ? 'noopener noreferrer' : undefined}
+											title={tileTitle(tile)}
+											tabindex={faceIdx === slot.showing ? 0 : -1}
+											aria-hidden={faceIdx === slot.showing ? undefined : 'true'}
+										>
+											<img
+												src={tile.imageUrl}
+												alt={tileAlt(tile)}
+												loading="lazy"
+												draggable="false"
+											/>
+											{#if tile.kind === 'nowPlaying'}
+												<span class="live-dot" aria-hidden="true"></span>
+												<span class="hover-label">Open in Spotify ▶</span>
+											{:else}
+												<span class="hover-label">View album →</span>
+											{/if}
+										</a>
+									{/if}
+								</div>
+							{/each}
+						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
 
-		<div class="noir-vignette" aria-hidden="true"></div>
-		<div class="noir-grain" aria-hidden="true"></div>
+			<div class="noir-vignette" aria-hidden="true"></div>
+			<div class="noir-grain" aria-hidden="true"></div>
 		</div>
 	{/if}
 </div>
@@ -420,12 +449,24 @@
 		color: var(--text);
 	}
 	.wordmark span {
-		text-shadow: 0 0 18px var(--accent-glow), 0 0 6px var(--accent-glow);
+		text-shadow:
+			0 0 18px var(--accent-glow),
+			0 0 6px var(--accent-glow);
 	}
-	.wordmark.large { font-size: 3rem; margin-bottom: 1rem; }
+	.wordmark.large {
+		font-size: 3rem;
+		margin-bottom: 1rem;
+	}
 
-	.mosaic-header nav { display: flex; gap: 1rem; align-items: center; font-size: 0.85rem; }
-	.mosaic-header nav a { color: var(--text-muted); }
+	.mosaic-header nav {
+		display: flex;
+		gap: 1rem;
+		align-items: center;
+		font-size: 0.85rem;
+	}
+	.mosaic-header nav a {
+		color: var(--text-muted);
+	}
 	.mosaic-header nav a.register {
 		padding: 0.4rem 1rem;
 		background: var(--accent);
@@ -446,7 +487,7 @@
 	.bento-grid {
 		--cell: 140px;
 		--gap: 6px;
-		--cols: 5;             /* default before JS measures — overwritten on mount */
+		--cols: 5; /* default before JS measures — overwritten on mount */
 		display: grid;
 		grid-template-columns: repeat(var(--cols), var(--cell));
 		grid-auto-rows: var(--cell);
@@ -454,8 +495,16 @@
 		gap: var(--gap);
 		padding: var(--gap);
 	}
-	@media (min-width: 900px)  { .bento-grid { --cell: 160px; } }
-	@media (min-width: 1400px) { .bento-grid { --cell: 180px; } }
+	@media (min-width: 900px) {
+		.bento-grid {
+			--cell: 160px;
+		}
+	}
+	@media (min-width: 1400px) {
+		.bento-grid {
+			--cell: 180px;
+		}
+	}
 
 	.slot {
 		position: relative;
@@ -470,8 +519,14 @@
 	}
 
 	@keyframes fade-in {
-		from { opacity: 0; transform: scale(0.94); }
-		to   { opacity: 1; transform: scale(1); }
+		from {
+			opacity: 0;
+			transform: scale(0.94);
+		}
+		to {
+			opacity: 1;
+			transform: scale(1);
+		}
 	}
 
 	/* ── 3D flipper ──────────────────────────────────────────────────── */
@@ -493,7 +548,9 @@
 		overflow: hidden;
 		background: var(--bg-elevated);
 	}
-	.face-back { transform: rotateY(180deg); }
+	.face-back {
+		transform: rotateY(180deg);
+	}
 
 	/* ── Tile link / image ───────────────────────────────────────────── */
 	.tile-link {
@@ -509,7 +566,9 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
-		transition: transform 0.6s, filter 0.4s;
+		transition:
+			transform 0.6s,
+			filter 0.4s;
 		filter: saturate(0.92);
 	}
 	.tile-link:hover img {
@@ -530,7 +589,9 @@
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 		opacity: 0;
 		transform: translateY(4px);
-		transition: opacity 0.18s, transform 0.18s;
+		transition:
+			opacity 0.18s,
+			transform 0.18s;
 		pointer-events: none;
 	}
 	.tile-link:hover .hover-label {
@@ -556,8 +617,15 @@
 		z-index: 1;
 	}
 	@keyframes pulse {
-		0%, 100% { opacity: 1; transform: scale(1); }
-		50%      { opacity: 0.5; transform: scale(1.3); }
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.5;
+			transform: scale(1.3);
+		}
 	}
 
 	/* ── Neo-noir overlays ───────────────────────────────────────────── */
@@ -571,11 +639,7 @@
 	/* Subtle corner darkening — gives the frame "lens character" */
 	.noir-vignette {
 		z-index: 1;
-		background: radial-gradient(
-			ellipse at center,
-			transparent 60%,
-			rgba(0, 0, 0, 0.30) 100%
-		);
+		background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.3) 100%);
 	}
 
 	/* Static SVG fractalNoise tile, blended over the grid as filmstock grain */
@@ -596,12 +660,23 @@
 		text-align: center;
 		padding: 4rem 1.5rem;
 	}
-	.empty-hint { color: var(--text-muted); font-size: 0.95rem; }
+	.empty-hint {
+		color: var(--text-muted);
+		font-size: 0.95rem;
+	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.flipper { transition: none; }
-		.slot { animation: none; }
-		.live-dot { animation: none; }
-		.tile-link img { transition: none; }
+		.flipper {
+			transition: none;
+		}
+		.slot {
+			animation: none;
+		}
+		.live-dot {
+			animation: none;
+		}
+		.tile-link img {
+			transition: none;
+		}
 	}
 </style>

@@ -12,12 +12,13 @@
 	// Don't nag with the pill on the digest permalink itself, or on lean-back
 	// Headliner where any overlay would break immersion.
 	const suppressPill = $derived(
-		page.url.pathname.startsWith('/digests/') ||
-		page.url.pathname.startsWith('/headliner/')
+		page.url.pathname.startsWith('/digests/') || page.url.pathname.startsWith('/headliner/')
 	);
 
 	onMount(() => {
-		const { data: { subscription } } = data.supabase.auth.onAuthStateChange((_, newSession) => {
+		const {
+			data: { subscription }
+		} = data.supabase.auth.onAuthStateChange((_, newSession) => {
 			if (newSession?.expires_at !== data.session?.expires_at) {
 				invalidate('supabase:auth');
 			}

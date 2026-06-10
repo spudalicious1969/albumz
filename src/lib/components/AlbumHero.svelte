@@ -54,7 +54,9 @@
 				</p>
 			{/if}
 			{#if album.rating}
-				<p class="rating">{'★'.repeat(album.rating)}<span class="rating-empty">{'★'.repeat(5 - album.rating)}</span></p>
+				<p class="rating">
+					{'★'.repeat(album.rating)}<span class="rating-empty">{'★'.repeat(5 - album.rating)}</span>
+				</p>
 			{/if}
 			{#if album.tags?.length}
 				<ul class="tags">
@@ -69,7 +71,9 @@
 </div>
 
 <style>
-	.hero-shell { position: relative; }
+	.hero-shell {
+		position: relative;
+	}
 
 	.hero-bg {
 		position: fixed;
@@ -85,7 +89,11 @@
 	.hero-accent {
 		position: fixed;
 		inset: 0;
-		background: radial-gradient(60% 40% at 50% 25%, color-mix(in oklch, var(--page-accent) 40%, transparent), transparent);
+		background: radial-gradient(
+			60% 40% at 50% 25%,
+			color-mix(in oklch, var(--page-accent) 40%, transparent),
+			transparent
+		);
 		z-index: -2;
 		pointer-events: none;
 	}
@@ -109,8 +117,13 @@
 		align-items: end;
 	}
 	@media (max-width: 720px) {
-		.hero { grid-template-columns: 1fr; gap: 1.5rem; }
-		.cover-wrap { max-width: 240px; }
+		.hero {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+		}
+		.cover-wrap {
+			max-width: 240px;
+		}
 	}
 
 	.cover {
@@ -118,7 +131,9 @@
 		aspect-ratio: 1;
 		border-radius: var(--radius-lg);
 		object-fit: cover;
-		box-shadow: var(--shadow-lift), 0 0 70px color-mix(in oklch, var(--page-accent) 35%, transparent);
+		box-shadow:
+			var(--shadow-lift),
+			0 0 70px color-mix(in oklch, var(--page-accent) 35%, transparent);
 	}
 	.cover.no-cover {
 		display: flex;
@@ -166,10 +181,19 @@
 		color: var(--page-accent);
 		font-weight: 600;
 	}
-	.meta-sep { color: var(--border); }
+	.meta-sep {
+		color: var(--border);
+	}
 
-	.rating { color: var(--page-accent); margin-top: 0.85rem; letter-spacing: 0.12em; font-size: 1rem; }
-	.rating-empty { color: var(--border); }
+	.rating {
+		color: var(--page-accent);
+		margin-top: 0.85rem;
+		letter-spacing: 0.12em;
+		font-size: 1rem;
+	}
+	.rating-empty {
+		color: var(--border);
+	}
 
 	/* Tags as plain hashtag text rather than pills — they're not clickable,
 	   so the pill chrome was misleading. */

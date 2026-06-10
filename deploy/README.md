@@ -149,5 +149,5 @@ endpoint accepting an audio blob, then set `SHAZAM_SIDECAR_URL` in `.env`.
   vinyl** — the Spin feature (step 9) needs to be set up; without it Albumz
   has no way to tell streaming from physical playback.
 - **Digest fires but nothing gets written** — check `journalctl -u
-  albumz-weekly-digest.service`. Most failures are Ollama unreachable or
+albumz-weekly-digest.service`. Most failures are Ollama unreachable or
   the model name in the digest endpoint not matching what you pulled.

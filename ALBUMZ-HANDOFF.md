@@ -1,11 +1,13 @@
 # Albumz — Project Handoff Document
-*Last updated: 2026-06-05 (Friday — CSV-import Discogs `(N)` strip + tracklist chooser/snapshot in lookup panel + cover-search confidence floor shipped)*
+
+_Last updated: 2026-06-05 (Friday — CSV-import Discogs `(N)` strip + tracklist chooser/snapshot in lookup panel + cover-search confidence floor shipped)_
 
 ## Implementation Status (2026-06-05)
 
 **Live at https://albumz.spudalicio.us** (Apache reverse-proxies to SvelteKit Node server on port 3200). Original spec is feature-complete; an extended polish pass on the same day added avatars, the user menu, username onboarding, persisted sort, discovery search, a Tunez-inspired album detail redesign, and a robust now-playing cover-art fallback.
 
 ### Built
+
 - **SvelteKit project** scaffolded with TypeScript, Prettier, ESLint, `adapter-node`. Runes mode enabled.
 - **Apache vhost** at `albumz.spudalicio.us` proxies to port 3200. Backup of pre-edit SSL conf saved as `.bak`.
 - **Supabase auth** end-to-end: register, email confirm (Resend SMTP), login, logout. `safeGetSession()` validates JWT via `getUser()` after the cookie check.
@@ -32,7 +34,7 @@
 - **Theme application**: profile theme loaded server-side, applied to `<html data-theme>` via `$effect` in `+layout.svelte`.
 - **Public showcase page** (`/u/[username]`): atmospheric hero (featured album OR currently-playing override when live), profile header, recent additions strip, "Browse Full Collection →" CTA, OG meta tags, `↗ Headliner` link when Last.fm is linked. **Polls `/api/now-playing/{username}` every 15s** so the hero updates without refresh.
 - **Public full-collection page** (`/u/[username]/collection`): atmospheric grid with search + sort. Search bar is a magnifying-glass icon that expands inline; sort options are Artist / Album / Rating (article-aware). RLS enforces non-hidden + OWN.
-- **Headliner PWA** at `/headliner/[username]`: full-screen "lean-back" presentation of currently/last-played track. Auto-refresh every 15s. Dynamic accent extracted client-side from the actively-displayed cover candidate. Cross-fades between tracks via Svelte `{#key}`. **Idle mosaic** takes over when nothing's playing — defined as `state === 'none'` *or* a `'recent'` scrobble older than 60 minutes. Renders a dark, slow-paced bento grid of the user's own owned covers (one slot flips at a time, ~2s cadence, ~1.5s flip duration), with a heavy vignette + film grain + 0.65 saturation / 0.78 brightness on tiles. A centered `albumz` wordmark + "Waiting for {displayName} to start something." overlay sits inside a soft radial spotlight so the text reads cleanly without globally darkening the mosaic. Threshold re-evaluated on every 15s poll via a `nowMs` reactive tick. Falls back to the original idle placeholder if the user has no owned albums with covers.
+- **Headliner PWA** at `/headliner/[username]`: full-screen "lean-back" presentation of currently/last-played track. Auto-refresh every 15s. Dynamic accent extracted client-side from the actively-displayed cover candidate. Cross-fades between tracks via Svelte `{#key}`. **Idle mosaic** takes over when nothing's playing — defined as `state === 'none'` _or_ a `'recent'` scrobble older than 60 minutes. Renders a dark, slow-paced bento grid of the user's own owned covers (one slot flips at a time, ~2s cadence, ~1.5s flip duration), with a heavy vignette + film grain + 0.65 saturation / 0.78 brightness on tiles. A centered `albumz` wordmark + "Waiting for {displayName} to start something." overlay sits inside a soft radial spotlight so the text reads cleanly without globally darkening the mosaic. Threshold re-evaluated on every 15s poll via a `nowMs` reactive tick. Falls back to the original idle placeholder if the user has no owned albums with covers.
 - **Now-playing cover-art fallback chain**: `NowPlayingResult` carries an ordered `coverCandidates: string[]` from iTunes song search + iTunes album search + Deezer + Last.fm track image, with artist-match filtering and Last.fm-placeholder MD5 stripping. Both the public showcase and Headliner advance through candidates client-side via `<img onerror>` so a dead URL never leaves the viewer with an initial-fallback. Accent extraction follows the active candidate.
 - **PWA manifests** at `/manifest.json` (main, `display: standalone`) and `/headliner/manifest.json` (Headliner, `display: fullscreen`, landscape). SVG icons extracted from `sketches/07-icons.html` (Concept E + H4).
 - **CSV export** (`/api/export`, button on `/settings`): downloads the user's full collection (owned + wantlist) as `albumz-{username}-YYYY-MM-DD.csv`. Headers match `/import`'s canonical fields so it round-trips. Archival columns (`hidden, cover_url, accent_color, discogs_id, created_at`) tail the file.
@@ -42,15 +44,17 @@
 - **Sort surface (`SortDropdown.svelte`)** — themed dropdown shared by home / full collection / wantlist. **Format** sort on every page (groups by CD/LP/cassette/etc., nulls last, artist tiebreaker). Opt-in **reverse toggle** via `reversible` + `bind:reversed` props: small arrow button next to the dropdown that negates whatever comparator the page already uses, so the same control flips A→Z to Z→A, newest-first to oldest-first, highest-rated to lowest, etc.
 - **Persisted sort preferences** (`src/lib/persist.ts`) — localStorage per page; keys `albumz:sort:<page>` for the option + `albumz:sort:<page>:rev` for the direction (`'0'|'1'`). Hydration via `onMount` + flag guard to avoid clobbering stored values with SSR defaults. Helpers: `loadSort`/`saveSort` (allow-listed) + `loadReversed`/`saveReversed` (boolean).
 - **Wantlist → collection promote stamps `created_at = now()`** (`src/routes/wantlist/+page.server.ts`) so newly-acquired albums surface at the top of the home "Recent" sort instead of carrying the original wantlist-add date. Loses the original "first noticed" date, but that history wasn't visible anywhere after promotion anyway.
-- **Dig — crate-pull rediscovery** at `/dig` (UserMenu link). Atmospheric page reusing `AlbumHero` (cover bumped to 340px on desktop, vertically centered in the viewport). Server pulls one random album from owned + not-spun-in-30-days; URL `?exclude=id1,id2…` carries forward up to 12 recent picks so "Pull another" rotates within a session without repeats. Eyebrow line reads *"From the crate · last spun X / never spun on Albumz"* based on a per-pick lookup of the spins table. Empty states for no-albums, all-recent (everything spun in last 30d), and exhausted (session-pull list depleted). Intentionally hidden in the avatar menu rather than parked on home — "ritual you walk over to, not a button that pesters you."
+- **Dig — crate-pull rediscovery** at `/dig` (UserMenu link). Atmospheric page reusing `AlbumHero` (cover bumped to 340px on desktop, vertically centered in the viewport). Server pulls one random album from owned + not-spun-in-30-days; URL `?exclude=id1,id2…` carries forward up to 12 recent picks so "Pull another" rotates within a session without repeats. Eyebrow line reads _"From the crate · last spun X / never spun on Albumz"_ based on a per-pick lookup of the spins table. Empty states for no-albums, all-recent (everything spun in last 30d), and exhausted (session-pull list depleted). Intentionally hidden in the avatar menu rather than parked on home — "ritual you walk over to, not a button that pesters you."
 - **Spin (web-Earshot)** — browser mic captures rolling 10s audio chunks → Python `shazamio` sidecar at `127.0.0.1:3210` → spin row inserted with `source = spun` or `streamed` (classifier cross-references Last.fm now-playing). Auto-scrobbles physical plays after ~60s confirmed presence. Headliner card decoupled from mic state and persisted to sessionStorage so a "set" survives navigation and reloads, ending only when the tab closes.
 - **Duplicate handling** — `src/lib/dedupe.server.ts` defines duplicates as case-insensitive `(artist, title)` match. `scanDuplicates(supabase, userId)` returns groups with the highest-metadata-scored survivor first; `removeDuplicates()` keeps survivors and deletes the rest. Settings → Duplicates exposes scan + remove with a preview-before-confirm flow. `/import` preview also calls `existingAlbumKeys()` and sets a `skipReason` of "Already in collection" / "Duplicate row in this file" on offending rows so re-imports default to skipped.
-- **Weekly digest** — local-Ollama-generated weekly listening column with similarity-driven picks and test-time enforcement. `prompts/weekly-digest.md` is the prompt template (system + user, parsed from fenced blocks at both server-runtime and test-harness time). `src/lib/digest-data.server.ts` assembles real inputs: pulls spins + Last.fm scrobbles for the week, cross-references for spun-vs-streamed, groups the listening_log by day (Mon–Sun) with `(no plays)` markers for empty days and future-day omission for in-progress weeks, then scores dormant/non-owned albums by Last.fm artist-tag overlap (cached in `artist_tags` table with a stoplist filtering genre umbrellas like "indie"/"rock"/"pop") to generate real hooks: *"shares the dream pop and electronic wavelength of $ARTIST's $TRACK from this week."* `/api/digests/generate` (POST) runs assembly + Ollama call + probe-and-re-roll loop (re-rolls up to 2 more times if a critical probe fails: missing pick, fabricated day, format trope leak), then upserts. Permalink at `/digests/[id]` (drafts owner-only; published public, indexable). Archive at `/u/[username]/digests`. Owner controls (Publish / Discard / Unpublish) live on the permalink. Generation runs primarily via the **weekly scheduler**: systemd timer `albumz-weekly-digest.timer` fires Sundays 21:00 local, oneshot service runs `scripts/run-weekly-digests.mjs` which enumerates Last.fm-linked profiles and POSTs to the generate endpoint with a bearer token (`DIGEST_SCHEDULER_SECRET`) plus `skip_if_quiet: true` — weeks with <10 plays return `{ status: 'skipped' }` before invoking Ollama. Manual generation lives on the owner view of `/u/[username]/digests` as a "Generate this week" button — used for mid-week previews or to regenerate after a discard. (Settings used to host this; moved out 2026-05-30 so Settings holds preferences and the archive page holds the generation action.) **In-app draft pill** (`DigestPill.svelte`, mounted in `+layout.svelte`) surfaces pending drafts to the owner with a small bottom-right "Your weekly digest is ready → Review" link; per-digest sessionStorage dismiss; suppressed on the digest permalink itself and on Headliner.
+- **Weekly digest** — local-Ollama-generated weekly listening column with similarity-driven picks and test-time enforcement. `prompts/weekly-digest.md` is the prompt template (system + user, parsed from fenced blocks at both server-runtime and test-harness time). `src/lib/digest-data.server.ts` assembles real inputs: pulls spins + Last.fm scrobbles for the week, cross-references for spun-vs-streamed, groups the listening_log by day (Mon–Sun) with `(no plays)` markers for empty days and future-day omission for in-progress weeks, then scores dormant/non-owned albums by Last.fm artist-tag overlap (cached in `artist_tags` table with a stoplist filtering genre umbrellas like "indie"/"rock"/"pop") to generate real hooks: _"shares the dream pop and electronic wavelength of $ARTIST's $TRACK from this week."_ `/api/digests/generate` (POST) runs assembly + Ollama call + probe-and-re-roll loop (re-rolls up to 2 more times if a critical probe fails: missing pick, fabricated day, format trope leak), then upserts. Permalink at `/digests/[id]` (drafts owner-only; published public, indexable). Archive at `/u/[username]/digests`. Owner controls (Publish / Discard / Unpublish) live on the permalink. Generation runs primarily via the **weekly scheduler**: systemd timer `albumz-weekly-digest.timer` fires Sundays 21:00 local, oneshot service runs `scripts/run-weekly-digests.mjs` which enumerates Last.fm-linked profiles and POSTs to the generate endpoint with a bearer token (`DIGEST_SCHEDULER_SECRET`) plus `skip_if_quiet: true` — weeks with <10 plays return `{ status: 'skipped' }` before invoking Ollama. Manual generation lives on the owner view of `/u/[username]/digests` as a "Generate this week" button — used for mid-week previews or to regenerate after a discard. (Settings used to host this; moved out 2026-05-30 so Settings holds preferences and the archive page holds the generation action.) **In-app draft pill** (`DigestPill.svelte`, mounted in `+layout.svelte`) surfaces pending drafts to the owner with a small bottom-right "Your weekly digest is ready → Review" link; per-digest sessionStorage dismiss; suppressed on the digest permalink itself and on Headliner.
 
 ### Not yet built
+
 _(Nothing scheduled. Polish requests have been arriving from a friend testing the site — track those as they come in.)_
 
 ### Key file locations (working dir)
+
 - Routes: `src/routes/{login,register,auth/*,welcome,albums/*,import,settings,wantlist,u/[username]/*,u/[username]/albums/[id],headliner/*,api/*}`
 - Supabase clients: `src/lib/supabase/{client,server}.ts`. Auth + onboarding gate at `src/hooks.server.ts`
 - Cover search waterfall (5-source, normalized-equality scored with confidence floor): `src/lib/cover-search.ts`. Exports `searchCovers()` (full ranked list, used by the picker UI) and `topConfidentCover()` (confidence-gated top hit, used by both auto-write paths).
@@ -58,7 +62,7 @@ _(Nothing scheduled. Polish requests have been arriving from a friend testing th
 - Spotify token cache (shared by cover-search, album-search, external-links): `src/lib/spotify-auth.server.ts`
 - Album detail body components (used by both owner and public views): `src/lib/components/{AlbumHero,ExternalLinks,Tracklist}.svelte`
 - External-links resolver (split for browser-safety): types at `src/lib/external-links.ts`, server resolver at `src/lib/external-links.server.ts` (Spotify/Discogs/YouTube direct + 6 search-URL services, 1h in-memory cache)
-- Tracklist resolver (similarly split): types at `src/lib/tracklist.ts`, server fetcher at `src/lib/tracklist.server.ts`. **Parallel fanout** across Spotify + Deezer + iTunes + Last.fm with 8s per-call timeout. Two entry points: `fetchTracklistCandidates()` exposes all four results (used by the lookup-panel chooser via `/api/albums/tracklist-candidates`); `fetchTracklist()` is the pick-longest wrapper used by the album page server load when no snapshot is pinned. Tie-break order Spotify > Deezer > iTunes > Last.fm. **Snapshot persistence**: when the user picks a tracklist from the chooser and clicks Accept, `{tracks, source}` is written to `albums.tracklist` (jsonb, nullable). On subsequent loads, `snapshotToResult()` (browser-safe helper in `tracklist.ts`) promotes the stored value into a `TracklistResult` with `totalDuration` computed on the fly; if null/malformed, falls back to live `fetchTracklist`. Clear-pin = `apply-suggestion` with `value: null`. Replaced the previous stop-at-first waterfall, which lost tracklists on new releases where Last.fm had a one-track stub (e.g., Hayley Williams *Ego Death*).
+- Tracklist resolver (similarly split): types at `src/lib/tracklist.ts`, server fetcher at `src/lib/tracklist.server.ts`. **Parallel fanout** across Spotify + Deezer + iTunes + Last.fm with 8s per-call timeout. Two entry points: `fetchTracklistCandidates()` exposes all four results (used by the lookup-panel chooser via `/api/albums/tracklist-candidates`); `fetchTracklist()` is the pick-longest wrapper used by the album page server load when no snapshot is pinned. Tie-break order Spotify > Deezer > iTunes > Last.fm. **Snapshot persistence**: when the user picks a tracklist from the chooser and clicks Accept, `{tracks, source}` is written to `albums.tracklist` (jsonb, nullable). On subsequent loads, `snapshotToResult()` (browser-safe helper in `tracklist.ts`) promotes the stored value into a `TracklistResult` with `totalDuration` computed on the fly; if null/malformed, falls back to live `fetchTracklist`. Clear-pin = `apply-suggestion` with `value: null`. Replaced the previous stop-at-first waterfall, which lost tracklists on new releases where Last.fm had a one-track stub (e.g., Hayley Williams _Ego Death_).
 - Missing-info backfill: `src/lib/backfill.server.ts` (per-field source chain, attempted-vs-filled counters), `src/lib/discogs-tags.server.ts` (Discogs release-level styles+genres lookup with artist+title match), `src/lib/qwen-suggest.server.ts` (Ollama qwen3.5 prompt with strict NONE-escape, lowercase tags, original-label-only rules, `think: false`, JSON-mode output). Single-album version of the same chain at `src/routes/api/albums/lookup-suggestions/+server.ts` (used by the album-edit Look up panel, called in parallel with cover-search and tracklist-candidates). Single-field write endpoint at `src/routes/api/albums/[id]/apply-suggestion/+server.ts` — accepts `field: 'tags' | 'label' | 'tracklist'`, with tracklist taking either a `{tracks, source}` snapshot to pin or `value: null` to clear. Tracklist-candidates endpoint at `src/routes/api/albums/tracklist-candidates/+server.ts`. Shared review UI at `src/lib/components/BackfillSuggestion.svelte` — dual-mode: default POST-on-accept for the recap context, or `onSave`-callback prop for the album-edit form context. Tracklist chooser UI lives inline in `src/routes/albums/[id]/+page.svelte` (not a separate component — reuses panel styles + state).
 - Article-aware sort key: `src/lib/sort-key.ts` (`sortKey()` + `compareByKey()`)
 - Persisted UI prefs (localStorage helpers): `src/lib/persist.ts`
@@ -94,6 +98,7 @@ _(Nothing scheduled. Polish requests have been arriving from a friend testing th
 - PWA static: `static/{manifest.json,icon.svg,headliner/manifest.json,headliner/icon.svg}`
 
 ### Implementation notes worth remembering
+
 - **No server-side accent extraction**: handoff originally specified `node-vibrant`/`colorthief` server-side, but those need Cairo. We extract client-side via Canvas when the user picks a cover, matching the "hybrid fallback" plan. `sharp` is the lightest dep if we ever want server-side.
 - **Vite `allowedHosts`**: `vite.config.ts` must include `albumz.spudalicio.us` or Vite returns 403 on Host-header mismatch (Vite 5+ security).
 - **AOTY link is a search**, not direct — AOTY URLs include a numeric internal ID we can't derive without scraping. Button text reads "Find on AOTY ↗".
@@ -132,17 +137,20 @@ The goal is to bring the full functionality of the Tunez desktop app (CRUD, impo
 ## Stack Decisions
 
 ### Web: SvelteKit
+
 - Lighter and simpler than Next.js
 - Built-in form actions fit CRUD-heavy apps well
 - Fresh territory — small ramp-up, pays back in less ceremony
 
 ### Backend: Supabase (new project)
+
 - Brand-new Supabase project, separate from Tunez
 - Reason: clean schema evolution, no risk of touching live Tunez data, independent users
 - Auth handled by Supabase (email/password, password reset, email confirmation)
 - Supabase is Postgres under the hood — not locked in; can migrate to self-hosted later via `pg_dump`
 
 **Project details** (created 2026-05-25):
+
 - **Project name**: Albumz
 - **Project ref**: `vipqwopopipfnppjbkgd`
 - **API URL**: `https://vipqwopopipfnppjbkgd.supabase.co`
@@ -152,6 +160,7 @@ The goal is to bring the full functionality of the Tunez desktop app (CRUD, impo
 - **DB password**: stored only in Brent's personal notes (with hint), never in repo
 
 ### Auth: Email/password, multi-user
+
 - No Google OAuth (same call as Tunez)
 - Confirmation/reset emails sent via Resend (see SMTP section below)
 
@@ -161,15 +170,15 @@ The goal is to bring the full functionality of the Tunez desktop app (CRUD, impo
 
 Auth emails are sent via **Resend** (the same provider used by Tunez). When the new Albumz Supabase project is created, configure custom SMTP in **Supabase Dashboard → Authentication → Emails → SMTP Settings** with the following values (password = Resend API key, retrieved from Resend dashboard):
 
-| Field | Value |
-|---|---|
-| Sender email | `noreply@spudalicio.us` |
-| Sender name | `Albumz` |
-| Host | `smtp.resend.com` |
-| Port | `587` |
-| Username | `resend` |
-| Password | *(Resend API key — fetch from Resend dashboard)* |
-| Min interval per user | `60` seconds |
+| Field                 | Value                                            |
+| --------------------- | ------------------------------------------------ |
+| Sender email          | `noreply@spudalicio.us`                          |
+| Sender name           | `Albumz`                                         |
+| Host                  | `smtp.resend.com`                                |
+| Port                  | `587`                                            |
+| Username              | `resend`                                         |
+| Password              | _(Resend API key — fetch from Resend dashboard)_ |
+| Min interval per user | `60` seconds                                     |
 
 The Resend account itself is shared with Tunez. Same API key works for both Supabase projects.
 
@@ -181,6 +190,7 @@ The Resend account itself is shared with Tunez. Same API key works for both Supa
 **Aesthetic refined 2026-05-26: Neo-Noir / Cinematic** (sketch `06-neo-noir-immersive.html`).
 
 Core characteristics:
+
 - **Aesthetic language**: Neo-noir / cinematic. Dramatic, restrained, theatrical without being garish. Not cold-modern, not retro — moody and distinctive with strong bones that work as a neutral canvas for any accent color
 - **Hero treatment**: blurred album art fills the entire hero area as atmosphere; dark vignette overlays (bottom, left, top) ensure text readability; the sharp album thumbnail is the subject, the blur is the mood
 - **Dark mode**: deep warm near-black (`#08070a` — slightly warmer/more purple than pure black), dramatic accent glow on stars/eyebrow/CTAs, subtle film grain texture overlay
@@ -193,11 +203,12 @@ Core characteristics:
 **Theme model (decided 2026-05-26): Light and dark only.** No user-custom themes, no presets. The dynamic accent color extracted from album art is the "interesting" part of the system. Light/dark follows `prefers-color-scheme` by default; user toggle overrides and persists per-account.
 
 Other decisions:
+
 - **Featured album**: user-picked (mirrors Tunez's recommended-album pattern)
 - Dense/list view replaced by two task-oriented features (pinned 2026-05-25):
-  - **Dedicated "Wantlist" page** — compact list view optimized for the *shopping job*: browsing wants, cross-checking ownership before buying, eventually crate-digging features (Discogs links, price tracking). Separate route, separate identity from main collection
+  - **Dedicated "Wantlist" page** — compact list view optimized for the _shopping job_: browsing wants, cross-checking ownership before buying, eventually crate-digging features (Discogs links, price tracking). Separate route, separate identity from main collection
   - **"Do I have this?" quick lookup** — fast search/palette that answers one question: do I already own this album? Type artist+album, get instant Yes/No + details. Likely lives as a Cmd-K palette or always-on nav search field
-  - Main atmospheric grid stays focused on *showcasing* what you own; these two features handle the *shopping* and *lookup* jobs separately
+  - Main atmospheric grid stays focused on _showcasing_ what you own; these two features handle the _shopping_ and _lookup_ jobs separately
 - **Cover color extraction**: hybrid — precompute server-side on album add (node-vibrant or colorthief), store on the album row; fall back to client-side Canvas extraction when missing
 
 ---
@@ -207,9 +218,11 @@ Other decisions:
 **Decided 2026-05-26.** All icon work lives in `sketches/07-icons.html`.
 
 ### Wordmark
+
 `albumz` — system sans-serif, tight tracking (`letter-spacing: 0.09em`), weight 800. The trailing **z** carries a double-layer accent glow (`text-shadow: 0 0 20px var(--accent-glow), 0 0 8px var(--accent-glow)`). No underline, no decoration — the glow is the mark.
 
 ### Main App Icon — Concept E: Groove + Waveform ✅
+
 - Background: deep charcoal `#161420`
 - Vinyl groove rings at decreasing opacity (r=46 → r=16, 0.09 → 0.05)
 - Accent glowing ring at r=43 (`oklch(65% 0.20 22)`, `feGaussianBlur` glow filter)
@@ -217,12 +230,14 @@ Other decisions:
 - Reads clearly at 40px; distinctive at 180px
 
 ### Headliner Icon — H4: Lattice Tower + Bilateral Arcs ✅
+
 - Same groove ring + accent ring base as Concept E (shared visual DNA, clearly different app)
 - Proper lattice broadcast tower: hollow antenna ball at top, short mast, 3 lattice sections with tapered outer legs and X-cross bracing in each panel
 - Bilateral broadcast arcs: 3 arcs on each side (sweep=0 left, sweep=1 right), fading outward, drawn behind the tower so the tower sits on top
 - Reads as "broadcast/transmission" immediately; distinct from E in weight and complexity
 
 ### Icon source files
+
 - `sketches/07-icons.html` — all concepts rendered at 180px / 80px / 40px, light/dark toggle
 - `sketches/albumz-sketches.zip` — zippable for SFTP/review
 
@@ -287,7 +302,7 @@ Other decisions:
 | `theme` | text | `'auto'` \| `'light'` \| `'dark'` |
 | `created_at` | timestamptz | |
 
-**`activity`** *(optional, personal history only)*
+**`activity`** _(optional, personal history only)_
 Simple log for the owner's own use — import summaries, recently added entries. Not a social feed, not public.
 | Column | Type | Notes |
 |---|---|---|
@@ -307,21 +322,21 @@ No `follows` or `likes` tables.
 
 ### App-level credentials (server environment variables — not user-entered)
 
-| Key | Purpose | Notes |
-|---|---|---|
-| Last.fm API key | `user.getRecentTracks`, artist info, track images | Already have: `41ac92347f3641eda97d68f1b270e54b` (from nowplaying PWA) |
-| Spotify client ID + secret | Proper album URL lookup (exact album ID, not just a search link) | Need to register a Spotify developer app — easy, takes 5 min |
-| Supabase anon key | Frontend Supabase client | Already have — in `ALBUMZ-HANDOFF.md` |
-| Supabase service role key | Server-side privileged operations | Kept by Brent in private notes, server env var only |
+| Key                        | Purpose                                                          | Notes                                                                  |
+| -------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Last.fm API key            | `user.getRecentTracks`, artist info, track images                | Already have: `41ac92347f3641eda97d68f1b270e54b` (from nowplaying PWA) |
+| Spotify client ID + secret | Proper album URL lookup (exact album ID, not just a search link) | Need to register a Spotify developer app — easy, takes 5 min           |
+| Supabase anon key          | Frontend Supabase client                                         | Already have — in `ALBUMZ-HANDOFF.md`                                  |
+| Supabase service role key  | Server-side privileged operations                                | Kept by Brent in private notes, server env var only                    |
 
 iTunes, Deezer, fanart.tv, and theaudiodb are routed through the existing spudalicio.us proxies — no keys needed.
 
 ### User settings (per-account, entered in app)
 
-| Field | Purpose | Required? |
-|---|---|---|
-| Last.fm username | Powers now-playing on public page + contributes to root mosaic | Optional but encouraged |
-| Discogs username | Future wantlist / crate-digging features | Optional, deferred — field added now, activated later |
+| Field            | Purpose                                                        | Required?                                             |
+| ---------------- | -------------------------------------------------------------- | ----------------------------------------------------- |
+| Last.fm username | Powers now-playing on public page + contributes to root mosaic | Optional but encouraged                               |
+| Discogs username | Future wantlist / crate-digging features                       | Optional, deferred — field added now, activated later |
 
 No per-user API keys. No OAuth flows for third-party services.
 
@@ -361,17 +376,18 @@ The two routes have genuinely different jobs and should not be collapsed into on
 
 The public collection page hero shows the currently-playing album when music is live (eyebrow flips from "★ Featured Album" to "♪ Currently Spinning"), and reverts to the user-picked featured album otherwise. The page accent color shifts toward the now-playing album's cover when something is spinning, falling back to the featured album's accent otherwise.
 
-A subtle "live" hint is acceptable — a small pulsing glyph next to the title, or a barely-perceptible breathing scale on the cover — just enough to signal *this is actually happening right now*, without being noisy.
+A subtle "live" hint is acceptable — a small pulsing glyph next to the title, or a barely-perceptible breathing scale on the cover — just enough to signal _this is actually happening right now_, without being noisy.
 
 A small `↗` icon (or similar discreet affordance) on the hero opens **Headliner** — see next section.
 
-Data source is Last.fm (`user.getRecentTracks`), which unifies streamed playback (Spotify scrobbles directly) and physical playback (Earshot scrobbles via Shazam). See *External Ecosystem* below.
+Data source is Last.fm (`user.getRecentTracks`), which unifies streamed playback (Spotify scrobbles directly) and physical playback (Earshot scrobbles via Shazam). See _External Ecosystem_ below.
 
 ## Headliner (Second PWA)
 
 A separate installable PWA at the same origin: `albumz.spudalicio.us/headliner` (or `/playing`). Full-screen, no nav chrome, intended for TV / dedicated displays / "lean back and watch" use. Mirrors Brent's existing nowplaying-PWA + TV-deploy pattern.
 
 **Architecture**: two PWAs share the origin and the Supabase backend.
+
 - Main app: manifest at `/manifest.json`, scope `/`, `start_url: "/"`
 - Headliner app: manifest at `/headliner/manifest.json`, scope `/headliner`, `start_url: "/headliner"`
 - Both share auth/cookies/localStorage because same-origin
@@ -382,6 +398,7 @@ A separate installable PWA at the same origin: `albumz.spudalicio.us/headliner` 
 ## External Ecosystem (informational — Albumz consumes Last.fm)
 
 Brent's music-listening ecosystem closes a loop through Last.fm:
+
 - **Streamed music** (Spotify): native Last.fm scrobbling
 - **Physical media** (LP/CD): **Earshot** (Linux GTK4 app at `/home/zedzee/mine/dev/Archive/Earshot-files/`) listens via mic, identifies via Shazam, posts to Last.fm
 - **The nowplaying PWA** at `/var/www/spudalicio.us/zz/nowplaying/` reads from Last.fm and renders a beautiful "what's playing right now" view (with art waterfall, color extraction, time-of-day atmosphere)
@@ -392,12 +409,12 @@ For Albumz: query Last.fm `user.getRecentTracks` to know what's playing. Don't t
 
 The main `spudalicio.us-le-ssl.conf` already defines CORS-fixing reverse proxies that Albumz can use directly:
 
-| Path | Upstream |
-|---|---|
-| `https://spudalicio.us/proxy/itunes/` | `https://itunes.apple.com/` |
-| `https://spudalicio.us/proxy/deezer/` | `https://api.deezer.com/` |
-| `https://spudalicio.us/proxy/fanart/` | `https://webservice.fanart.tv/` |
-| `https://spudalicio.us/proxy/theaudiodb/` | `https://www.theaudiodb.com/` |
+| Path                                      | Upstream                        |
+| ----------------------------------------- | ------------------------------- |
+| `https://spudalicio.us/proxy/itunes/`     | `https://itunes.apple.com/`     |
+| `https://spudalicio.us/proxy/deezer/`     | `https://api.deezer.com/`       |
+| `https://spudalicio.us/proxy/fanart/`     | `https://webservice.fanart.tv/` |
+| `https://spudalicio.us/proxy/theaudiodb/` | `https://www.theaudiodb.com/`   |
 
 Last.fm is called directly (it sends proper CORS).
 
@@ -416,6 +433,7 @@ Managed by **systemd** — `albumz.service`, enabled at boot. Unit file lives in
 - Logs: `journalctl -u albumz -f`
 
 **After a code change**, rebuild then restart:
+
 ```
 cd /home/zedzee/mine/apps/albumz && npm run build && sudo systemctl restart albumz
 ```
@@ -427,6 +445,7 @@ For ad-hoc manual runs (bypassing systemd): `PORT=3200 ORIGIN=https://albumz.spu
 ## Why a Separate Project (Not Just a Tunez Refactor)
 
 Brent wanted a clean break to:
+
 - Reconsider visual presentation from scratch
 - Avoid the desktop/web split — go web-only as the canonical experience
 - Try fresh ideas (dynamic theming, AOTY) without disturbing the working Tunez deployment

@@ -84,7 +84,11 @@ class SpinState {
 		this.startedAt = null;
 		this.error = null;
 		if (typeof window !== 'undefined') {
-			try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+			try {
+				sessionStorage.removeItem(STORAGE_KEY);
+			} catch {
+				/* ignore */
+			}
 		}
 	}
 

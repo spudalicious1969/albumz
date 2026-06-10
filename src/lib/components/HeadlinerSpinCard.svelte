@@ -107,8 +107,8 @@
 				onclick={() => (collapsed = true)}
 				title="Collapse"
 				aria-label="Collapse {setLabel}"
-				aria-expanded="true"
-			>▾</button>
+				aria-expanded="true">▾</button
+			>
 		</header>
 
 		{#if spin.startedAt}
@@ -125,7 +125,10 @@
 		>
 			<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
 				<path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" />
-				<path d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21h-2a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.08A7 7 0 0 0 19 11z" fill="currentColor" />
+				<path
+					d="M19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.92V21h-2a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-3.08A7 7 0 0 0 19 11z"
+					fill="currentColor"
+				/>
 			</svg>
 			<span>{micLabel}</span>
 		</button>
@@ -200,7 +203,11 @@
 		cursor: pointer;
 		backdrop-filter: blur(10px);
 		box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
-		transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+		transition:
+			background 0.2s,
+			border-color 0.2s,
+			color 0.2s,
+			transform 0.2s;
 		animation: pill-in 0.28s ease-out both;
 	}
 	.pill:hover {
@@ -220,24 +227,36 @@
 		opacity: 0.7;
 	}
 	@keyframes pill-in {
-		from { opacity: 0; transform: translateY(6px); }
-		to   { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.card {
 		width: clamp(240px, 24vw, 300px);
 		padding: 0.95rem 1.05rem 1rem;
 		background: color-mix(in oklch, #08070a 75%, transparent);
-		border: 1px solid color-mix(in oklch, var(--hl-accent) 30%, rgba(255,255,255,0.08));
+		border: 1px solid color-mix(in oklch, var(--hl-accent) 30%, rgba(255, 255, 255, 0.08));
 		border-radius: 14px;
 		color: #f0ead8;
 		backdrop-filter: blur(14px);
-		box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+		box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 		animation: card-in 0.32s ease-out both;
 	}
 	@keyframes card-in {
-		from { opacity: 0; transform: translateY(8px); }
-		to   { opacity: 1; transform: translateY(0); }
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 
 	.head {
@@ -269,8 +288,15 @@
 		animation: pulse 1.4s ease-in-out infinite;
 	}
 	@keyframes pulse {
-		0%, 100% { opacity: 1;   transform: scale(1); }
-		50%      { opacity: 0.5; transform: scale(1.35); }
+		0%,
+		100% {
+			opacity: 1;
+			transform: scale(1);
+		}
+		50% {
+			opacity: 0.5;
+			transform: scale(1.35);
+		}
 	}
 
 	.iconbtn {
@@ -282,7 +308,9 @@
 		padding: 0.1rem 0.35rem;
 		cursor: pointer;
 		border-radius: 6px;
-		transition: color 0.15s, background 0.15s;
+		transition:
+			color 0.15s,
+			background 0.15s;
 	}
 	.iconbtn:hover {
 		color: #f0ead8;
@@ -311,7 +339,10 @@
 		letter-spacing: 0.04em;
 		cursor: pointer;
 		margin: 0 0 0.85rem;
-		transition: color 0.2s, border-color 0.2s, background 0.2s;
+		transition:
+			color 0.2s,
+			border-color 0.2s,
+			background 0.2s;
 	}
 	.mic:hover {
 		color: #f0ead8;
@@ -336,9 +367,15 @@
 		animation-duration: 0.7s;
 	}
 	@keyframes mic-pulse {
-		0%   { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6); }
-		70%  { box-shadow: 0 0 0 8px rgba(255, 107, 107, 0); }
-		100% { box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
+		0% {
+			box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.6);
+		}
+		70% {
+			box-shadow: 0 0 0 8px rgba(255, 107, 107, 0);
+		}
+		100% {
+			box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+		}
 	}
 
 	.empty {
@@ -399,8 +436,17 @@
 		opacity: 0.78;
 		align-items: baseline;
 	}
-	.prior-track { color: #f0ead8; grid-column: 1; grid-row: 1; }
-	.prior-artist { color: color-mix(in oklch, #f0ead8 55%, transparent); font-size: 0.72rem; grid-column: 1; grid-row: 2; }
+	.prior-track {
+		color: #f0ead8;
+		grid-column: 1;
+		grid-row: 1;
+	}
+	.prior-artist {
+		color: color-mix(in oklch, #f0ead8 55%, transparent);
+		font-size: 0.72rem;
+		grid-column: 1;
+		grid-row: 2;
+	}
 	.prior-source {
 		grid-column: 2;
 		grid-row: 1 / span 2;
@@ -409,7 +455,9 @@
 		color: color-mix(in oklch, var(--hl-accent) 65%, transparent);
 		opacity: 0.7;
 	}
-	.prior-source.streamed { color: color-mix(in oklch, #f0ead8 55%, transparent); }
+	.prior-source.streamed {
+		color: color-mix(in oklch, #f0ead8 55%, transparent);
+	}
 
 	.more {
 		font-size: 0.7rem;
@@ -431,7 +479,9 @@
 		cursor: pointer;
 		padding: 0.2rem 0.3rem;
 		border-radius: 6px;
-		transition: color 0.15s, background 0.15s;
+		transition:
+			color 0.15s,
+			background 0.15s;
 	}
 	.endlink:hover {
 		color: #f0ead8;

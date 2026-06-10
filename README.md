@@ -8,7 +8,7 @@ It's a place to:
 
 - catalog what you own and what you want
 - find the cover art the metadata folks left out
-- give your listening a public face — a profile page with a *Headliner* view that anyone can pull up to see what you're spinning right now
+- give your listening a public face — a profile page with a _Headliner_ view that anyone can pull up to see what you're spinning right now
 - catch what's actually on the turntable, via your laptop mic, and let your Last.fm history reflect physical plays the same way streaming already does
 - rediscover something you forgot you owned — pull one dormant album out of the crate, presented like a record-shop find rather than a list entry
 
@@ -33,8 +33,8 @@ This is the user guide. If you're a developer poking under the hood, the heart o
 Hit **+ Add** on the home page. You can:
 
 - Fill in artist + title yourself and let Albumz fetch the rest (cover, year, format, label, tracklist)
-- Type *only* an artist, or *only* a title — the discovery search will offer matches you can click to populate the form
-- Pick whether it's something you *own* or something you *want* — the same form handles both with the submit button label switching to match
+- Type _only_ an artist, or _only_ a title — the discovery search will offer matches you can click to populate the form
+- Pick whether it's something you _own_ or something you _want_ — the same form handles both with the submit button label switching to match
 
 ### Editing or fixing
 
@@ -54,7 +54,7 @@ The detail page has a Delete button. There's no trash can — once it's gone it'
 
 The `notes` field is the depth ceiling, on purpose. If you want to write three paragraphs about how you found a record, do it there. Tags are free-form — make up your own vocabulary. Rating is 1–5 stars and entirely optional.
 
-Albumz won't ask you to log producers, engineers, pressing variants, or runout etches. If you want a database, use Discogs. If you want a place to *remember* music, you're already here.
+Albumz won't ask you to log producers, engineers, pressing variants, or runout etches. If you want a database, use Discogs. If you want a place to _remember_ music, you're already here.
 
 ---
 
@@ -70,7 +70,7 @@ Each wantlist album has a row of buy-links — Record Exchange first (Boise's lo
 
 ### Auto-search
 
-When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores the results by how well the artist and title match, and uses the top hit *if the match is strong enough*. Artist names that match only as a loose substring (the classic "Helium / Helium Sound" trap, made worse when imports carry Discogs's disambiguator suffix) no longer auto-attach — those albums stay in the missing-covers list so you can browse the candidates yourself. The reranking and confidence floor both matter: without them, "Wilco — Sky Blue Sky" used to come back with the wrong cover often enough to be a nuisance.
+When you save an album without a cover, Albumz pulls in parallel from Spotify, iTunes, Last.fm, MusicBrainz / Cover Art Archive, and Deezer, scores the results by how well the artist and title match, and uses the top hit _if the match is strong enough_. Artist names that match only as a loose substring (the classic "Helium / Helium Sound" trap, made worse when imports carry Discogs's disambiguator suffix) no longer auto-attach — those albums stay in the missing-covers list so you can browse the candidates yourself. The reranking and confidence floor both matter: without them, "Wilco — Sky Blue Sky" used to come back with the wrong cover often enough to be a nuisance.
 
 ### Manual cover picker
 
@@ -93,14 +93,14 @@ From anywhere in the signed-in app, hit **⌘K** (or **Ctrl-K** on Windows / Lin
 The home page, full-collection page, and wantlist all share a Sort control in the topbar:
 
 - **Recent** — newest first (for the wantlist this is "recently added"; for the collection it's when the album entered your collection, including wantlist promotions)
-- **Artist** — alphabetical, article-aware ("The Beths" sorts under *B*, not *T*)
+- **Artist** — alphabetical, article-aware ("The Beths" sorts under _B_, not _T_)
 - **Album** / **Title** — alphabetical, also article-aware
 - **Rating** — highest stars first
 - **Format** — groups by CD / LP / cassette / etc., nulls last, artist as the tiebreak
 
 Next to the sort dropdown is a small arrow button that **reverses** whichever sort you've picked — flip artist to Z→A, rating to lowest first, recent to oldest first, and so on.
 
-Whatever you pick sticks — Albumz remembers your sort *and* direction preference per page.
+Whatever you pick sticks — Albumz remembers your sort _and_ direction preference per page.
 
 ---
 
@@ -173,7 +173,7 @@ On your Headliner there's a small pill in the lower-right: **"Tonight's set."** 
 - A **set list** — every track that's been identified during this session, latest at the top
 - An **End set** link — wipes the set list and closes out the session
 
-The label changes with the time of day: *this morning's set*, *this afternoon's set*, *this evening's set*, *tonight's set*.
+The label changes with the time of day: _this morning's set_, _this afternoon's set_, _this evening's set_, _tonight's set_.
 
 ### Spun vs streamed
 
@@ -200,7 +200,7 @@ The microphone only records when you explicitly turn it on, and audio is sent to
 
 ## Weekly digest
 
-The digest is the part of Albumz that *narrates*. Last.fm has always been a ledger — plays, dates, counts, charts — and the digest is the columnist that ledger never had. Same data, rendered as warm prose a person would actually want to read.
+The digest is the part of Albumz that _narrates_. Last.fm has always been a ledger — plays, dates, counts, charts — and the digest is the columnist that ledger never had. Same data, rendered as warm prose a person would actually want to read.
 
 ### How it works
 
@@ -239,7 +239,7 @@ Settings → **Last.fm connection** → Connect. You'll authorize Albumz on Last
 - Use your Last.fm username for now-playing displays on your public page and Headliner
 - Send `track.updateNowPlaying` whenever Spin identifies something (so the Headliner stage stays current)
 - **Scrobble** physical plays — about 60 seconds of confirmed presence on the same track is enough to count
-- *Not* scrobble streamed plays, since your streaming service already did
+- _Not_ scrobble streamed plays, since your streaming service already did
 
 You can disconnect at any time from the same panel.
 
@@ -278,12 +278,12 @@ A quick map of the Settings page:
 
 ## Keyboard shortcuts
 
-| Shortcut | Where | What it does |
-|---|---|---|
-| `⌘K` / `Ctrl-K` | Anywhere signed in | Open the Look-up palette |
-| `Esc` | Inside Look-up or pickers | Close |
-| `↑` / `↓` | Inside Look-up | Move through results |
-| `Enter` | Inside Look-up | Open the highlighted match |
+| Shortcut        | Where                     | What it does               |
+| --------------- | ------------------------- | -------------------------- |
+| `⌘K` / `Ctrl-K` | Anywhere signed in        | Open the Look-up palette   |
+| `Esc`           | Inside Look-up or pickers | Close                      |
+| `↑` / `↓`       | Inside Look-up            | Move through results       |
+| `Enter`         | Inside Look-up            | Open the highlighted match |
 
 ---
 
@@ -298,7 +298,7 @@ A quick map of the Settings page:
 
 ## Privacy and ownership
 
-Your collection is yours. Your public page is public *by design* — that's the whole point — but nothing about *how* you use Albumz is shared with anyone else. There's no analytics tracker stitched into the page, no ad network, no "people you may know." If you delete your account, your data goes with it.
+Your collection is yours. Your public page is public _by design_ — that's the whole point — but nothing about _how_ you use Albumz is shared with anyone else. There's no analytics tracker stitched into the page, no ad network, no "people you may know." If you delete your account, your data goes with it.
 
 ---
 

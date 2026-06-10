@@ -22,9 +22,7 @@ const MAX_PICKS = 5;
 
 export type CuratedPick = Candidate & { why: string };
 
-export type CurateResult =
-	| { ok: true; picks: CuratedPick[] }
-	| { ok: false; error: string };
+export type CurateResult = { ok: true; picks: CuratedPick[] } | { ok: false; error: string };
 
 const SYSTEM_PROMPT = `You are a record-store clerk. A listener tells you what they've been on, where they want to lean, and you've already narrowed the catalog down to a pool of candidates. Your job is to pick 3-5 albums from that pool and write a single sentence for each explaining why it fits the nudge.
 
@@ -80,9 +78,7 @@ function buildUserPrompt(
 type RawPick = { index?: number; why?: string };
 type RawOutput = { picks?: RawPick[] };
 
-type AttemptOutcome =
-	| { ok: true; picks: CuratedPick[] }
-	| { ok: false; reason: string };
+type AttemptOutcome = { ok: true; picks: CuratedPick[] } | { ok: false; reason: string };
 
 async function runAttempt(
 	systemPrompt: string,

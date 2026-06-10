@@ -81,7 +81,9 @@
 				{/if}
 				<a href="/settings" class="link-quiet">Generate a new draft →</a>
 			</div>
-			<p class="meta-note">Model: {digest.model_used} · created {new Date(digest.created_at).toLocaleString()}</p>
+			<p class="meta-note">
+				Model: {digest.model_used} · created {new Date(digest.created_at).toLocaleString()}
+			</p>
 		</aside>
 	{/if}
 </div>
@@ -105,7 +107,9 @@
 		color: var(--accent);
 		margin: 0 0 0.85rem;
 	}
-	.eyebrow-draft { color: var(--text-muted); }
+	.eyebrow-draft {
+		color: var(--text-muted);
+	}
 
 	h1 {
 		font-size: clamp(1.8rem, 3.5vw, 2.4rem);
@@ -127,8 +131,13 @@
 		font-weight: 600;
 		border-bottom: 1px dotted color-mix(in oklch, var(--text) 30%, transparent);
 	}
-	.byline a:hover { border-bottom-color: var(--text); }
-	.byline .dim { color: var(--text-muted); font-weight: 400; }
+	.byline a:hover {
+		border-bottom-color: var(--text);
+	}
+	.byline .dim {
+		color: var(--text-muted);
+		font-weight: 400;
+	}
 
 	.prose {
 		font-size: 1.05rem;
@@ -171,7 +180,9 @@
 		align-items: center;
 		flex-wrap: wrap;
 	}
-	.owner-actions form { margin: 0; }
+	.owner-actions form {
+		margin: 0;
+	}
 	.btn-primary {
 		padding: 0.55rem 1.1rem;
 		background: var(--accent);
@@ -184,7 +195,9 @@
 		cursor: pointer;
 		transition: opacity 0.15s;
 	}
-	.btn-primary:hover { opacity: 0.9; }
+	.btn-primary:hover {
+		opacity: 0.9;
+	}
 	.btn-secondary {
 		padding: 0.55rem 1.1rem;
 		background: var(--bg-elevated);
@@ -197,14 +210,18 @@
 		cursor: pointer;
 		transition: background 0.15s;
 	}
-	.btn-secondary:hover { background: var(--surface); }
+	.btn-secondary:hover {
+		background: var(--surface);
+	}
 	.link-quiet {
 		font-size: 0.85rem;
 		color: var(--text-muted);
 		text-decoration: none;
 		margin-left: auto;
 	}
-	.link-quiet:hover { color: var(--text); }
+	.link-quiet:hover {
+		color: var(--text);
+	}
 
 	.status-note {
 		font-size: 0.88rem;

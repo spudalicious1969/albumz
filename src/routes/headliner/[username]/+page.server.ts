@@ -25,14 +25,23 @@ export const load: PageServerLoad = async ({ params, locals, setHeaders }) => {
 	if (!profile) error(404, 'No user at this URL.');
 
 	let initial: NowPlayingResult = {
-		state: 'none', track: null, artist: null, album: null,
-		coverUrl: null, coverCandidates: [], playedAt: null, source: null
+		state: 'none',
+		track: null,
+		artist: null,
+		album: null,
+		coverUrl: null,
+		coverCandidates: [],
+		playedAt: null,
+		source: null
 	};
 	if (profile.last_fm_username) {
 		initial = await fetchNowPlaying(profile.last_fm_username);
 		if (initial.state !== 'none' && initial.artist && initial.track) {
 			initial.source = await classifyNowPlayingSource(
-				locals.supabase, profile.id, initial.artist, initial.track
+				locals.supabase,
+				profile.id,
+				initial.artist,
+				initial.track
 			);
 		}
 	}

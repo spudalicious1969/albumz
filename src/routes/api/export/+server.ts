@@ -10,7 +10,9 @@ export const GET: RequestHandler = async ({ locals }) => {
 		locals.supabase.from('profiles').select('username').eq('id', user.id).maybeSingle(),
 		locals.supabase
 			.from('albums')
-			.select('artist, title, year, format, label, rating, notes, tags, ownership, hidden, cover_url, accent_color, discogs_id, created_at')
+			.select(
+				'artist, title, year, format, label, rating, notes, tags, ownership, hidden, cover_url, accent_color, discogs_id, created_at'
+			)
 			.eq('user_id', user.id)
 			.order('artist', { ascending: true })
 			.order('title', { ascending: true })

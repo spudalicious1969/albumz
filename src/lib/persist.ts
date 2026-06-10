@@ -2,11 +2,7 @@
 // Validates against an allowed-values list so a renamed/removed sort option
 // gracefully falls back instead of returning a stale string.
 
-export function loadSort<T extends string>(
-	key: string,
-	allowed: readonly T[],
-	fallback: T
-): T {
+export function loadSort<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
 	if (typeof localStorage === 'undefined') return fallback;
 	const stored = localStorage.getItem(key);
 	if (stored && (allowed as readonly string[]).includes(stored)) return stored as T;

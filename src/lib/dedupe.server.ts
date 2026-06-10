@@ -92,10 +92,7 @@ export async function scanDuplicates(
 
 /** Remove all duplicate albums for a user, keeping the highest-metadata
  * survivor per (artist, title) group. Returns the count removed. */
-export async function removeDuplicates(
-	supabase: SupabaseClient,
-	userId: string
-): Promise<number> {
+export async function removeDuplicates(supabase: SupabaseClient, userId: string): Promise<number> {
 	const scan = await scanDuplicates(supabase, userId);
 	const idsToDelete: string[] = [];
 	for (const group of scan.groups) {

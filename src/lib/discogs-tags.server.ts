@@ -24,10 +24,7 @@ function normalizeMatch(s: string): string {
 
 /** Returns lowercase, deduped tags. Order: styles first (more specific),
  *  then genres. Returns [] on any failure so callers can fall back cleanly. */
-export async function fetchDiscogsTagsForAlbum(
-	artist: string,
-	title: string
-): Promise<string[]> {
+export async function fetchDiscogsTagsForAlbum(artist: string, title: string): Promise<string[]> {
 	const token = env.DISCOGS_TOKEN;
 	if (!token) return [];
 	if (!artist.trim() || !title.trim()) return [];

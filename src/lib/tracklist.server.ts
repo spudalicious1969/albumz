@@ -26,10 +26,7 @@ const MB_HEADERS = { 'User-Agent': 'Albumz/1.0 (brent.l.watkins@gmail.com)' };
 const EMPTY: TracklistResult = { tracks: [], source: null, totalDuration: null };
 
 function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
-	return Promise.race([
-		p,
-		new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))
-	]);
+	return Promise.race([p, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 }
 
 /**
@@ -51,7 +48,11 @@ export async function fetchTracklistCandidates(
 
 	return Promise.all(
 		fetchers.map((f) =>
-			withTimeout(f().catch(() => EMPTY), PER_SOURCE_TIMEOUT_MS, EMPTY)
+			withTimeout(
+				f().catch(() => EMPTY),
+				PER_SOURCE_TIMEOUT_MS,
+				EMPTY
+			)
 		)
 	);
 }
@@ -65,10 +66,7 @@ export async function fetchTracklist(artist: string, title: string): Promise<Tra
 
 	// Pick the longest tracklist. Reduce with strict `>` so earlier entries
 	// in the fetcher list win on ties — that's our quality preference order.
-	const best = results.reduce(
-		(max, r) => (r.tracks.length > max.tracks.length ? r : max),
-		EMPTY
-	);
+	const best = results.reduce((max, r) => (r.tracks.length > max.tracks.length ? r : max), EMPTY);
 
 	cache.set(cacheKey, { value: best, expires: Date.now() + CACHE_TTL_MS });
 	return best;
@@ -257,8 +255,7 @@ type ItunesLookupResult = {
 async function fetchFromItunes(artist: string, title: string): Promise<TracklistResult> {
 	const term = `${artist} ${title}`;
 	const searchUrl =
-		`${ITUNES_API}/search?term=${encodeURIComponent(term)}` +
-		`&entity=album&limit=5`;
+		`${ITUNES_API}/search?term=${encodeURIComponent(term)}` + `&entity=album&limit=5`;
 	const searchRes = await fetch(searchUrl);
 	if (!searchRes.ok) return finalize([], 'itunes');
 	const search = (await searchRes.json()) as ItunesSearchResult;
@@ -278,15 +275,15 @@ async function fetchFromItunes(artist: string, title: string): Promise<Tracklist
 	const lookupRes = await fetch(lookupUrl);
 	if (!lookupRes.ok) return finalize([], 'itunes');
 	const lookup = (await lookupRes.json()) as ItunesLookupResult;
-	const songs = (lookup.results ?? []).filter((r) => r.wrapperType === 'track' && r.kind === 'song');
+	const songs = (lookup.results ?? []).filter(
+		(r) => r.wrapperType === 'track' && r.kind === 'song'
+	);
 
 	const tracks: Track[] = songs.map((s, i) => ({
 		position: s.trackNumber && s.trackNumber > 0 ? s.trackNumber : i + 1,
 		name: s.trackName ?? '',
 		duration:
-			s.trackTimeMillis && s.trackTimeMillis > 0
-				? Math.round(s.trackTimeMillis / 1000)
-				: null
+			s.trackTimeMillis && s.trackTimeMillis > 0 ? Math.round(s.trackTimeMillis / 1000) : null
 	}));
 
 	return finalize(tracks, 'itunes');
@@ -317,9 +314,7 @@ type MBReleaseDetail = {
 function mbReleaseLabel(r: MBReleaseSummary): string {
 	const parts: string[] = [];
 	if (r.disambiguation) parts.push(r.disambiguation);
-	const formats = (r.media ?? [])
-		.map((m) => m.format)
-		.filter((f): f is string => Boolean(f));
+	const formats = (r.media ?? []).map((m) => m.format).filter((f): f is string => Boolean(f));
 	if (formats.length > 0 && parts.length === 0) {
 		parts.push(formats.join(' + '));
 	}
@@ -359,8 +354,8 @@ async function fetchFromMusicBrainz(artist: string, title: string): Promise<Trac
 	if (!searchRes.ok) return finalize([], 'musicbrainz');
 
 	const searchData = (await searchRes.json()) as { releases?: MBReleaseSummary[] };
-	const releases = (searchData.releases ?? []).filter((r): r is MBReleaseSummary & { id: string } =>
-		typeof r.id === 'string'
+	const releases = (searchData.releases ?? []).filter(
+		(r): r is MBReleaseSummary & { id: string } => typeof r.id === 'string'
 	);
 	if (releases.length === 0) return finalize([], 'musicbrainz');
 

@@ -14,7 +14,10 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 	if (dbError) throw error(500, dbError.message);
 
-	return json({ albums: data ?? [] }, {
-		headers: { 'cache-control': 'no-store' }
-	});
+	return json(
+		{ albums: data ?? [] },
+		{
+			headers: { 'cache-control': 'no-store' }
+		}
+	);
 };

@@ -3,7 +3,7 @@ import { scanDuplicates, removeDuplicates } from '$lib/dedupe.server';
 import { backfillMissingMetadata } from '$lib/backfill.server';
 import type { Actions, PageServerLoad } from './$types';
 
-const MAX_AVATAR_BYTES = 512 * 1024;  // 512 KB after client-side resize is plenty
+const MAX_AVATAR_BYTES = 512 * 1024; // 512 KB after client-side resize is plenty
 const ALLOWED_TYPES = new Set(['image/webp', 'image/jpeg', 'image/png']);
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -28,7 +28,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	let featured = null;
 	if (profileRes.data?.featured_album_id) {
-		featured = (albumsRes.data ?? []).find((a) => a.id === profileRes.data!.featured_album_id) ?? null;
+		featured =
+			(albumsRes.data ?? []).find((a) => a.id === profileRes.data!.featured_album_id) ?? null;
 	}
 
 	return {
@@ -46,15 +47,18 @@ export const actions: Actions = {
 		if (!user) redirect(303, '/login');
 
 		const form = await request.formData();
-		const username = (form.get('username') as string ?? '').trim().toLowerCase();
-		const display_name = ((form.get('display_name') as string ?? '').trim()) || null;
-		const last_fm_username = ((form.get('last_fm_username') as string ?? '').trim()) || null;
-		const discogs_username = ((form.get('discogs_username') as string ?? '').trim()) || null;
+		const username = ((form.get('username') as string) ?? '').trim().toLowerCase();
+		const display_name = ((form.get('display_name') as string) ?? '').trim() || null;
+		const last_fm_username = ((form.get('last_fm_username') as string) ?? '').trim() || null;
+		const discogs_username = ((form.get('discogs_username') as string) ?? '').trim() || null;
 		const themeRaw = form.get('theme') as string;
 		const theme = ['auto', 'light', 'dark'].includes(themeRaw) ? themeRaw : 'auto';
 
 		if (!username || !/^[a-z0-9][a-z0-9_.-]*$/.test(username) || username.length < 2) {
-			return fail(400, { error: 'Username must start with a letter or number and can contain letters, numbers, underscores, hyphens, and periods.' });
+			return fail(400, {
+				error:
+					'Username must start with a letter or number and can contain letters, numbers, underscores, hyphens, and periods.'
+			});
 		}
 
 		const { error } = await locals.supabase

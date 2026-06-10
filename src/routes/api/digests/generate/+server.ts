@@ -43,7 +43,11 @@ export const POST: RequestHandler = async ({ url, locals, request }) => {
 	// Body is optional; parse defensively. Bearer-auth callers send a body.
 	let reqBody: GenerateBody = {};
 	if (request.headers.get('content-type')?.includes('application/json')) {
-		try { reqBody = await request.json(); } catch { reqBody = {}; }
+		try {
+			reqBody = await request.json();
+		} catch {
+			reqBody = {};
+		}
 	}
 
 	const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/)?.[1];
