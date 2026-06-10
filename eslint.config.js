@@ -37,8 +37,21 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		rules: {
+			// No base path configured, so plain hrefs resolve fine; resolve()
+			// everywhere would be ceremony with no payoff.
+			'svelte/no-navigation-without-resolve': 'off',
+			// Our each blocks render static display lists (tracklists, tag chips,
+			// search results) that never reorder in place. Svelte 5 errors hard on
+			// duplicate keys — a multi-disc tracklist with per-disc positions
+			// crashed hydration in June 2026 — so unkeyed is the safer default
+			// here, not an oversight.
+			'svelte/require-each-key': 'off',
+			// Flags transient function-local Set/URLSearchParams instances that
+			// never participate in reactivity. State that should be reactive in
+			// this app flows through $state/$derived + invalidateAll, not
+			// long-lived mutable collections.
+			'svelte/prefer-svelte-reactivity': 'off'
+		}
 	}
 );

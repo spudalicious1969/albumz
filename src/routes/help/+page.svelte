@@ -84,18 +84,18 @@
 			iTunes, Last.fm, MusicBrainz, and Deezer — one click fills artist / title / year, and stages a
 			cover too if there isn't one yet. Underneath the cover picker, the same panel surfaces
 			<strong>suggestions for empty fields</strong>
-			— tags from Discogs (or Last.fm as a fallback), and a label / tag suggestion from a local AI
-			as a final fallback. Each one is marked with its source and has
+			— tags from Discogs (or Last.fm as a fallback), and a label / tag suggestion from a local AI as
+			a final fallback. Each one is marked with its source and has
 			<strong>Accept / Edit / Skip</strong> controls, so nothing writes without your say-so.
 		</p>
 		<p>
 			<strong>Pick a tracklist.</strong> The same panel also surfaces a <strong>Tracklist</strong>
-			chooser — one row per source that returned tracks (Spotify, Deezer, iTunes, Last.fm), with
-			track count + total runtime. Click a row to expand the full list; click
+			chooser — one row per source that returned tracks (Spotify, Deezer, iTunes, Last.fm), with track
+			count + total runtime. Click a row to expand the full list; click
 			<strong>Accept</strong>
-			to pin that source's tracklist to the album. The album page reads the pinned snapshot on every
-			load, so what you picked is what you see. <strong>Use auto-pick</strong> clears the pin and goes
-			back to "longest wins."
+			to pin that source's tracklist to the album. The album page reads the pinned snapshot on every load,
+			so what you picked is what you see. <strong>Use auto-pick</strong> clears the pin and goes back
+			to "longest wins."
 		</p>
 		<p>
 			<strong>Notes, tags, ratings.</strong> The <code>notes</code> field is the depth ceiling on purpose.
@@ -308,8 +308,8 @@
 		<p>
 			<strong>What you see.</strong> On your Headliner there's a small pill in the lower-right:
 			<em>"Tonight's set."</em>
-			Click it to expand. The card has a mic toggle, a set list (latest at top), and an End set link
-			that wipes everything and closes out the session. The label changes with the time of day —
+			Click it to expand. The card has a mic toggle, a set list (latest at top), and an End set link that
+			wipes everything and closes out the session. The label changes with the time of day —
 			<em>this morning's set</em>, <em>this afternoon's set</em>, <em>this evening's set</em>,
 			<em>tonight's set</em>.
 		</p>

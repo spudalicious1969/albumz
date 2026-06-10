@@ -131,6 +131,7 @@
 							{#if album.format}<span class="dim">· {album.format}</span>{/if}
 						</span>
 						{#if album.notes}
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -- notesToHtml escapes first; only http(s) links pass through -->
 							<span class="notes">{@html notesToHtml(album.notes)}</span>
 						{/if}
 						{#if album.tags && album.tags.length > 0}

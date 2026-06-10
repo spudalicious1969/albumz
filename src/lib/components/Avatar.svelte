@@ -32,7 +32,9 @@
 	});
 
 	$effect(() => {
-		// reset failure flag if the email_hash changes
+		// Touch email_hash so this effect re-runs (resetting the failure flag)
+		// whenever it changes — the bare read is the dependency registration.
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		profile.email_hash;
 		gravatarFailed = false;
 	});

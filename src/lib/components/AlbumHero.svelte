@@ -64,6 +64,7 @@
 				</ul>
 			{/if}
 			{#if album.notes}
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -- notesToHtml escapes first; only http(s) links pass through -->
 				<p class="notes">{@html notesHtml}</p>
 			{/if}
 		</div>
