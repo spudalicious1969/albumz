@@ -346,8 +346,6 @@
 		<div class="bento-frame" bind:this={frameEl}>
 		<div class="bento-grid" aria-hidden="true" bind:this={gridEl}>
 			{#each slots as slot, i (i)}
-				{@const visible = slot.faces[slot.showing]}
-				{@const hidden = slot.faces[slot.showing === 0 ? 1 : 0]}
 				<div
 					class="slot"
 					class:feature={slot.shape === '2x2'}

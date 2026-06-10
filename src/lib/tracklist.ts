@@ -30,6 +30,23 @@ export type TracklistResult = {
 	alternates?: MBAlternate[];
 };
 
+/**
+ * Multi-disc releases come back from catalog sources (and live in snapshots
+ * saved before this landed) with track positions restarting at 1 per disc.
+ * Renumber sequentially when positions aren't unique so the UI shows 1..N
+ * and consumers can safely use position as a key.
+ */
+export function renumberIfDuplicates(tracks: Track[]): Track[] {
+	const seen = new Set<number>();
+	for (const t of tracks) {
+		if (seen.has(t.position)) {
+			return tracks.map((track, i) => ({ ...track, position: i + 1 }));
+		}
+		seen.add(t.position);
+	}
+	return tracks;
+}
+
 export function formatDuration(seconds: number): string {
 	const m = Math.floor(seconds / 60);
 	const s = seconds % 60;
@@ -55,19 +72,7 @@ export function snapshotToResult(raw: unknown): TracklistResult | null {
 	if (!Array.isArray(v.tracks) || v.tracks.length === 0) return null;
 	if (typeof v.source !== 'string') return null;
 
-	const rawTracks = v.tracks as Track[];
-	// Snapshots saved before the multi-disc dedup landed may have positions
-	// that restart per disc; renumber sequentially on read so consumers can
-	// safely use position as a key.
-	const seen = new Set<number>();
-	let hasDupes = false;
-	for (const t of rawTracks) {
-		if (seen.has(t.position)) { hasDupes = true; break; }
-		seen.add(t.position);
-	}
-	const tracks = hasDupes
-		? rawTracks.map((t, i) => ({ ...t, position: i + 1 }))
-		: rawTracks;
+	const tracks = renumberIfDuplicates(v.tracks as Track[]);
 	const totalDuration = tracks.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
 	return {
 		tracks,

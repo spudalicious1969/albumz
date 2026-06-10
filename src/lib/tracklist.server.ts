@@ -8,6 +8,7 @@
 
 import { env } from '$env/dynamic/private';
 import { getSpotifyToken } from './spotify-auth.server';
+import { renumberIfDuplicates } from './tracklist';
 import type { MBAlternate, Track, TracklistResult, TracklistSource } from './tracklist';
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
@@ -74,19 +75,7 @@ export async function fetchTracklist(artist: string, title: string): Promise<Tra
 }
 
 function finalize(tracks: Track[], source: TracklistSource): TracklistResult {
-	// Multi-disc reissues come back from Spotify/Deezer/iTunes with track_number
-	// restarting at 1 per disc. Renumber sequentially when positions aren't
-	// unique so the UI shows 1..N instead of 1..11, 1..11 (and so Svelte 5's
-	// keyed each — wherever a caller still uses one — doesn't choke on dupes).
-	const seen = new Set<number>();
-	let hasDupes = false;
-	for (const t of tracks) {
-		if (seen.has(t.position)) { hasDupes = true; break; }
-		seen.add(t.position);
-	}
-	const normalized = hasDupes
-		? tracks.map((t, i) => ({ ...t, position: i + 1 }))
-		: tracks;
+	const normalized = renumberIfDuplicates(tracks);
 	const totalDuration = normalized.reduce((sum, t) => (t.duration ? sum + t.duration : sum), 0);
 	return {
 		tracks: normalized,

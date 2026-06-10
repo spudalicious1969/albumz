@@ -109,8 +109,11 @@
 		(album.tracklist as { source?: TracklistSource } | null | undefined)?.source ?? null
 	);
 
-	// Re-sync the edit-state vars if the underlying album changes (e.g. after Save invalidates)
-	$effect(() => {
+	// Re-sync the edit fields from the album row. Called when the editor opens
+	// and after a successful save — NOT reactively, so album refreshes from
+	// in-editor actions (tracklist pin/clear via invalidateAll) can't stomp
+	// typed-but-unsaved edits.
+	function syncEditFields() {
 		editArtist = album.artist;
 		editTitle = album.title;
 		editYear = album.year ?? '';
@@ -118,7 +121,7 @@
 		editRating = album.rating != null ? String(album.rating) : '';
 		editLabel = album.label ?? '';
 		editTags = album.tags?.join(', ') ?? '';
-	});
+	}
 
 	// Visibility of suggestion rows — reactive to current form state so they
 	// auto-hide when the user types a value in (or accepts a suggestion).
@@ -350,7 +353,14 @@
 
 	<!-- Owner action row -->
 	<section class="actions-row">
-		<button type="button" class="btn-secondary" onclick={() => (editing = !editing)}>
+		<button
+			type="button"
+			class="btn-secondary"
+			onclick={() => {
+				editing = !editing;
+				if (editing) syncEditFields();
+			}}
+		>
 			{editing ? 'Close editor' : 'Edit details'}
 		</button>
 		<button type="button" class="btn-secondary" onclick={openCoverPicker}>
@@ -654,11 +664,16 @@
 				method="POST"
 				action="?/update"
 				use:enhance={() => {
-					return async ({ update }) => {
+					return async ({ result, update }) => {
 						await update({ reset: false });
-						// Clear staged cover after save commits
-						stagedCoverUrl = '';
-						stagedAccent = '';
+						if (result.type === 'success') {
+							// Pick up server-side normalization (year parse, tag dedupe).
+							// On failure, keep the user's attempted values for correction.
+							syncEditFields();
+							// Clear staged cover after save commits
+							stagedCoverUrl = '';
+							stagedAccent = '';
+						}
 					};
 				}}
 			>
@@ -1189,7 +1204,7 @@
 	.field.full { grid-column: 1 / -1; }
 	.label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
 	.label small { font-weight: 400; text-transform: none; letter-spacing: 0; }
-	.field input, .field select, .field textarea {
+	.field input, .field textarea {
 		padding: 0.55rem 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);

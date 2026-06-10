@@ -441,7 +441,7 @@
 	.field.full { grid-column: 1 / -1; }
 	.label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
 	.label small { font-weight: 400; text-transform: none; letter-spacing: 0; }
-	.field input, .field select, .field textarea {
+	.field input, .field textarea {
 		padding: 0.55rem 0.75rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);

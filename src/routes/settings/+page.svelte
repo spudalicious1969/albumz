@@ -128,9 +128,9 @@
 								<span class="dot"></span>
 								Connected as @{profile.last_fm_username}
 							</span>
-							<form method="POST" action="?/disconnectLastfm" use:enhance style="display:inline">
-								<button type="submit" class="btn-ghost">Disconnect</button>
-							</form>
+							<!-- Submits the #disconnect-lastfm form declared after the Profile
+								     form — a <form> can't nest inside another <form>. -->
+								<button type="submit" form="disconnect-lastfm" class="btn-ghost">Disconnect</button>
 						{:else}
 							<span class="lastfm-status">
 								<span class="dot off"></span>
@@ -175,6 +175,10 @@
 					<button type="submit" class="btn-primary">Save profile</button>
 				</div>
 			</form>
+			<!-- Target of the Disconnect button inside the Profile form (via its
+			     form="disconnect-lastfm" attribute); lives out here because forms
+			     can't nest. Renders nothing. -->
+			<form id="disconnect-lastfm" method="POST" action="?/disconnectLastfm" use:enhance></form>
 		</section>
 
 		<!-- ── Avatar ─────────────────────────────────────────────── -->
