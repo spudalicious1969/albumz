@@ -15,6 +15,19 @@
 		page.url.pathname.startsWith('/digests/') || page.url.pathname.startsWith('/headliner/')
 	);
 
+	// Single source of truth for which PWA the current page installs as. A page can
+	// only carry one effective <link rel="manifest">, so we pick it by route: the
+	// mini gets its own per-user manifest (Window Controls Overlay, no titlebar),
+	// the rest of Headliner gets the fullscreen Headliner manifest, everything else
+	// installs as Albumz. (See the note in app.html for why this lives here.)
+	const manifestHref = $derived.by(() => {
+		const path = page.url.pathname;
+		const mini = path.match(/^\/headliner\/([^/]+)\/mini\/?$/);
+		if (mini) return `/headliner/${mini[1]}/mini/manifest.json`;
+		if (path === '/headliner' || path.startsWith('/headliner/')) return '/headliner/manifest.json';
+		return '/manifest.json';
+	});
+
 	onMount(() => {
 		const {
 			data: { subscription }
@@ -37,6 +50,10 @@
 		}
 	});
 </script>
+
+<svelte:head>
+	<link rel="manifest" href={manifestHref} />
+</svelte:head>
 
 {@render children()}
 

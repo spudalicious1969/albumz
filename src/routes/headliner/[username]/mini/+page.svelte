@@ -309,6 +309,22 @@
 		font-family: inherit;
 	}
 
+	/* Window Controls Overlay — only when the Mini is installed and launched as
+	   its own app (never the in-browser popup). The OS titlebar collapses into the
+	   window, so we reclaim it: the whole surface becomes the drag handle (grab the
+	   cover to move the window) while the floating controls opt back out so clicks
+	   still register. The corner buttons drop below the title-bar strip so they
+	   never sit under the OS min/close buttons, whichever edge the platform uses. */
+	@media (display-mode: window-controls-overlay) {
+		.mini {
+			-webkit-app-region: drag;
+		}
+		.corner-btn {
+			-webkit-app-region: no-drag;
+			top: calc(3.5cqmin + env(titlebar-area-height, 0px));
+		}
+	}
+
 	/* Blurred cover fills the window behind the square — only visible as a
 	   letterbox surround when the window isn't square. Keeps it atmospheric. */
 	.bg-layer {

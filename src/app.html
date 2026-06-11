@@ -5,7 +5,10 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<link rel="icon" type="image/svg+xml" href="/icon.svg" />
-		<link rel="manifest" href="/manifest.json" />
+		<!-- The manifest link is set per-route in +layout.svelte, not here: browsers
+		     honour the *first* <link rel="manifest"> and ignore the rest, so a global
+		     one here would always beat the Headliner/Mini manifests and every install
+		     would just be "Albumz". One path-aware link keeps the right app installable. -->
 		<meta name="theme-color" content="#08070a" />
 		%sveltekit.head%
 	</head>

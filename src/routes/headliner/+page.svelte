@@ -5,7 +5,6 @@
 
 <svelte:head>
 	<title>Headliner — albumz</title>
-	<link rel="manifest" href="/headliner/manifest.json" />
 </svelte:head>
 
 <main>
