@@ -168,6 +168,20 @@
 		}
 	});
 
+	// Open the mini Headliner as a deliberately small popup rather than a clone of
+	// this (often full-screen) window. The mini is square-first — the cover full-
+	// bleeds at a square content area — so open it square (width/height set the
+	// inner viewport in modern browsers) and let the cover be the hero from the
+	// first frame, not the letterboxed fallback. A named target means repeat
+	// clicks reuse the same popup; modified/middle clicks fall through to the
+	// anchor's default new-tab behaviour.
+	function openMini(e: MouseEvent) {
+		if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+		e.preventDefault();
+		const url = `/headliner/${data.profile.username}/mini`;
+		window.open(url, 'albumz-mini', 'popup,width=240,height=240');
+	}
+
 	const displayName = $derived(data.profile.display_name || data.profile.username);
 	// Treat a 'recent' result as still live for LIVE_GRACE_MS after the most
 	// recent 'playing' ping, so between-track gaps don't flick the UI.
@@ -246,6 +260,18 @@
 		target="_blank"
 		rel="noopener"
 		title="Open {displayName}'s public page">← @{data.profile.username}</a
+	>
+
+	<!-- Compact-mode escape hatch. Opens the mini Headliner in its own window so
+	     it can be sized down to a corner of the screen while you listen. -->
+	<a
+		class="mini-link"
+		href="/headliner/{data.profile.username}/mini"
+		target="_blank"
+		rel="noopener"
+		onclick={openMini}
+		title="Open mini mode — a compact now-playing widget"
+		aria-label="Open mini mode"><span class="mini-glyph" aria-hidden="true">⊟</span> Mini</a
 	>
 
 	{#if idleWithMosaic}
@@ -356,6 +382,36 @@
 		color: var(--hl-accent);
 		background: color-mix(in oklch, var(--hl-accent) 8%, transparent);
 		text-decoration: none;
+	}
+
+	.mini-link {
+		position: fixed;
+		top: 1.25rem;
+		right: 1.5rem;
+		z-index: 5;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.78rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		color: color-mix(in oklch, var(--hl-accent) 70%, transparent);
+		text-decoration: none;
+		text-shadow: 0 0 12px color-mix(in oklch, var(--hl-accent) 35%, transparent);
+		padding: 0.3rem 0.65rem;
+		border-radius: 999px;
+		transition:
+			color 0.2s,
+			background 0.2s;
+	}
+	.mini-link:hover {
+		color: var(--hl-accent);
+		background: color-mix(in oklch, var(--hl-accent) 8%, transparent);
+		text-decoration: none;
+	}
+	.mini-glyph {
+		font-size: 0.9rem;
+		line-height: 1;
 	}
 
 	@keyframes bg-fade-in {
