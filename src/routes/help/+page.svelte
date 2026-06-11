@@ -240,6 +240,26 @@
 			If you're the owner, you'll also see the <strong>Tonight's set</strong> card in the bottom-right.
 			That's where Spin lives.
 		</p>
+		<p>
+			<strong>Mini mode.</strong> Up in the top-right of the Headliner there's a small
+			<strong>⊟ Mini</strong> link. It opens a tiny square window —
+			<code>/headliner/&lt;username&gt;/mini</code> — that's just the album cover with the track details
+			tucked into the bottom. Made to sit in a corner of your screen while you work, instead of taking
+			over a whole monitor. It pops open small (240&times;240) and you can resize it however you like.
+		</p>
+		<p>
+			The mini has two little controls that float over the cover, and both stay out of the way until
+			you hover them. Top-right is the <strong>listen</strong> toggle (owner only) — a mic that
+			glows red and pulses while it's catching spins, so you can keep an eye on your set without the
+			full card. Top-left is a <strong>maximize</strong> button that swaps you back to the full Headliner
+			and tidies the mini window away in one click.
+		</p>
+		<p class="aside">
+			Heads-up: if you leave <em>both</em> the full Headliner and the mini open with listening on, they'll
+			each catch the same spin and you'll get duplicates. Easiest habit is to keep listening on in just
+			one of them — and the maximize button does that for you, since it closes the mini as it reopens
+			the full view.
+		</p>
 	</section>
 
 	<section id="dig" class="card">

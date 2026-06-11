@@ -148,6 +148,23 @@
 	);
 	const latestSpin = $derived(spin.spins[0] ?? null);
 
+	// Swap back to the full Headliner. The mini was script-opened, so it's allowed
+	// to close itself — hand off to the full view (near-fullscreen) and tidy the
+	// popup away in one gesture. Only self-close if the full view actually opened,
+	// so a popup blocker can't strand the user with nothing. Closing the mini as
+	// the full opens also means we're never listening in two windows at once.
+	function openFull() {
+		const w = window.open(
+			`/headliner/${data.profile.username}`,
+			'albumz-headliner',
+			`popup,width=${screen.availWidth},height=${screen.availHeight},left=0,top=0`
+		);
+		if (w) {
+			w.focus();
+			window.close();
+		}
+	}
+
 	// "Caught it" flash — pulse the last-caught line briefly whenever a new spin
 	// lands, so a glance confirms the mic actually heard you.
 	let justCaught = $state(false);
@@ -204,12 +221,31 @@
 				</div>
 			{/if}
 
+			<!-- Swap to the full Headliner, top-left. Because the mini was script-
+			     opened it can close itself, so this hands off to the full view and
+			     tidies the popup away in one gesture (also avoiding double-catch). -->
+			<button
+				class="corner-btn full"
+				type="button"
+				onclick={openFull}
+				title="Open the full Headliner"
+				aria-label="Open the full Headliner"
+			>
+				<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">
+					<path
+						fill="currentColor"
+						d="M4 9V4h5v2H6v3H4zm0 6h2v3h3v2H4v-5zm16 0v5h-5v-2h3v-3h2zM15 6V4h5v5h-2V6h-3z"
+					/>
+				</svg>
+				<span class="corner-label">Full</span>
+			</button>
+
 			{#if data.isOwner}
 				<!-- Listen control floats over the cover, top-right. Its own blur
 				     backdrop keeps it legible over any artwork; always visible so the
 				     listen *status* never hides, even when the track text goes quiet. -->
 				<button
-					class="mic"
+					class="corner-btn mic"
 					class:on={spin.active}
 					class:identifying={spin.runnerStatus === 'identifying'}
 					type="button"
@@ -224,7 +260,7 @@
 							fill="currentColor"
 						/>
 					</svg>
-					<span class="mic-label">{micLabel}</span>
+					<span class="corner-label">{micLabel}</span>
 				</button>
 			{/if}
 
@@ -345,10 +381,12 @@
 		color: color-mix(in oklch, var(--hl-accent) 60%, #f0ead8);
 	}
 
-	.mic {
+	/* Shared corner control — a clean glyph circle floating over the cover. Both
+	   the swap-to-full button (top-left) and the mic (top-right) wear this; state
+	   and the hover-revealed label ride on top. */
+	.corner-btn {
 		position: absolute;
 		top: 3.5cqmin;
-		right: 3.5cqmin;
 		z-index: 2;
 		display: inline-flex;
 		align-items: center;
@@ -369,10 +407,20 @@
 			border-color 0.2s,
 			background 0.2s;
 	}
-	/* Mini default: a clean circle of just the mic glyph — state lives in colour
-	   and pulse, so the word isn't needed at rest. The label expands in on hover
-	   or keyboard focus, keeping the affordance one mouse-over away. */
-	.mic-label {
+	.corner-btn:hover {
+		color: #f0ead8;
+		border-color: color-mix(in oklch, #f0ead8 45%, transparent);
+	}
+	.full {
+		left: 3.5cqmin;
+	}
+	.mic {
+		right: 3.5cqmin;
+	}
+	/* Mini default: a clean glyph circle — for the mic, state lives in colour and
+	   pulse, so the word isn't needed at rest. The label expands in on hover or
+	   keyboard focus, keeping the affordance one mouse-over away. */
+	.corner-label {
 		max-width: 0;
 		margin-left: 0;
 		overflow: hidden;
@@ -383,17 +431,15 @@
 			margin-left 0.25s ease,
 			opacity 0.18s ease;
 	}
-	.mic:hover .mic-label,
-	.mic:focus-visible .mic-label {
+	.corner-btn:hover .corner-label,
+	.corner-btn:focus-visible .corner-label {
 		max-width: 8rem;
 		margin-left: 0.4rem;
 		opacity: 1;
 	}
-	.mic:hover {
-		color: #f0ead8;
-		border-color: color-mix(in oklch, #f0ead8 45%, transparent);
-	}
-	.mic.on {
+	/* Armed mic overrides the shared hover colour, so it stays red on hover too. */
+	.mic.on,
+	.mic.on:hover {
 		color: #ff6b6b;
 		border-color: rgba(255, 107, 107, 0.55);
 		background: color-mix(in oklch, #08070a 45%, transparent);
