@@ -252,26 +252,35 @@
 	{/if}
 
 	<!-- Quiet back-link to the user's public page. `target="_blank"` keeps
-	     the installed PWA pristine — opens in a regular browser window. -->
+	     the installed PWA pristine — opens in a regular browser window. Collapsed
+	     to a bare arrow at rest (mini's corner-control language); the @username
+	     blooms in on hover/focus so the chrome never competes with the cover. -->
 	<a
-		class="back-link"
+		class="corner-link back-link"
 		href="/u/{data.profile.username}"
 		target="_blank"
 		rel="noopener"
-		title="Open {displayName}'s public page">← @{data.profile.username}</a
+		title="Open {displayName}'s public page"
 	>
+		<span class="corner-glyph" aria-hidden="true">←</span>
+		<span class="corner-label">@{data.profile.username}</span>
+	</a>
 
 	<!-- Compact-mode escape hatch. Opens the mini Headliner in its own window so
-	     it can be sized down to a corner of the screen while you listen. -->
+	     it can be sized down to a corner of the screen while you listen. Same
+	     collapse-to-glyph treatment as the back-link. -->
 	<a
-		class="mini-link"
+		class="corner-link mini-link"
 		href="/headliner/{data.profile.username}/mini"
 		target="_blank"
 		rel="noopener"
 		onclick={openMini}
 		title="Open mini mode — a compact now-playing widget"
-		aria-label="Open mini mode"><span class="mini-glyph" aria-hidden="true">⊟</span> Mini</a
+		aria-label="Open mini mode"
 	>
+		<span class="corner-glyph" aria-hidden="true">⊟</span>
+		<span class="corner-label">Mini</span>
+	</a>
 
 	{#if idleWithMosaic}
 		<div class="idle-overlay">
@@ -360,57 +369,62 @@
 		pointer-events: none;
 	}
 
-	.back-link {
+	/* Shared corner control — a bare accent glyph floating over the dark veil at
+	   rest, blooming into a labeled pill on hover/focus. Mirrors the mini's
+	   collapse-to-glyph language; kept borderless here (the full view's edges are
+	   dark enough to read against) so it stays atmospheric, not boxed. */
+	.corner-link {
 		position: fixed;
 		top: 1.25rem;
-		left: 1.5rem;
-		z-index: 5;
-		font-size: 0.78rem;
-		font-weight: 600;
-		letter-spacing: 0.08em;
-		color: color-mix(in oklch, var(--hl-accent) 70%, transparent);
-		text-decoration: none;
-		text-shadow: 0 0 12px color-mix(in oklch, var(--hl-accent) 35%, transparent);
-		padding: 0.3rem 0.65rem;
-		border-radius: 999px;
-		transition:
-			color 0.2s,
-			background 0.2s;
-	}
-	.back-link:hover {
-		color: var(--hl-accent);
-		background: color-mix(in oklch, var(--hl-accent) 8%, transparent);
-		text-decoration: none;
-	}
-
-	.mini-link {
-		position: fixed;
-		top: 1.25rem;
-		right: 1.5rem;
 		z-index: 5;
 		display: inline-flex;
 		align-items: center;
-		gap: 0.35rem;
+		gap: 0;
 		font-size: 0.78rem;
 		font-weight: 600;
 		letter-spacing: 0.08em;
 		color: color-mix(in oklch, var(--hl-accent) 70%, transparent);
 		text-decoration: none;
 		text-shadow: 0 0 12px color-mix(in oklch, var(--hl-accent) 35%, transparent);
-		padding: 0.3rem 0.65rem;
+		padding: 0.3rem 0.5rem;
 		border-radius: 999px;
 		transition:
 			color 0.2s,
 			background 0.2s;
 	}
-	.mini-link:hover {
+	.corner-link:hover {
 		color: var(--hl-accent);
 		background: color-mix(in oklch, var(--hl-accent) 8%, transparent);
 		text-decoration: none;
 	}
-	.mini-glyph {
-		font-size: 0.9rem;
+	.back-link {
+		left: 1.5rem;
+	}
+	.mini-link {
+		right: 1.5rem;
+	}
+	.corner-glyph {
+		font-size: 0.95rem;
 		line-height: 1;
+	}
+	/* Label collapsed at rest; expands in on hover or keyboard focus, keeping the
+	   affordance one mouse-over away without ever shouting. */
+	.corner-label {
+		max-width: 0;
+		margin-left: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		opacity: 0;
+		transition:
+			max-width 0.25s ease,
+			margin-left 0.25s ease,
+			opacity 0.18s ease;
+	}
+	.corner-link:hover .corner-label,
+	.corner-link:focus-visible .corner-label {
+		max-width: 8rem;
+		margin-left: 0.4rem;
+		opacity: 1;
 	}
 
 	@keyframes bg-fade-in {
@@ -467,6 +481,13 @@
 		.cover {
 			justify-self: center;
 			max-width: 70vw;
+		}
+		/* The portrait stage centers its text, but the eyebrow is an inline-flex
+		   row (default justify-content: flex-start), so text-align can't reach it —
+		   it'd stay left-packed while the title/artist center below. Center the
+		   dot+symbol+label as a unit so the whole meta block reads on one axis. */
+		.eyebrow {
+			justify-content: center;
 		}
 	}
 	.cover.placeholder {
