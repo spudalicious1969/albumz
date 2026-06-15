@@ -173,19 +173,24 @@ export async function backfillMissingMetadata(
 			if (!upErr) affected++;
 		}
 
-		// Anything still empty after the pass — surface so the owner can pick
-		// it up by hand (or via qwen's suggestion for tags/label). For tags,
-		// only fall back to qwen when truly empty — thin-tag enrichment is a
-		// catalog-only operation and we don't want to bug the user with AI
-		// suggestions for albums that already have *some* tags.
+		// Anything still unfilled after the pass — surface so the owner can see
+		// which albums came up short and pick them up by hand (or via qwen's
+		// suggestion for tags/label). We list *every* gap that didn't get
+		// filled, including thin-tag albums that the catalog couldn't enrich —
+		// otherwise they vanish from the recap entirely and "scanned 2, updated
+		// 0" points at nothing the user can click.
 		const remaining: MissingField[] = [];
 		if (wantsYear && updates.year === undefined) remaining.push('year');
 		if (wantsLabel && updates.label === undefined) remaining.push('label');
-		if (tagsEmpty && updates.tags === undefined) remaining.push('tags');
+		if (wantsTags && updates.tags === undefined) remaining.push('tags');
 		if (wantsCover && updates.cover_url === undefined) remaining.push('cover');
 
+		// qwen tag-suggestions only fire when tags are *truly empty* — thin-tag
+		// enrichment is a catalog-only operation, and we don't want AI noise on
+		// albums that already have a curated start. Those still appear in the
+		// list above (so they're findable), just without a suggestion.
 		let suggestion: AlbumSuggestion | null = null;
-		const needsTagSuggestion = remaining.includes('tags');
+		const needsTagSuggestion = tagsEmpty && updates.tags === undefined;
 		const needsLabelSuggestion = remaining.includes('label');
 		if (needsTagSuggestion || needsLabelSuggestion) {
 			const raw = await suggestMetadata(a.artist, a.title);
