@@ -151,6 +151,16 @@
 			AI guesses don't.
 		</p>
 		<p>
+			<strong>Refresh broken covers.</strong> Settings → <strong>Refresh broken covers</strong>.
+			Cover URLs live on outside CDNs, and once in a while an image gets removed or relinked there —
+			the album still has a cover <em>set</em>, so backfill skips it, but it shows up blank. This
+			pass pings every cover you have (owned and wantlist), and for any that come back dead (a 404
+			from the source) it re-fetches a working one. It only touches covers it confirms are broken,
+			and only swaps in a replacement it confirms loads — a slow network or a temporary outage won't
+			cause it to wipe good art. Anything it can't auto-heal is listed so you can
+			<strong>Pick a cover</strong> by hand.
+		</p>
+		<p>
 			<strong>Look-up palette (⌘K / Ctrl-K).</strong> From anywhere in the signed-in app. Checks your
 			collection first ("do I already own this?"), then offers Discogs and Spotify lookups for anything
 			that isn't a match. Useful when you're in a record shop staring at a sleeve.

@@ -34,6 +34,7 @@
 	let fileInputEl = $state<HTMLInputElement | null>(null);
 	let uploading = $state(false);
 	let backfilling = $state(false);
+	let refreshingCovers = $state(false);
 	let avatarError = $state<string | null>(null);
 
 	const filteredAlbums = $derived(
@@ -543,6 +544,80 @@
 													</li>
 												{/each}
 											</ul>
+										</li>
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</div>
+				{/if}
+			{/if}
+		</section>
+
+		<!-- ── Refresh broken covers ─────────────────────────────── -->
+		<section class="card">
+			<h2>Refresh broken covers</h2>
+			<p class="muted">
+				Checks every album that already has cover art — owned and wantlist — and re-fetches any
+				whose image has gone dead on the source (a 404 from the CDN). Backfill won't catch these,
+				because the cover field isn't <em>empty</em>, it's just pointing at a link that rotted. Only
+				replaces covers it confirms are broken, and only with a fresh one it confirms loads. This
+				can take a few minutes for a large collection.
+			</p>
+			<div class="data-row">
+				<form
+					method="POST"
+					action="?/refreshCovers"
+					use:enhance={() => {
+						refreshingCovers = true;
+						return async ({ update }) => {
+							await update({ reset: false });
+							refreshingCovers = false;
+						};
+					}}
+				>
+					<button type="submit" class="btn-secondary" disabled={refreshingCovers}>
+						{refreshingCovers ? 'Checking…' : 'Refresh broken covers'}
+					</button>
+				</form>
+				{#if refreshingCovers}
+					<span class="hint backfill-working">
+						<span class="pulse-dot" aria-hidden="true"></span>
+						Pinging each cover, then re-fetching the dead ones from Spotify, iTunes, Deezer, MusicBrainz,
+						and Last.fm. Hang tight.
+					</span>
+				{:else if form?.coverRefreshError}
+					<span class="hint hint-err">{form.coverRefreshError}</span>
+				{/if}
+			</div>
+
+			{#if !refreshingCovers && form?.coverRefreshSummary}
+				{@const c = form.coverRefreshSummary}
+				{#if c.dead === 0}
+					<p class="hint hint-ok">
+						Checked {c.scanned}
+						{c.scanned === 1 ? 'cover' : 'covers'} — all loading fine. Nothing to fix.
+					</p>
+				{:else}
+					<div class="backfill-result">
+						<p class="hint hint-ok">
+							Checked {c.scanned}
+							{c.scanned === 1 ? 'cover' : 'covers'}, found {c.dead} broken, re-fetched {c.healed}.
+						</p>
+						{#if c.stillBroken.length > 0}
+							<details class="backfill-missing" open>
+								<summary
+									>{c.stillBroken.length}
+									{c.stillBroken.length === 1 ? 'album' : 'albums'} still need a hand</summary
+								>
+								<p class="bf-missing-note">
+									No working replacement turned up automatically. Open each and use
+									<strong>Pick a cover</strong> to choose one by hand.
+								</p>
+								<ul class="backfill-missing-list">
+									{#each c.stillBroken as a (a.id)}
+										<li class="bf-album">
+											<a class="bf-album-link" href="/albums/{a.id}">{a.artist} — {a.title}</a>
 										</li>
 									{/each}
 								</ul>

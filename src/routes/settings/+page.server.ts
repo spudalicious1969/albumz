@@ -1,6 +1,7 @@
 import { redirect, fail } from '@sveltejs/kit';
 import { scanDuplicates, removeDuplicates } from '$lib/dedupe.server';
 import { backfillMissingMetadata } from '$lib/backfill.server';
+import { refreshStaleCovers } from '$lib/cover-refresh.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX_AVATAR_BYTES = 512 * 1024; // 512 KB after client-side resize is plenty
@@ -219,6 +220,26 @@ export const actions: Actions = {
 			return { backfillSummary: summary };
 		} catch (err) {
 			return fail(500, { backfillError: err instanceof Error ? err.message : 'Backfill failed.' });
+		}
+	},
+
+	refreshCovers: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+		try {
+			const summary = await refreshStaleCovers(locals.supabase, user.id);
+			if (summary.healed > 0) {
+				await locals.supabase.from('activity').insert({
+					user_id: user.id,
+					type: 'backfill',
+					description: `Re-fetched ${summary.healed} broken ${summary.healed === 1 ? 'cover' : 'covers'}`
+				});
+			}
+			return { coverRefreshSummary: summary };
+		} catch (err) {
+			return fail(500, {
+				coverRefreshError: err instanceof Error ? err.message : 'Cover refresh failed.'
+			});
 		}
 	}
 };
