@@ -10,7 +10,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const title = url.searchParams.get('title') ?? '';
 	const ownership = url.searchParams.get('ownership') === 'WANT' ? 'WANT' : 'OWN';
 
-	const covers = await runDiscovery(artist, title);
+	const covers = await runDiscovery(artist, title, { withLabel: true });
 
 	return { covers, prefill: { artist, title, ownership } };
 };
@@ -29,7 +29,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Enter an artist or an album title (or both) to search.' });
 		}
 
-		const covers = await runDiscovery(artist, title);
+		const covers = await runDiscovery(artist, title, { withLabel: true });
 		return { covers, prefill: { artist, title, ownership } };
 	},
 

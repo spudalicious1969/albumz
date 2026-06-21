@@ -12,11 +12,15 @@
 // from the other sources. Discogs ordering wins so curated styles surface
 // first in the merged list.
 //
-// Label still only comes from qwen since catalog sources are noisy on label
-// (often distributor or imprint rather than original label).
+// Label prefers Discogs (catalog-sourced, factual) and falls back to qwen when
+// Discogs has no label on the match. Discogs labels are per-pressing so they
+// can be a reissue imprint rather than the original — acceptable here because
+// label rides through the same Accept/Edit/Skip review as everything else, so
+// a noisy suggestion the owner can skip still beats the blank field that
+// qwen-only left whenever qwen wasn't confident.
 
 import { error, json } from '@sveltejs/kit';
-import { fetchDiscogsTagsForAlbum } from '$lib/discogs-tags.server';
+import { fetchDiscogsMetaForAlbum } from '$lib/discogs-tags.server';
 import { fetchAlbumTopTags, getArtistTopTagsBatch } from '$lib/lastfm.server';
 import { suggestMetadata } from '$lib/qwen-suggest.server';
 import { mergeTags } from '$lib/tag-merge';
@@ -38,22 +42,24 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const title = (url.searchParams.get('title') ?? '').trim();
 	if (!artist || !title) return json(EMPTY);
 
-	// Run all four in parallel. qwen sets the latency floor and we need it
-	// for the label anyway. Last.fm album-level tags are the richest source
-	// for record-specific genres (post-punk vs. just "rock"); artist-level
-	// tags fill in when album has none indexed yet.
-	const [discogsTags, lfmAlbumTags, lfmArtistMap, qwenSug] = await Promise.all([
-		fetchDiscogsTagsForAlbum(artist, title),
+	// Run all four in parallel. qwen sets the latency floor and we need it for
+	// the tag merge and the label fallback anyway. Last.fm album-level tags are
+	// the richest source for record-specific genres (post-punk vs. just "rock");
+	// artist-level tags fill in when album has none indexed yet.
+	const [discogs, lfmAlbumTags, lfmArtistMap, qwenSug] = await Promise.all([
+		fetchDiscogsMetaForAlbum(artist, title),
 		fetchAlbumTopTags(artist, title),
 		getArtistTopTagsBatch(locals.supabase, [artist.toLowerCase()]),
 		suggestMetadata(artist, title)
 	]);
 
 	const lfmArtistTags = lfmArtistMap.get(artist.toLowerCase()) ?? [];
-	const tags = mergeTags(discogsTags, lfmAlbumTags, lfmArtistTags, qwenSug.tags ?? []).slice(
+	const tags = mergeTags(discogs.tags, lfmAlbumTags, lfmArtistTags, qwenSug.tags ?? []).slice(
 		0,
 		TAG_CAP
 	);
 
-	return json({ tags, label: qwenSug.label } satisfies LookupSuggestions);
+	const label = discogs.label ?? qwenSug.label;
+
+	return json({ tags, label } satisfies LookupSuggestions);
 };

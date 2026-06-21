@@ -9,6 +9,6 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 	const artist = (url.searchParams.get('artist') ?? '').trim();
 	const title = (url.searchParams.get('title') ?? '').trim();
 
-	const covers = await runDiscovery(artist, title);
+	const covers = await runDiscovery(artist, title, { withLabel: true });
 	return json({ covers });
 };

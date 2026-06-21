@@ -557,7 +557,6 @@
 								<BackfillSuggestion
 									field="label"
 									suggested={lookupSuggestions.label ?? ''}
-									sourceLabel="AI"
 									onSave={(value) => {
 										editLabel = Array.isArray(value) ? value.join(', ') : value;
 									}}

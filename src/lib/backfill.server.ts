@@ -4,11 +4,13 @@
 // discogs_id, accent_color (re-derived from cover_url on render).
 //
 // Sources reused from per-album lookup:
-//   - year/label/cover: runDiscovery → Spotify/iTunes/Deezer/MB/LFM (scored)
-//   - tags: merged from Discogs release-level styles+genres (curated,
-//          album-specific) AND Last.fm artist-tag cache, deduped case-
-//          insensitively. Discogs ordering wins so curated styles surface
-//          first. Both are catalog sources — safe to auto-write.
+//   - year/cover: runDiscovery → Spotify/iTunes/Deezer/MB/LFM (scored)
+//   - label + tags: one Discogs lookup per album (fetchDiscogsMetaForAlbum)
+//          shared between both. Label is Discogs's first listed label (the
+//          primary release label); tags are its release-level styles+genres,
+//          merged with the Last.fm artist-tag cache, deduped case-insensitively.
+//          Discogs ordering wins so curated styles surface first. Both are
+//          catalog sources — safe to auto-write.
 //   - tags + label final fallback: qwen3.5 (Ollama). Suggestions only — never
 //          auto-written. Surfaced in the recap with Accept/Edit/Skip review.
 
@@ -16,7 +18,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { runDiscovery } from './album-search.server';
 import { topConfidentCover } from './cover-search';
 import { fetchAlbumTopTags, getArtistTopTagsBatch } from './lastfm.server';
-import { fetchDiscogsTagsForAlbum } from './discogs-tags.server';
+import { fetchDiscogsMetaForAlbum } from './discogs-tags.server';
 import { suggestMetadata, type AlbumSuggestion } from './qwen-suggest.server';
 import { mergeTags } from './tag-merge';
 
@@ -102,27 +104,22 @@ export async function backfillMissingMetadata(
 		const wantsTags = existingTagCount <= THIN_TAGS_THRESHOLD;
 		const tagsEmpty = existingTagCount === 0;
 
-		// Discogs-style lookup only fires when a non-tag field is missing — saves
-		// API roundtrips for albums whose only gap is tags.
-		const needsLookup = wantsYear || wantsLabel || wantsCover;
-		if (needsLookup) {
+		// Cover-source lookup (year + cover) only fires when one of those is
+		// missing — saves API roundtrips for albums whose only gaps are
+		// label/tags, which Discogs handles separately below.
+		if (wantsYear || wantsCover) {
 			if (wantsYear) attempted.years++;
-			if (wantsLabel) attempted.labels++;
 			if (wantsCover) attempted.covers++;
 			try {
 				const results = await runDiscovery(a.artist, a.title);
-				// Only trust the top hit if it clears the confidence floor — all
-				// three fields (year/label/cover) come from the same result row,
-				// so a wrong-artist match would poison every one of them.
+				// Only trust the top hit if it clears the confidence floor — both
+				// year and cover come from the same result row, so a wrong-artist
+				// match would poison both.
 				const top = topConfidentCover(results, a.artist, a.title);
 				if (top) {
 					if (wantsYear && typeof top.year === 'number') {
 						updates.year = top.year;
 						filled.years++;
-					}
-					if (wantsLabel && top.label) {
-						updates.label = top.label;
-						filled.labels++;
 					}
 					if (wantsCover && top.url) {
 						updates.cover_url = top.url;
@@ -134,6 +131,20 @@ export async function backfillMissingMetadata(
 				}
 			} catch {
 				// best-effort: skip this album's lookup failure, keep going
+			}
+		}
+
+		// Label and tags both come from Discogs — fetch once and share. (Cover
+		// sources don't carry a label, which is why label can't ride on the
+		// runDiscovery top hit above.) Returns empty/null on failure.
+		const discogsMeta =
+			wantsLabel || wantsTags ? await fetchDiscogsMetaForAlbum(a.artist, a.title) : null;
+
+		if (wantsLabel) {
+			attempted.labels++;
+			if (discogsMeta?.label) {
+				updates.label = discogsMeta.label;
+				filled.labels++;
 			}
 		}
 
@@ -149,15 +160,14 @@ export async function backfillMissingMetadata(
 			// only fired when tags were completely empty; now also enriches
 			// "thin" albums (1-2 tags) so single-tag results like the B-52s
 			// get fleshed out without losing the original.
-			const [discogsTags, lfmAlbumTags] = await Promise.all([
-				fetchDiscogsTagsForAlbum(a.artist, a.title),
-				fetchAlbumTopTags(a.artist, a.title)
-			]);
+			const lfmAlbumTags = await fetchAlbumTopTags(a.artist, a.title);
 			const lfmArtistTags = tagMap.get(artistKey(a.artist)) ?? [];
-			const merged = mergeTags(a.tags ?? [], discogsTags, lfmAlbumTags, lfmArtistTags).slice(
-				0,
-				TAGS_PER_ALBUM_CAP
-			);
+			const merged = mergeTags(
+				a.tags ?? [],
+				discogsMeta?.tags ?? [],
+				lfmAlbumTags,
+				lfmArtistTags
+			).slice(0, TAGS_PER_ALBUM_CAP);
 			if (merged.length > existingTagCount) {
 				updates.tags = merged;
 				filled.tagSets++;

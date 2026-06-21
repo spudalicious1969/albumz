@@ -16,19 +16,25 @@ type DiscogsSearchHit = {
 	title?: string;
 	style?: string[];
 	genre?: string[];
+	label?: string[];
 };
+
+export type DiscogsMeta = {
+	/** Lowercase, deduped tags. Order: styles first (more specific), then genres. */
+	tags: string[];
+	/** Best-guess record label, or null when Discogs has none on the match. */
+	label: string | null;
+};
+
+const EMPTY_META: DiscogsMeta = { tags: [], label: null };
 
 function normalizeMatch(s: string): string {
 	return s.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-/** Returns lowercase, deduped tags. Order: styles first (more specific),
- *  then genres. Returns [] on any failure so callers can fall back cleanly. */
-export async function fetchDiscogsTagsForAlbum(artist: string, title: string): Promise<string[]> {
-	const token = env.DISCOGS_TOKEN;
-	if (!token) return [];
-	if (!artist.trim() || !title.trim()) return [];
-
+/** Run the two-stage Discogs release search (precise field query, then a
+ *  punctuation-forgiving broad fallback) and return the matched hits. */
+async function searchReleases(token: string, artist: string, title: string) {
 	const fetchHits = async (params: URLSearchParams): Promise<DiscogsSearchHit[]> => {
 		params.set('type', 'release');
 		params.set('per_page', String(TOP_RESULTS_TO_UNION));
@@ -47,7 +53,8 @@ export async function fetchDiscogsTagsForAlbum(artist: string, title: string): P
 	};
 
 	// Precise field search first — usually most accurate when it returns.
-	let hits = await fetchHits(new URLSearchParams({ artist, release_title: title }));
+	const hits = await fetchHits(new URLSearchParams({ artist, release_title: title }));
+	if (hits.length > 0) return hits;
 
 	// Discogs's field-scoped search is brittle on special characters,
 	// especially apostrophes ("The B-52's" returns zero). Fall back to a
@@ -55,18 +62,38 @@ export async function fetchDiscogsTagsForAlbum(artist: string, title: string): P
 	// punctuation more forgivingly. Search titles come back as
 	// "Artist - Title" so we just check both terms appear after stripping
 	// punctuation.
-	if (hits.length === 0) {
-		const broad = await fetchHits(new URLSearchParams({ q: `${artist} ${title}` }));
-		const wantArtist = normalizeMatch(artist);
-		const wantTitle = normalizeMatch(title);
-		hits = broad.filter((h) => {
-			const t = normalizeMatch(h.title ?? '');
-			return t.includes(wantArtist) && t.includes(wantTitle);
-		});
-	}
+	const broad = await fetchHits(new URLSearchParams({ q: `${artist} ${title}` }));
+	const wantArtist = normalizeMatch(artist);
+	const wantTitle = normalizeMatch(title);
+	return broad.filter((h) => {
+		const t = normalizeMatch(h.title ?? '');
+		return t.includes(wantArtist) && t.includes(wantTitle);
+	});
+}
 
-	// Union across top hits — different pressings of a release can have
-	// different style sets; aggregating gives us the strongest tag signal.
+/** Discogs disambiguates same-named labels with a trailing " (N)", e.g.
+ *  "Columbia (2)". Strip it so we surface the human-readable label name. */
+function cleanLabel(raw: string): string {
+	return raw.replace(/\s*\(\d+\)$/, '').trim();
+}
+
+/** Fetch both release-level tags and a best-guess label from a single Discogs
+ *  search. Returns empty/null on any failure so callers can fall back cleanly.
+ *  Label is the first non-empty label across the matched hits — Discogs lists
+ *  these per-pressing so it can be a reissue imprint rather than the original;
+ *  callers surface it as a reviewable suggestion, not an auto-write. */
+export async function fetchDiscogsMetaForAlbum(
+	artist: string,
+	title: string
+): Promise<DiscogsMeta> {
+	const token = env.DISCOGS_TOKEN;
+	if (!token) return EMPTY_META;
+	if (!artist.trim() || !title.trim()) return EMPTY_META;
+
+	const hits = await searchReleases(token, artist, title);
+
+	// Union styles/genres across top hits — different pressings of a release
+	// can carry different style sets; aggregating gives the strongest signal.
 	const seen = new Set<string>();
 	const tags: string[] = [];
 	const push = (raw: string) => {
@@ -77,5 +104,15 @@ export async function fetchDiscogsTagsForAlbum(artist: string, title: string): P
 	};
 	for (const h of hits) for (const s of h.style ?? []) push(s);
 	for (const h of hits) for (const g of h.genre ?? []) push(g);
-	return tags;
+
+	let label: string | null = null;
+	for (const h of hits) {
+		const first = h.label?.find((l) => l && l.trim());
+		if (first) {
+			label = cleanLabel(first);
+			break;
+		}
+	}
+
+	return { tags, label };
 }

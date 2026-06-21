@@ -2,6 +2,8 @@
 	import { enhance } from '$app/forms';
 	import { extractAccentColorFromImg } from '$lib/accent-color';
 	import SortDropdown from '$lib/components/SortDropdown.svelte';
+	import BackfillSuggestion from '$lib/components/BackfillSuggestion.svelte';
+	import { mergeTags } from '$lib/tag-merge';
 	import {
 		groupResults,
 		uniqueYears,
@@ -11,6 +13,11 @@
 	} from '$lib/lookup-grouping';
 	import type { CoverResult } from '$lib/cover-types';
 	import type { PageData, ActionData } from './$types';
+
+	type LookupSuggestions = {
+		tags: string[];
+		label: string | null;
+	};
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -26,9 +33,17 @@
 	let artist = $state('');
 	let title = $state('');
 	let year = $state<number | ''>('');
+	let label = $state('');
 	let format = $state('');
 	let rating = $state('');
+	let tags = $state('');
 	let ownership = $state<'OWN' | 'WANT'>('OWN');
+
+	// Catalog/AI lookup of label + tags — the same source the edit page's
+	// "Look up details" panel uses. Fires automatically when an album is
+	// picked, and on demand via the button (for the type-it-yourself path).
+	let lookupSuggestions = $state<LookupSuggestions | null>(null);
+	let lookupSuggesting = $state(false);
 
 	const formatOptions = [
 		{ value: '', label: '—' },
@@ -64,6 +79,9 @@
 		if (cover.artist) artist = cover.artist;
 		if (cover.title) title = cover.title;
 		if (cover.year) year = cover.year;
+		// Label comes from Discogs (the only label-bearing source); fill it only
+		// when blank so we never clobber a value the user already typed.
+		if (cover.label && !label.trim()) label = cover.label;
 
 		const img = new Image();
 		img.crossOrigin = 'anonymous';
@@ -71,12 +89,54 @@
 			accentColor = extractAccentColorFromImg(img);
 		};
 		img.src = cover.url;
+
+		// Now that we know the exact album, pull the catalog label + tags. This
+		// covers the artist-only search path (Spotify-only results carry no
+		// label) and any album whose covers came back label-less.
+		runLookup(artist, title);
 	}
 
 	function onNoCover() {
 		selectedCover = '';
 		accentColor = '';
 	}
+
+	// Fetch label + tags for the current album from the shared lookup endpoint
+	// (Discogs label → qwen fallback; tags merged across Discogs/LFM/qwen).
+	// Auto-fills the Label field when blank; tag/label suggestions render in the
+	// review panel below.
+	function runLookup(lookupArtist: string, lookupTitle: string) {
+		const a = lookupArtist.trim();
+		const t = lookupTitle.trim();
+		if (!a || !t) return;
+		lookupSuggesting = true;
+		lookupSuggestions = null;
+		const qs = new URLSearchParams({ artist: a, title: t }).toString();
+		fetch(`/api/albums/lookup-suggestions?${qs}`)
+			.then((r) => r.json())
+			.then((p: LookupSuggestions) => {
+				lookupSuggestions = p;
+				if (p.label && !label.trim()) label = p.label;
+			})
+			.catch(() => {})
+			.finally(() => {
+				lookupSuggesting = false;
+			});
+	}
+
+	const currentTagArray = $derived(
+		tags
+			.split(',')
+			.map((s) => s.trim())
+			.filter(Boolean)
+	);
+	const mergedTagSuggestion = $derived(
+		lookupSuggestions?.tags && lookupSuggestions.tags.length > 0
+			? mergeTags(currentTagArray, lookupSuggestions.tags)
+			: []
+	);
+	const showTagSuggestion = $derived(mergedTagSuggestion.length > currentTagArray.length);
+	const showLabelSuggestion = $derived(!label.trim() && !!lookupSuggestions?.label);
 </script>
 
 <svelte:head>
@@ -221,7 +281,7 @@
 				</div>
 				<label class="field">
 					<span class="label">Label</span>
-					<input type="text" name="label" />
+					<input type="text" name="label" bind:value={label} />
 				</label>
 				<div class="field">
 					<span class="label">Rating</span>
@@ -241,7 +301,7 @@
 				</label>
 				<label class="field full">
 					<span class="label">Tags <small>(comma-separated)</small></span>
-					<input type="text" name="tags" placeholder="jazz, favourites, 70s" />
+					<input type="text" name="tags" placeholder="jazz, favourites, 70s" bind:value={tags} />
 				</label>
 				<label class="field full">
 					<span class="label">Notes</span>
@@ -251,6 +311,45 @@
 						placeholder="What this record means to you. Links: [text](https://…)"
 					></textarea>
 				</label>
+			</div>
+
+			<!-- Catalog/AI enrichment — fills label, suggests tags. Auto-runs on
+			     album select; the button covers the type-it-yourself path. -->
+			<div class="lookup-block">
+				<button
+					type="button"
+					class="btn-ghost lookup-btn"
+					onclick={() => runLookup(artist, title)}
+					disabled={lookupSuggesting || !artist.trim() || !title.trim()}
+					title="Pull the record label and genre tags from the catalog"
+				>
+					{lookupSuggesting ? 'Looking up…' : 'Look up details'}
+				</button>
+				{#if lookupSuggesting && !lookupSuggestions}
+					<p class="muted lookup-loading">Looking up tags and label…</p>
+				{:else if lookupSuggestions && (showTagSuggestion || showLabelSuggestion)}
+					<div class="lookup-suggestions">
+						<h3 class="lookup-suggestions-title">More suggestions</h3>
+						{#if showTagSuggestion}
+							<BackfillSuggestion
+								field="tags"
+								suggested={mergedTagSuggestion}
+								onSave={(value) => {
+									tags = Array.isArray(value) ? value.join(', ') : value;
+								}}
+							/>
+						{/if}
+						{#if showLabelSuggestion}
+							<BackfillSuggestion
+								field="label"
+								suggested={lookupSuggestions.label ?? ''}
+								onSave={(value) => {
+									label = Array.isArray(value) ? value.join(', ') : value;
+								}}
+							/>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			{#if (form as { error?: string })?.error}
@@ -583,5 +682,37 @@
 		color: oklch(55% 0.2 25);
 		font-size: 0.85rem;
 		margin-top: 0.5rem;
+	}
+	.lookup-block {
+		margin-top: 1.5rem;
+	}
+	.lookup-btn {
+		padding: 0.5rem 0.9rem;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		cursor: pointer;
+		background: transparent;
+	}
+	.lookup-btn:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+	.lookup-loading {
+		font-size: 0.8rem;
+		margin-top: 0.75rem;
+		color: var(--text-muted);
+	}
+	.lookup-suggestions {
+		margin-top: 1rem;
+		padding-top: 0.9rem;
+		border-top: 1px solid var(--border);
+	}
+	.lookup-suggestions-title {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--text-muted);
+		margin: 0 0 0.5rem;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
 	}
 </style>

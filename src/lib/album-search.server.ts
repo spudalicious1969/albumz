@@ -4,6 +4,16 @@
 
 import { getSpotifyToken } from './spotify-auth.server';
 import { searchCovers, type CoverResult } from './cover-search';
+import { fetchDiscogsMetaForAlbum } from './discogs-tags.server';
+
+type DiscoveryOptions = {
+	/** Also fetch the album's label from Discogs and stamp it onto every
+	 *  result. Off by default — only the interactive add/edit cover pickers
+	 *  want it; cover-healing and bulk paths skip the extra Discogs call.
+	 *  None of the cover sources (Spotify/iTunes/Deezer/MB/LFM) carry a label,
+	 *  so without this the results' `label` field stays empty. */
+	withLabel?: boolean;
+};
 
 /**
  * When both artist and title are filled, run the full multi-source cover
@@ -11,10 +21,22 @@ import { searchCovers, type CoverResult } from './cover-search';
  * back to a Spotify-backed discovery search so partial queries still surface
  * useful suggestions.
  */
-export async function runDiscovery(artist: string, title: string): Promise<CoverResult[]> {
+export async function runDiscovery(
+	artist: string,
+	title: string,
+	opts: DiscoveryOptions = {}
+): Promise<CoverResult[]> {
 	const a = artist.trim();
 	const t = title.trim();
-	if (a && t) return await searchCovers(a, t);
+	if (a && t) {
+		if (!opts.withLabel) return await searchCovers(a, t);
+		// Discogs is the only label-bearing source; fetch it alongside the
+		// covers and stamp the one album-level label onto each result so the
+		// picker can fill the Label field from whichever cover the user picks.
+		const [covers, meta] = await Promise.all([searchCovers(a, t), fetchDiscogsMetaForAlbum(a, t)]);
+		if (meta.label) for (const c of covers) c.label = meta.label;
+		return covers;
+	}
 	if (a || t) return await searchAlbums(a, t);
 	return [];
 }
