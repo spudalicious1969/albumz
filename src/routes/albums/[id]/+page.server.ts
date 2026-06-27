@@ -30,6 +30,30 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		stored ? Promise.resolve(stored) : fetchTracklist(album.artist, album.title)
 	]);
 
+	// Persist-on-view: if no curated snapshot existed and the live fetch turned
+	// up a real tracklist, pin it now. Keeps this page instant on the next visit
+	// and — more importantly — keeps track-search coverage at 100% as albums get
+	// added, since the add flow doesn't pin a tracklist itself. Writes the same
+	// { tracks, source, sourceId? } shape the chooser and bulk backfill produce.
+	// Fire-and-forget and best-effort: a failed write just means we re-fetch next
+	// time, and we never block the page render on it.
+	if (!stored && tracklist.source && tracklist.tracks.length > 0) {
+		const snapshot: { tracks: typeof tracklist.tracks; source: string; sourceId?: string } = {
+			tracks: tracklist.tracks,
+			source: tracklist.source
+		};
+		if (tracklist.sourceId) snapshot.sourceId = tracklist.sourceId;
+		void locals.supabase
+			.from('albums')
+			.update({ tracklist: snapshot })
+			.eq('id', album.id)
+			.eq('user_id', user.id)
+			.then(
+				() => {},
+				() => {}
+			);
+	}
+
 	return {
 		album,
 		isFeatured: profileRes.data?.featured_album_id === album.id,
