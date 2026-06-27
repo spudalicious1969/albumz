@@ -42,40 +42,59 @@
 		searchOpen = false;
 	}
 
-	const filtered = $derived(
-		(query.trim()
-			? data.albums.filter((a: Album) => {
-					const q = query.toLowerCase();
-					return (
-						a.artist.toLowerCase().includes(q) ||
-						a.title.toLowerCase().includes(q) ||
-						(a.tags ?? []).some((t: string) => t.toLowerCase().includes(q))
-					);
-				})
-			: data.albums
-		)
-			.slice()
-			.sort((a: Album, b: Album) => {
-				let r: number;
-				switch (sort) {
-					case 'album':
-						r = compareByKey(a.title, b.title);
-						break;
-					case 'rating':
-						r = (b.rating ?? 0) - (a.rating ?? 0);
-						break;
-					case 'format':
-						r =
-							(a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') ||
-							compareByKey(a.artist, b.artist);
-						break;
-					case 'artist':
-					default:
-						r = compareByKey(a.artist, b.artist);
-				}
-				return reversed ? -r : r;
-			})
-	);
+	type Result = { album: Album; track: string | null };
+
+	function compareAlbums(a: Album, b: Album): number {
+		let r: number;
+		switch (sort) {
+			case 'album':
+				r = compareByKey(a.title, b.title);
+				break;
+			case 'rating':
+				r = (b.rating ?? 0) - (a.rating ?? 0);
+				break;
+			case 'format':
+				r =
+					(a.format ?? 'zzz').localeCompare(b.format ?? 'zzz') || compareByKey(a.artist, b.artist);
+				break;
+			case 'artist':
+			default:
+				r = compareByKey(a.artist, b.artist);
+		}
+		return reversed ? -r : r;
+	}
+
+	// Search resolves to album cards, never a separate "tracks" view — you own
+	// albums, not songs. Artist/title/tag hits rank first; albums that matched
+	// only on a track name come after, each carrying the matched song so the card
+	// can show *why* it surfaced. Both groups respect the chosen sort.
+	const results = $derived.by((): Result[] => {
+		if (!query.trim()) {
+			return data.albums
+				.slice()
+				.sort(compareAlbums)
+				.map((a) => ({ album: a, track: null }));
+		}
+		const q = query.toLowerCase();
+		const primary: Album[] = [];
+		const trackHits: Result[] = [];
+		for (const a of data.albums) {
+			const inMeta =
+				a.artist.toLowerCase().includes(q) ||
+				a.title.toLowerCase().includes(q) ||
+				(a.tags ?? []).some((t: string) => t.toLowerCase().includes(q));
+			if (inMeta) {
+				primary.push(a);
+				continue;
+			}
+			const names = data.trackIndex[a.id];
+			const hit = names?.find((n) => n.toLowerCase().includes(q));
+			if (hit) trackHits.push({ album: a, track: hit });
+		}
+		primary.sort(compareAlbums);
+		trackHits.sort((x, y) => compareAlbums(x.album, y.album));
+		return [...primary.map((a) => ({ album: a, track: null })), ...trackHits];
+	});
 
 	const displayName = $derived(data.profile.display_name || data.profile.username);
 </script>
@@ -93,7 +112,7 @@
 				<div class="search-wrap">
 					<input
 						type="search"
-						placeholder="Search artist, title, or tag…"
+						placeholder="Search artist, title, tag, or song…"
 						bind:value={query}
 						bind:this={searchInputEl}
 						onkeydown={(e) => {
@@ -138,11 +157,11 @@
 		</div>
 	</header>
 
-	{#if filtered.length === 0}
+	{#if results.length === 0}
 		<p class="empty">No albums match.</p>
 	{:else}
 		<div class="album-grid">
-			{#each filtered as album (album.id)}
+			{#each results as { album, track } (album.id)}
 				<a
 					href="/u/{data.profile.username}/albums/{album.id}"
 					class="album-card"
@@ -156,8 +175,12 @@
 					<div class="card-info">
 						<p class="card-artist">{album.artist}</p>
 						<p class="card-title">{album.title}</p>
-						{#if album.year}<p class="card-year">{album.year}</p>{/if}
-						{#if album.rating}<p class="card-rating">{'★'.repeat(album.rating)}</p>{/if}
+						{#if track}
+							<p class="card-track" title={track}>↳ “{track}”</p>
+						{:else}
+							{#if album.year}<p class="card-year">{album.year}</p>{/if}
+							{#if album.rating}<p class="card-rating">{'★'.repeat(album.rating)}</p>{/if}
+						{/if}
 					</div>
 				</a>
 			{/each}
@@ -325,5 +348,15 @@
 		color: var(--card-accent);
 		margin-top: 0.2rem;
 		letter-spacing: 0.05em;
+	}
+	/* Why a track surfaced this card — only shown on track-only matches. */
+	.card-track {
+		font-size: 0.72rem;
+		color: var(--card-accent);
+		margin-top: 0.2rem;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>
