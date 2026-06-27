@@ -98,6 +98,12 @@
 			to "longest wins."
 		</p>
 		<p>
+			You rarely need to pin by hand, though. The first time you open an album, Albumz fetches its
+			tracklist and quietly pins it for you, and <strong>Backfill tracklists</strong> (Settings)
+			does the whole collection in one pass. Pinned tracklists are also what let you
+			<strong>search by song</strong> — see the look-up palette below.
+		</p>
+		<p>
 			<strong>Notes, tags, ratings.</strong> The <code>notes</code> field is the depth ceiling on purpose.
 			Want to write three paragraphs about how you found a record? Do it there. Tags are free-form — make
 			up your own vocabulary. Rating is 1–5 stars and entirely optional.
@@ -161,9 +167,21 @@
 			<strong>Pick a cover</strong> by hand.
 		</p>
 		<p>
-			<strong>Look-up palette (⌘K / Ctrl-K).</strong> From anywhere in the signed-in app. Checks your
-			collection first ("do I already own this?"), then offers Discogs and Spotify lookups for anything
-			that isn't a match. Useful when you're in a record shop staring at a sleeve.
+			<strong>Backfill tracklists.</strong> Settings → <strong>Backfill tracklists</strong>. Pins a
+			tracklist onto every album that doesn't have one yet — owned and wantlist — by looking each up
+			across Spotify, Deezer, iTunes, MusicBrainz, and Last.fm and keeping the fullest list. Albums
+			where you've already picked a tracklist by hand are left alone. This is what powers
+			<em>search by song</em>: the more albums carry a pinned tracklist, the more of your collection
+			the look-up palette can reach into. New albums get pinned automatically the first time you
+			open them, so this is really a one-time catch-up pass.
+		</p>
+		<p>
+			<strong>Look-up palette (⌘K / Ctrl-K).</strong> From anywhere in the signed-in app. Checks
+			your collection first ("do I already own this?") — by artist, album title, <em>or song</em>.
+			Type a track name and the album it's on surfaces, tagged with the matching song so you can see
+			why. For anything that isn't a match, it offers Discogs and Spotify lookups. Useful when
+			you're in a record shop staring at a sleeve — or when a song's stuck in your head and you
+			can't place the album.
 		</p>
 	</section>
 
