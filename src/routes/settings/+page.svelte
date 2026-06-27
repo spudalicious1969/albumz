@@ -35,6 +35,7 @@
 	let uploading = $state(false);
 	let backfilling = $state(false);
 	let refreshingCovers = $state(false);
+	let backfillingTracklists = $state(false);
 	let avatarError = $state<string | null>(null);
 
 	const filteredAlbums = $derived(
@@ -616,6 +617,77 @@
 								</p>
 								<ul class="backfill-missing-list">
 									{#each c.stillBroken as a (a.id)}
+										<li class="bf-album">
+											<a class="bf-album-link" href="/albums/{a.id}">{a.artist} — {a.title}</a>
+										</li>
+									{/each}
+								</ul>
+							</details>
+						{/if}
+					</div>
+				{/if}
+			{/if}
+		</section>
+
+		<!-- ── Backfill tracklists ───────────────────────────────── -->
+		<section class="card">
+			<h2>Backfill tracklists</h2>
+			<p class="muted">
+				Pins a tracklist onto every album that doesn't have one yet — owned and wantlist — by
+				looking it up across Spotify, Deezer, iTunes, MusicBrainz, and Last.fm and keeping whichever
+				returns the fullest list. Albums where you've already picked a tracklist by hand are left
+				alone. Stored snapshots make each album page load instantly and lay the groundwork for
+				searching your collection by song. This can take a few minutes for a large collection.
+			</p>
+			<div class="data-row">
+				<form
+					method="POST"
+					action="?/backfillTracklists"
+					use:enhance={() => {
+						backfillingTracklists = true;
+						return async ({ update }) => {
+							await update({ reset: false });
+							backfillingTracklists = false;
+						};
+					}}
+				>
+					<button type="submit" class="btn-secondary" disabled={backfillingTracklists}>
+						{backfillingTracklists ? 'Looking up…' : 'Backfill tracklists'}
+					</button>
+				</form>
+				{#if backfillingTracklists}
+					<span class="hint backfill-working">
+						<span class="pulse-dot" aria-hidden="true"></span>
+						Fetching tracklists from Spotify, Deezer, iTunes, MusicBrainz, and Last.fm. Hang tight.
+					</span>
+				{:else if form?.tracklistBackfillError}
+					<span class="hint hint-err">{form.tracklistBackfillError}</span>
+				{/if}
+			</div>
+
+			{#if !backfillingTracklists && form?.tracklistBackfillSummary}
+				{@const t = form.tracklistBackfillSummary}
+				{#if t.scanned === 0}
+					<p class="hint hint-ok">Every album already has a tracklist. Nothing to do.</p>
+				{:else}
+					<div class="backfill-result">
+						<p class="hint hint-ok">
+							Looked up {t.scanned}
+							{t.scanned === 1 ? 'album' : 'albums'}, pinned tracklists on {t.filled} ({t.tracksAdded}
+							{t.tracksAdded === 1 ? 'track' : 'tracks'} indexed).
+						</p>
+						{#if t.stillEmpty.length > 0}
+							<details class="backfill-missing" open>
+								<summary
+									>{t.stillEmpty.length}
+									{t.stillEmpty.length === 1 ? 'album' : 'albums'} came up empty</summary
+								>
+								<p class="bf-missing-note">
+									No source had a tracklist for these. Open each and use the
+									<strong>Tracklist</strong> chooser to pin one by hand.
+								</p>
+								<ul class="backfill-missing-list">
+									{#each t.stillEmpty as a (a.id)}
 										<li class="bf-album">
 											<a class="bf-album-link" href="/albums/{a.id}">{a.artist} — {a.title}</a>
 										</li>

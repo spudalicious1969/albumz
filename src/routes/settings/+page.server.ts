@@ -2,6 +2,7 @@ import { redirect, fail } from '@sveltejs/kit';
 import { scanDuplicates, removeDuplicates } from '$lib/dedupe.server';
 import { backfillMissingMetadata } from '$lib/backfill.server';
 import { refreshStaleCovers } from '$lib/cover-refresh.server';
+import { backfillTracklists } from '$lib/tracklist-backfill.server';
 import type { Actions, PageServerLoad } from './$types';
 
 const MAX_AVATAR_BYTES = 512 * 1024; // 512 KB after client-side resize is plenty
@@ -220,6 +221,26 @@ export const actions: Actions = {
 			return { backfillSummary: summary };
 		} catch (err) {
 			return fail(500, { backfillError: err instanceof Error ? err.message : 'Backfill failed.' });
+		}
+	},
+
+	backfillTracklists: async ({ locals }) => {
+		const { user } = await locals.safeGetSession();
+		if (!user) redirect(303, '/login');
+		try {
+			const summary = await backfillTracklists(locals.supabase, user.id);
+			if (summary.filled > 0) {
+				await locals.supabase.from('activity').insert({
+					user_id: user.id,
+					type: 'backfill',
+					description: `Pinned tracklists on ${summary.filled} ${summary.filled === 1 ? 'album' : 'albums'}`
+				});
+			}
+			return { tracklistBackfillSummary: summary };
+		} catch (err) {
+			return fail(500, {
+				tracklistBackfillError: err instanceof Error ? err.message : 'Tracklist backfill failed.'
+			});
 		}
 	},
 
