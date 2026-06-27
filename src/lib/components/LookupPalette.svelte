@@ -10,7 +10,10 @@
 		format: string | null;
 		ownership: 'OWN' | 'WANT';
 		cover_url: string | null;
+		tracks: string[];
 	};
+
+	type Result = { album: LookupAlbum; track: string | null };
 
 	let query = $state('');
 	let albums = $state<LookupAlbum[]>([]);
@@ -22,11 +25,22 @@
 
 	const q = $derived(query.trim().toLowerCase());
 
-	const filtered = $derived.by(() => {
-		if (!q) return albums.slice(0, 25);
-		return albums.filter(
-			(a) => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)
-		);
+	// Artist/title matches rank first; albums that matched only on a track name
+	// follow, each carrying the matched song so the row can show why it surfaced.
+	// You own albums, not songs — a track hit still resolves to its album row.
+	const filtered = $derived.by((): Result[] => {
+		if (!q) return albums.slice(0, 25).map((a) => ({ album: a, track: null }));
+		const primary: Result[] = [];
+		const trackHits: Result[] = [];
+		for (const a of albums) {
+			if (a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)) {
+				primary.push({ album: a, track: null });
+			} else {
+				const hit = a.tracks?.find((n) => n.toLowerCase().includes(q));
+				if (hit) trackHits.push({ album: a, track: hit });
+			}
+		}
+		return [...primary, ...trackHits];
 	});
 
 	async function loadAlbums() {
@@ -66,7 +80,7 @@
 			const target = filtered[selectedIndex];
 			if (target) {
 				e.preventDefault();
-				openAlbum(target.id);
+				openAlbum(target.album.id);
 			}
 		}
 	}
@@ -134,7 +148,7 @@
 					bind:this={inputEl}
 					bind:value={query}
 					type="text"
-					placeholder="Do I have this? Artist or album title…"
+					placeholder="Do I have this? Artist, album, or song…"
 					autocomplete="off"
 					autocorrect="off"
 					autocapitalize="off"
@@ -160,7 +174,7 @@
 					{#if !q}
 						<div class="results-label">Recent additions</div>
 					{/if}
-					{#each filtered as album, idx (album.id)}
+					{#each filtered as { album, track }, idx (album.id)}
 						<button
 							type="button"
 							class="row"
@@ -182,6 +196,7 @@
 									{album.title}
 									{#if album.year}<span class="year">· {album.year}</span>{/if}
 								</span>
+								{#if track}<span class="track" title={track}>↳ “{track}”</span>{/if}
 							</div>
 							<span class="badge" class:want={album.ownership === 'WANT'}>
 								{album.ownership === 'WANT' ? 'Want' : 'Owned'}
@@ -342,6 +357,14 @@
 	.year {
 		color: var(--text-muted);
 		font-weight: 400;
+	}
+	/* Why a track-only match surfaced this album. */
+	.track {
+		font-size: 0.78rem;
+		color: var(--accent);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.badge {
